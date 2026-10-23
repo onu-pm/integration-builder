@@ -1,10 +1,14 @@
-// Shared server helpers: Gemini call, docs fetching, prompt-injection scan, rate limiting.
-// The API key is read from the environment only and never sent to the browser.
+// Shared server helpers: AI call (NVIDIA or Gemini), docs fetching, prompt-injection scan, rate limiting.
+// API keys are read from the environment only and never sent to the browser.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-export const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-export const hasKey = () => Boolean(process.env.GEMINI_API_KEY);
+// NVIDIA is used when NVIDIA_API_KEY is set; otherwise Gemini when GEMINI_API_KEY is set.
+export const PROVIDER = process.env.NVIDIA_API_KEY ? "NVIDIA" : process.env.GEMINI_API_KEY ? "Gemini" : null;
+export const MODEL = PROVIDER === "NVIDIA"
+  ? (process.env.NVIDIA_MODEL || "minimaxai/minimax-m3.1-flash")
+  : (process.env.GEMINI_MODEL || "gemini-2.5-flash");
+export const hasKey = () => Boolean(PROVIDER);
 
 let calendlyRef = null;
 export function calendlyReference() {
@@ -80,12 +84,59 @@ export async function fetchDocs(url) {
   }
 }
 
-export async function gemini(prompt, { maxOutputTokens = 8192, temperature = 0.2 } = {}) {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw Object.assign(new Error("No GEMINI_API_KEY set"), { status: 503 });
+function parseJson(text, who) {
+  const cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const fence = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fence) { try { return JSON.parse(fence[1]); } catch {} }
+    const m = cleaned.match(/[\[{][\s\S]*[\]}]/);
+    if (m) { try { return JSON.parse(m[0]); } catch {} }
+    throw Object.assign(new Error(`${who}'s answer wasn't valid JSON (it may have been cut short). Try again.`), { status: 502 });
+  }
+}
+
+async function callNvidia(prompt, { maxOutputTokens, temperature }) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 55000);
+  try {
+    const r = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+      method: "POST",
+      signal: ctl.signal,
+      headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${process.env.NVIDIA_API_KEY}` },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          { role: "system", content: "You reply with one valid JSON value only. No markdown, no explanations." },
+          { role: "user", content: prompt },
+        ],
+        max_tokens: maxOutputTokens,
+        temperature,
+        top_p: 0.95,
+        stream: false,
+      }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const msg = data?.detail || data?.error?.message || data?.title || `NVIDIA returned ${r.status}`;
+      throw Object.assign(new Error(r.status === 404 ? `Model "${MODEL}" not found on NVIDIA. Set NVIDIA_MODEL to a model from build.nvidia.com.` : r.status === 401 || r.status === 403 ? "NVIDIA rejected the API key. Check NVIDIA_API_KEY in Vercel." : msg), { status: r.status === 429 ? 429 : 502 });
+    }
+    const text = data?.choices?.[0]?.message?.content || "";
+    if (!text) throw Object.assign(new Error("NVIDIA returned an empty answer"), { status: 502 });
+    return parseJson(text, "NVIDIA");
+  } catch (e) {
+    if (e.name === "AbortError") throw Object.assign(new Error("The AI took too long to answer. Try again, or paste a shorter part of the docs."), { status: 504 });
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function callGemini(prompt, { maxOutputTokens, temperature }) {
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(MODEL)}:generateContent`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: { responseMimeType: "application/json", temperature, maxOutputTokens },
@@ -94,19 +145,18 @@ export async function gemini(prompt, { maxOutputTokens = 8192, temperature = 0.2
   const data = await r.json().catch(() => ({}));
   if (!r.ok) {
     const msg = data?.error?.message || `Gemini returned ${r.status}`;
-    const status = r.status === 429 ? 429 : r.status === 404 ? 502 : 502;
-    throw Object.assign(new Error(r.status === 404 ? `Model "${MODEL}" not found. Set GEMINI_MODEL to a current model.` : msg), { status });
+    throw Object.assign(new Error(r.status === 404 ? `Model "${MODEL}" not found. Set GEMINI_MODEL to a current model.` : msg), { status: r.status === 429 ? 429 : 502 });
   }
   const text = (data?.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
   if (!text) throw Object.assign(new Error("Gemini returned an empty answer"), { status: 502 });
-  try {
-    return JSON.parse(text);
-  } catch {
-    const m = text.match(/[\[{][\s\S]*[\]}]/);
-    if (m) return JSON.parse(m[0]);
-    throw Object.assign(new Error("Gemini's answer wasn't valid JSON (it may have been cut short)"), { status: 502 });
-  }
+  return parseJson(text, "Gemini");
 }
+
+export async function llm(prompt, { maxOutputTokens = 8192, temperature = 0.2 } = {}) {
+  if (!PROVIDER) throw Object.assign(new Error("No AI key is set (NVIDIA_API_KEY or GEMINI_API_KEY)"), { status: 503 });
+  return PROVIDER === "NVIDIA" ? callNvidia(prompt, { maxOutputTokens, temperature }) : callGemini(prompt, { maxOutputTokens, temperature });
+}
+export const gemini = llm; // older name used by the API routes
 
 export function send(res, status, body) {
   res.statusCode = status;

@@ -561,7 +561,7 @@ function tabsFor(files){
 function codeSection(ro){
   const x = I(); const files = x.files; const f = files[x.activeFile]!==undefined ? x.activeFile : Object.keys(files)[0];
   const allPass = x.safety.every(r=>r.pass);
-  return `<div class="spread reveal"><div class="row"><h2>Your code</h2><span class="pill grey">${esc(LANGS[x.language])}</span>${x.fMode==="live"?`<span class="pill purple">AI · ${esc(AI?.model||"Gemini")}</span>`:""}</div>
+  return `<div class="spread reveal"><div class="row"><h2>Your code</h2><span class="pill grey">${esc(LANGS[x.language])}</span>${x.fMode==="live"?`<span class="pill purple">AI · ${esc(AI?.model||"AI")}</span>`:""}</div>
     <div class="row"><button class="btn sm" data-act="download">Download code</button>${!ro&&x.step===1?`<button class="btn sm" data-act="genCode" ${busy?"disabled":""}>Regenerate</button>`:""}</div></div>
   <div class="codewrap reveal">
     <div class="tree"><div class="t">${esc(app().toUpperCase())}-INTEGRATION/</div>${Object.keys(files).map(n=>`<button data-file="${esc(n)}" aria-current="${n===f}">${esc(n)}</button>`).join("")}</div>
@@ -694,7 +694,7 @@ function scrApp(){
 function appOverview(a, users, inactive){
   const x = I();
   const built = a.custom ? `<div class="card"><h2>How this integration was made</h2><div class="tablebox"><table><tbody>
-    <tr><td class="muted" style="width:170px">Made by</td><td>AI, from ${esc(a.name)}'s API documentation${x.fMode==="live"?` (${esc(AI?.model||"Gemini")})`:""}</td></tr>
+    <tr><td class="muted" style="width:170px">Made by</td><td>AI, from ${esc(a.name)}'s API documentation${x.fMode==="live"?` (${esc(AI?.model||"AI")})`:""}</td></tr>
     <tr><td class="muted">Code</td><td>Version ${S.liveVersion} · ${esc(LANGS[x.language])} · <button class="linkbtn" data-act="viewCode">View the code</button></td></tr>
     <tr><td class="muted">Tested</td><td>Automatic checks passed · account test approved by ${esc(PEOPLE[builderUser()].name)}</td></tr>
     <tr><td class="muted">Turned on by</td><td>Priya Sharma</td></tr></tbody></table></div></div>` : "";
