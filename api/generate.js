@@ -1,39 +1,48 @@
-// Stage 4: generate the integration files from the reviewed spec.
+// Generate the integration files from the reviewed spec, in the chosen language.
 import { RULES, gemini, rateLimited, readBody, send } from "./_lib/core.js";
 
-const FILES = ["client.py", "auth.py", "users.py", "usage.py", "pagination.py", "errors.py", "logging_config.py", "mapping.py"];
+const LANGS = {
+  python: { label: "Python", lib: "the requests library", ext: ".py", example: "client.py, auth.py, users.py, usage.py, pagination.py, errors.py, logging_config.py, mapping.py" },
+  typescript: { label: "Node.js (TypeScript)", lib: "the built-in fetch API (Node 18+)", ext: ".ts", example: "client.ts, auth.ts, users.ts, usage.ts, pagination.ts, errors.ts, logger.ts, mapping.ts" },
+  java: { label: "Java", lib: "java.net.http.HttpClient and Jackson", ext: ".java", example: "ApiClient.java, Auth.java, Users.java, Usage.java, Pagination.java, ApiErrors.java, Log.java, Mapping.java" },
+  go: { label: "Go", lib: "net/http and encoding/json", ext: ".go", example: "client.go, auth.go, users.go, usage.go, pagination.go, errors.go, logging.go, mapping.go" },
+};
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return send(res, 405, { error: "Use POST" });
   if (rateLimited(req)) return send(res, 429, { error: "Too many requests from this network. Try again in an hour." });
   try {
-    const { app = "", understanding } = await readBody(req);
+    const { app = "", understanding, language = "python" } = await readBody(req);
     if (!understanding || typeof understanding !== "object") return send(res, 400, { error: "Missing the reviewed understanding." });
+    const L = LANGS[language] || LANGS.python;
     const appName = String(app).slice(0, 80) || "the app";
 
     const out = await gemini(`${RULES}
 
-Write a production-quality Python integration for ${appName} from this reviewed spec:
+Write a production-quality ${L.label} integration for ${appName} from this reviewed spec:
 ${JSON.stringify(understanding).slice(0, 20_000)}
 
-Use the requests library. Files and responsibilities:
-- client.py: the only HTTP gateway. GET only, host allow-list, reads rate-limit headers, retries 429 and 5xx with backoff.
-- auth.py: token from environment variable, or OAuth refresh if the app supports it.
-- users.py, usage.py: retrieve users and usage exactly as the spec says.
-- pagination.py: follow the app's paging to the last page, support max_pages.
-- errors.py: one exception per documented error code.
-- logging_config.py: structured JSON logs that mask tokens and emails (REDACTED).
-- mapping.py: map to the CloudEagle user record.
-Reply with ONLY a JSON object: {"files": {${FILES.map((f) => `"${f}": "..."`).join(", ")}}}
+Use ${L.lib}. Split it into these files (use exactly these names): ${L.example}.
+Responsibilities:
+- client: the only HTTP gateway. GET only, host allow-list, reads rate-limit headers, retries 429 and 5xx with backoff.
+- auth: token from an environment variable, or OAuth refresh if the app supports it.
+- users / usage: retrieve users and usage exactly as the spec says.
+- pagination: follow the app's paging to the last page, support a max pages limit.
+- errors: one error type per documented error code.
+- logging: structured JSON logs that mask tokens and emails (write REDACTED).
+- mapping: map to the CloudEagle user record.
+Reply with ONLY a JSON object: {"files": {"<file name>": "<file content>", ...}}
 Keep each file concise (under 80 lines).`, { maxOutputTokens: 16384 });
 
     const files = out?.files;
-    if (!files || typeof files !== "object" || !files["client.py"]) {
+    if (!files || typeof files !== "object" || Object.keys(files).length < 4) {
       return send(res, 502, { error: "The AI's answer didn't include the files. Try again." });
     }
     const clean = {};
-    for (const f of FILES) if (files[f] !== undefined) clean[f] = String(files[f]);
-    return send(res, 200, { files: clean });
+    for (const [name, content] of Object.entries(files).slice(0, 14)) {
+      clean[String(name).replace(/[^\w./-]/g, "").slice(0, 80) || "file" + L.ext] = String(content);
+    }
+    return send(res, 200, { files: clean, language });
   } catch (e) {
     return send(res, e.status || 500, { error: e.message || "Something went wrong" });
   }

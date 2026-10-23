@@ -6,22 +6,27 @@ Concept by **Anupam Kalita** for the CloudEagle Senior Product Manager assignmen
 
 ## Try it
 
-Use the switch at the top to play both people:
+The flow has three steps, each ending where real work pauses:
 
-1. **Priya (IT Admin):** search *Calendly* → **Request integration** → assign Ravi → **Send request**
-2. **Ravi (Developer):** **Generate code with AI** → **Read docs** → review the cards → **Generate code** → **Continue to Test** → **Run sandbox tests** → upload any `.json`/`.txt` as the trial report → **Continue to Go live** → **Submit for approval**
-3. **Priya:** **Connect Calendly** → **Run limited production run** → tick the check → **Approve and go live** → ⋮ → **Open Usage**
+1. **Generate code** — read the API docs (link or pasted text), review what the AI understood, pick a language (Python, Node.js, Java, Go) and generate. Safety checks and sandbox tests run automatically.
+2. **Test on a real account** — connect a test/trial account, run the integration, review the test report (counts, checks, sample rows, request log) and sign off.
+3. **Go live** — the admin connects production, previews the first sync (read-only, first page) and approves.
 
-Yellow PM notes beside each screen explain the product decisions. **Reset demo** starts over.
+Two ways through it:
+
+- **Hand-off:** as Priya (IT Admin) search *Calendly* → **Request integration** → assign a developer. Switch to Ravi from the toast or the account menu (top right; a red dot shows when the other account has news). Ravi builds and submits; Priya approves from the banner or the notification bell.
+- **Self-setup:** choose **I'll build it myself** in the request — Priya goes straight through all three steps.
+
+**Reset demo data** is in the account menu.
 
 ## What's real and what's simulated
 
 | Real | Simulated |
 |---|---|
 | AI reads the API docs and writes the integration (Gemini, server-side) when `GEMINI_API_KEY` is set | Login, invites and roles |
-| Docs link fetched by the server; prompt-injection scan before the AI sees it | Connecting the account (no credentials are entered) |
-| Safety checks on the generated code (read-only, allowed hosts, no secrets, no dangerous calls, log masking, rate-limit handling) | Trial-account report upload |
-| Sandbox run in the browser against a simulated Calendly: 214 users, 3 pages, a 429 retry, Enterprise-only data handled | Limited production run and syncing |
+| Docs link fetched by the server; prompt-injection scan before the AI sees it | Connecting accounts (no credentials are entered) |
+| Safety checks on the generated code (read-only, allowed hosts, no secrets, no dangerous calls, log masking, rate-limit handling) | Test-account responses (a 12-user trial org) |
+| Sandbox run in the browser against a simulated Calendly: 214 users, 3 pages, a 429 retry, Enterprise-only data handled | Production preview, approval and syncing |
 
 Without a key the app runs in **replay mode**: it shows the understanding and code generated earlier from Calendly's docs and labels it as such.
 
