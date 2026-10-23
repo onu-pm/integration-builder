@@ -136,23 +136,46 @@ export async function callNvidia(prompt, { maxOutputTokens, temperature }, model
   }
 }
 
-async function callGemini(prompt, { maxOutputTokens, temperature }) {
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(MODEL)}:generateContent`, {
+export async function callGemini(prompt, { maxOutputTokens, temperature }, model = MODEL) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 50000);
+  const send = (withThinking) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: "POST",
+    signal: ctl.signal,
     headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: "application/json", temperature, maxOutputTokens },
+      generationConfig: {
+        responseMimeType: "application/json", temperature, maxOutputTokens,
+        ...(withThinking ? { thinkingConfig: { thinkingLevel: "low" } } : {}),
+      },
     }),
   });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) {
-    const msg = data?.error?.message || `Gemini returned ${r.status}`;
-    throw Object.assign(new Error(r.status === 404 ? `Model "${MODEL}" not found. Set GEMINI_MODEL to a current model.` : msg), { status: r.status === 429 ? 429 : 502 });
+  try {
+    let r = await send(true);
+    let data = await r.json().catch(() => ({}));
+    // Some models don't accept a thinking setting; ask again without it.
+    if (r.status === 400 && /thinking/i.test(data?.error?.message || "")) { r = await send(false); data = await r.json().catch(() => ({})); }
+    if (!r.ok) {
+      const msg = data?.error?.message || `Gemini returned ${r.status}`;
+      const nice = r.status === 404 ? `Model "${model}" isn't available for this key. Set GEMINI_MODEL to a current model.`
+        : r.status === 400 && /API key/i.test(msg) ? "Google says the Gemini API key isn't valid. Check GEMINI_API_KEY in Vercel."
+        : r.status === 403 ? "Google refused the key (403). Create an unrestricted key in Google AI Studio."
+        : r.status === 429 ? "Gemini's free limit is used up for now. Wait a minute and try again."
+        : msg;
+      throw Object.assign(new Error(nice), { status: r.status === 429 ? 429 : 502 });
+    }
+    const cand = data?.candidates?.[0];
+    const text = (cand?.content?.parts || []).filter((p) => !p.thought).map((p) => p.text || "").join("");
+    if (!text) throw Object.assign(new Error(`Gemini returned an empty answer${cand?.finishReason ? ` (${cand.finishReason})` : ""}.`), { status: 502 });
+    try { return parseJson(text, "Gemini"); }
+    catch (e) { console.error("Gemini raw answer:", text.slice(0, 1500)); e.message += ` It started with: ${JSON.stringify(text.slice(0, 160))}`; throw e; }
+  } catch (e) {
+    if (e.name === "AbortError") throw Object.assign(new Error("The AI took too long to answer. Try again."), { status: 504 });
+    throw e;
+  } finally {
+    clearTimeout(timer);
   }
-  const text = (data?.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
-  if (!text) throw Object.assign(new Error("Gemini returned an empty answer"), { status: 502 });
-  return parseJson(text, "Gemini");
 }
 
 export async function llm(prompt, { maxOutputTokens = 8192, temperature = 0.2 } = {}) {
