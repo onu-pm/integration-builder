@@ -259,6 +259,26 @@ button.nav:hover{background:rgba(255,255,255,.08)}
 .ch.on{border-color:var(--primary);background:#F7F9FF}
 .reqbox>summary{font-size:14px;color:var(--ink)}
 .card.danger{border-color:#F4C7CD}
+.datagrid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
+.fgroup{display:flex;flex-direction:column;gap:6px}
+.lab2{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:2px}
+.lab2 .hint{text-transform:none;letter-spacing:0;font-weight:500}
+.frow{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:9px 12px;cursor:pointer;transition:border-color .15s,background .15s}
+.frow.on{border-color:#C9D6FF;background:#F7F9FF}
+.frow input{margin-top:3px}
+.frow input:disabled{cursor:not-allowed}
+.frow .ft{display:flex;flex-direction:column;gap:2px;min-width:0}
+.frow .n{font-size:12px;color:var(--muted)}
+.addfield{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) auto;gap:8px;align-items:center}
+.perm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.perm .chk{margin-bottom:6px}
+.scopes{display:flex;flex-direction:column;gap:6px}
+.scope-row{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.scopename{font-family:var(--f-mono);font-size:12px;background:var(--line-2);border-radius:6px;padding:2px 8px;font-weight:600}
+.avail{font-weight:700;font-size:12px;white-space:nowrap}
+.seg .faint{font-weight:500}
+@media (max-width:1000px){.datagrid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:600px){.perm,.addfield{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 @media (max-width:1180px){.codewrap{grid-template-columns:minmax(0,1fr)}.tree{flex-direction:row;flex-wrap:wrap}}
 @media (max-width:860px){.app{grid-template-columns:minmax(0,1fr)}.side{display:none}.grid2,.grid3,.choice{grid-template-columns:minmax(0,1fr)}.pm{grid-template-columns:minmax(0,1fr)}.pm .reqs{border-right:0;border-bottom:1px solid var(--line)}.content{padding:16px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}.top{padding:10px 16px}.acct .who{display:none}.drop{width:min(340px,calc(100vw - 32px))}}
@@ -288,11 +308,83 @@ const CAL_UNDERSTANDING = {
   unknowns:["Exact login action name in activity log — using latest activity of any kind"], missing_users:false
 };
 
+/* ---------------- fields CloudEagle can bring in ---------------- */
+const FIELD_LIB = [
+  {key:"name", label:"Name", group:"core", why:"Shows who holds each licence"},
+  {key:"email", label:"Work email", group:"core", why:"Matches the same person across all your apps and your HR system"},
+  {key:"status", label:"Account status", group:"core", why:"Finds people who left the company but still have an account"},
+  {key:"role", label:"Role or licence type", group:"rec", why:"Shows who is on which plan, so you can move people to a cheaper one"},
+  {key:"last_active", label:"Last active", group:"rec", why:"Finds licences nobody has used in 90 days"},
+  {key:"usage", label:"Usage in the last 90 days", group:"rec", why:"Shows how much each person really uses the app"},
+  {key:"added_on", label:"Date added", group:"rec", why:"Leaves out people added recently when looking for unused licences"},
+  {key:"department", label:"Department", group:"opt", why:"Splits the cost by team"},
+  {key:"manager", label:"Manager", group:"opt", why:"Sends licence-removal approvals to the right manager"},
+  {key:"title", label:"Job title", group:"opt", why:"Helps decide who needs a paid plan"},
+  {key:"external_id", label:"App user ID", group:"tech", why:"Keeps each person matched between syncs, even if their email changes"},
+  {key:"account_id", label:"Company account ID", group:"tech", why:"Needed to ask the API for everyone in your company, not just one person"},
+  {key:"updated_at", label:"Last changed", group:"tech", why:"Lets each sync read only what changed: faster, and fewer API calls"}
+];
+const LOCKED = new Set(["name","email","status","external_id","account_id"]);
+const defaultFields = () => FIELD_LIB.map(f=>({...f, on: f.group==="core"||f.group==="rec"||LOCKED.has(f.key), by:"priya"}));
+// What Calendly's API offers for each field (checked against developer.calendly.com).
+const CAL_FIELDS = {
+  name:{s:"yes", src:"organization_memberships → user.name"},
+  email:{s:"yes", src:"organization_memberships → user.email"},
+  status:{s:"yes", src:"on the organization_memberships list = active", note:"People removed from Calendly drop off the list"},
+  role:{s:"yes", src:"organization_memberships → role (owner, admin, user)"},
+  last_active:{s:"plan", src:"activity_log_entries → latest entry", note:"Enterprise plan only"},
+  usage:{s:"yes", src:"scheduled_events → meetings per host"},
+  added_on:{s:"yes", src:"organization_memberships → created_at"},
+  department:{s:"no", note:"Not in Calendly's API"},
+  manager:{s:"no", note:"Not in Calendly's API"},
+  title:{s:"no", note:"Not in Calendly's API"},
+  external_id:{s:"yes", src:"user.uri"},
+  account_id:{s:"yes", src:"users/me → current_organization"},
+  updated_at:{s:"yes", src:"organization_memberships → updated_at"},
+  timezone:{s:"yes", src:"organization_memberships → user.timezone"}
+};
+const CAL_SCOPES = [
+  {name:"users:read", why:"Find your company's Calendly account", need:()=>true},
+  {name:"organizations:read", why:"List everyone in the company, with role and date added", need:()=>true},
+  {name:"scheduled_events:read", why:"Count the meetings each person hosted", need:on=>on.has("usage")},
+  {name:"activity_log:read", why:"Last active (Enterprise plan only)", need:on=>on.has("last_active")}
+];
+const onFields = (x=I()) => (x?.fields||[]).filter(f=>f.on);
+function fieldMap(x=I()){
+  const u = x?.understanding; const fm = (u && x.uMode==="live" && u.field_map) || [];
+  if (!u) return onFields(x).map(f=>({f, s:"unknown", src:"", note:""}));
+  return onFields(x).map(f=>{
+    const ai = fm.find(m=>m.field===f.key);
+    if (ai) return {f, s:["yes","plan","no"].includes(ai.status)?ai.status:"unknown", src:ai.source||"", note:ai.note||""};
+    const c = isCal() ? (CAL_FIELDS[f.key] || CAL_FIELDS[f.label.toLowerCase().replace(/[^a-z]/g,"")]) : null;
+    if (c) return {f, s:c.s, src:c.src||"", note:c.note||""};
+    return {f, s:"unknown", src:"", note:u?"Not found in the documentation":""};
+  });
+}
+function scopesFor(x=I()){
+  if (!x?.understanding) return [];
+  const u = x.understanding;
+  if (x.uMode==="live" && u.scopes?.length) return u.scopes.map(s=>({name:String(s.name), why:s.why||""}));
+  if (isCal()){ const on = new Set(onFields(x).map(f=>f.key)); return CAL_SCOPES.filter(s=>s.need(on)).map(({name,why})=>({name,why})); }
+  return [];
+}
+const NEVER = (name, cal) => [`Create, change or delete anything in ${name}`, cal?"Keep details of people outside your company who booked meetings (only the count is kept)":"Read the content of messages, meetings or files", "See passwords or payment details", "Read fields that weren't approved"];
+function accessLists(name){
+  const custom = I() && I().app===name;
+  const reads = custom ? fieldMap().filter(r=>r.s!=="no").map(r=>r.f.label) : (CATALOGUE[name]?.reads || ["Users","Usage"]);
+  return {reads, scopes: custom ? scopesFor() : [], never: NEVER(name, custom && isCal())};
+}
+function permsBlock(name, {scopesNote=""}={}){
+  const {reads, scopes, never} = accessLists(name);
+  return `<div class="perm"><div><div class="lab2">CloudEagle can read</div>${reads.map(r=>`<div class="chk"><span class="m pass">✓</span><span>${esc(r)}</span></div>`).join("")}</div>
+    <div><div class="lab2">CloudEagle will never</div>${never.map(r=>`<div class="chk"><span class="m fail">✕</span><span>${esc(r)}</span></div>`).join("")}</div></div>
+    ${scopes.length?`<div><div class="lab2">${esc(name)} permissions it asks for</div><div class="scopes">${scopes.map(s=>`<div class="scope-row"><span class="scopename">${esc(s.name)}</span><span class="small muted">${esc(s.why)}</span></div>`).join("")}</div><div class="small muted" style="margin-top:6px">All read-only. No write permissions are requested.</div></div>`:scopesNote?`<div class="small muted">${scopesNote}</div>`:""}`;
+}
+
 /* ---------------- state ---------------- */
-const KEY = "ce-aib-v3";
+const KEY = "ce-aib-v4";
 const fresh = () => ({
-  user:"priya", screen:"integrations", query:"Calendly", open:null, modal:null,
-  seeds:[{app:"Miro", by:"Ankit Rao", to:"CloudEagle team", status:"Requested", step:"—", updated:"Yesterday"},{app:"Loom", by:"Priya Sharma", to:"Ravi Menon", status:"Waiting for approval", step:"Step 3 of 3", updated:"2 days ago"}],
+  user:"priya", screen:"integrations", query:"", filter:"all", open:null, modal:null,
   I:null, live:false, liveVersion:0,
   notes:{priya:[], ravi:[]}, viewStep:null, apps:{}, appName:null, tab:"overview", sel:[], usageFilter:"all"
 });
@@ -325,7 +417,7 @@ const unread = u => S.notes[u].filter(n=>!n.read).length;
 function sidebar(){
   const reset = `<button class="nav resetbtn" data-act="resetDemo">↺ Reset demo</button><div class="foot">Prototype · made-up data</div>`;
   if (S.user==="ravi") {
-    const n = S.I && S.I.builder==="dev" && !["Live"].includes(S.I.status) ? 1 : 0;
+    const n = S.I && S.I.builder==="dev" && !["Live","Draft"].includes(S.I.status) ? 1 : 0;
     return `<nav class="side" aria-label="Main"><div class="brand">CloudEagle</div>
       <div class="nav head"><span class="box"></span>Integrations</div>
       <button class="nav sub2 active" data-act="goAssigned">Assigned to me ${n?`<span class="count">${n}</span>`:""}</button>
@@ -340,7 +432,7 @@ function sidebar(){
 }
 function topbar(){
   const me = PEOPLE[S.user], other = S.user==="priya" ? "ravi" : "priya";
-  const canSwitch = S.I && S.I.builder==="dev";
+  const canSwitch = S.I && S.I.builder==="dev" && S.I.status!=="Draft";
   const otherUnread = canSwitch ? unread(other) : 0;
   const notes = S.notes[S.user];
   return `<header class="top"><div class="search">Search apps, users, contracts</div><div class="sp"></div>
@@ -350,146 +442,143 @@ function topbar(){
       ${S.open==="acct"?`<div class="drop" role="menu"><div class="hd">You're signed in as</div>
         <div class="item" style="cursor:default"><span class="avatar ${S.user==="ravi"?"rm":""}">${me.ini}</span><span class="t"><b>${me.name}</b><span>${S.user==="priya"?"priya.sharma@acme.com · IT Admin":"ravi.menon@acme.com · Integration developer"}</span></span></div>
         <div class="sep"></div><div class="hd">Switch account</div>
-        ${canSwitch?`<button class="item" data-act="switch"><span class="avatar ${other==="ravi"?"rm":""}">${PEOPLE[other].ini}</span><span class="t"><b>${PEOPLE[other].name}</b><span>${PEOPLE[other].role}${otherUnread?` · ${otherUnread} new`:""}</span></span>${otherUnread?`<span class="dot-new"></span>`:""}</button>`:`<div class="small muted" style="padding:6px 8px 8px">Ravi's account shows up here after you ask him to build an integration.</div>`}
+        ${canSwitch?`<button class="item" data-act="switch"><span class="avatar ${other==="ravi"?"rm":""}">${PEOPLE[other].ini}</span><span class="t"><b>${PEOPLE[other].name}</b><span>${PEOPLE[other].role}${otherUnread?` · ${otherUnread} new`:""}</span></span>${otherUnread?`<span class="dot-new"></span>`:""}</button>`:`<div class="small muted" style="padding:6px 8px 8px">Ravi's account shows up here after you assign him an integration.</div>`}
       </div>`:""}</div></header>`;
 }
 function crumbs(items){
   return `<nav class="crumb" aria-label="Breadcrumb">${items.map((it,i)=> i===items.length-1 ? `<b>${esc(it[0])}</b>` : `<button class="crumblink" data-act="${it[1]}">${esc(it[0])}</button> <span class="faint">/</span> `).join("")}</nav>`;
 }
 const adminCrumbs = (...rest) => crumbs([["Admin Settings","goIntegrations"],["Integrations","goIntegrations"],["Direct Integrations","goIntegrations"],...rest]);
-const STEP_NAMES = ["Create the code","Test it","Turn it on"];
+const STEP_NAMES = ["Data and access","Create the code","Test it","Turn it on"];
 function stepper(cur){
-  const done = n => (n===1 && I().files && I().sim?.passed) || (n===2 && I().testSigned) || (n===3 && I().status==="Live");
-  const can = n => n===1 || (n===2 && done(1)) || (n===3 && done(2));
+  const x = I();
+  const done = n => (n===1 && x.accessApproved) || (n===2 && x.files && x.sim?.passed) || (n===3 && x.testSigned) || (n===4 && x.status==="Live");
+  const can = n => n===1 || done(n-1);
   const st = (n) => {
     const cls = n===cur ? "cur" : done(n) ? "done" : can(n) ? "" : "locked";
     const sub = n===cur ? "You are here" : done(n) ? "Done" : can(n) ? "Ready" : "Not yet";
     return `<button class="step ${cls}" data-step="${n}" ${can(n)?"":"disabled"}><span class="dot">${done(n)&&n!==cur?"✓":n}</span><span class="lbl"><b>${STEP_NAMES[n-1]}</b><span>${sub}</span></span></button>`;
   };
-  return `<div class="stepper">${st(1)}<span class="track ${done(1)?"full":""}"><i></i></span>${st(2)}<span class="track ${done(2)?"full":""}"><i></i></span>${st(3)}
-    <span class="sp"></span><span class="small muted">Step ${cur} of 3 · your progress is saved</span><button class="btn sm" data-act="copylink">Copy link</button></div>`;
+  const tr = n => `<span class="track ${done(n)?"full":""}"><i></i></span>`;
+  return `<div class="stepper">${st(1)}${tr(1)}${st(2)}${tr(2)}${st(3)}${tr(3)}${st(4)}
+    <span class="sp"></span><span class="small muted">Step ${cur} of 4 · progress saved</span></div>`;
 }
 function nudge(kind, title, text, actions=""){
   const ic = {info:"i", warn:"!", good:"✓", bad:"!"}[kind];
   return `<div class="nudge ${kind}" role="status"><span class="ic">${ic}</span><span class="tx"><b>${title}</b>${text?`<span class="small">${text}</span>`:""}</span>${actions}</div>`;
 }
-function statusPill(s){ const m={"Requested":"grey","In progress":"blue","Waiting for approval":"amber","Live":"green","Changes requested":"red","Synced":"green","Not connected":"grey"}; return `<span class="pill ${m[s]||"grey"}">${esc(s)}</span>`; }
-const stepLabel = () => { const x = I(); if (!x) return "—"; if (x.status==="Live") return "Live"; if (x.builder==="ce") return "—"; return `Step ${x.step} of 3`; };
+function statusPill(s){ const m={"Draft":"grey","Building":"blue","In progress":"blue","Waiting for approval":"amber","Needs your approval":"amber","Live":"green","Changes requested":"red","Connected":"green","Not connected":"grey"}; return `<span class="pill ${m[s]||"grey"}">${esc(s)}</span>`; }
+const stepLabel = () => { const x = I(); if (!x) return "—"; if (x.status==="Live") return "Live"; return `Step ${x.step} of 4`; };
+const buildStatus = (x=I()) => x.status==="Waiting for approval" ? (S.user==="priya"?"Needs your approval":"Waiting for approval") : x.status==="In progress" ? (x.builder==="dev"?"Building":"In progress") : x.status;
 /* ---------------- apps (catalogue) ---------------- */
 const CATALOGUE = {
-  Zoom:{cat:"Video meetings", desc:"Brings in your Zoom users, how many meetings each person hosted, and who holds a paid licence.", reads:["Users and their licence type","Meetings each person hosted","Last time each person signed in"], metric:"Meetings hosted (90 days)", lic:130, price:15, n:118, seed:3},
+  "Google Workspace":{cat:"Email and documents", desc:"Brings in everyone with a Google Workspace account, their licence type, and when they last signed in.", reads:["People and their status","Licence type","Last sign-in"], metric:"Days active (90 days)", lic:240, price:14, n:214, seed:17},
   Slack:{cat:"Team chat", desc:"Brings in your Slack members, how many days each was active, and who is a paid member or a guest.", reads:["Members and guests","Days active in the last 90 days","Plan for each member"], metric:"Days active (90 days)", lic:240, price:8.75, n:214, seed:5},
-  PagerDuty:{cat:"On-call and incidents", desc:"Brings in your PagerDuty users, their roles, and how often each person is on call.", reads:["Users and roles","On-call shifts","Licence type"], metric:"On-call shifts (90 days)", lic:40, price:21, n:36, seed:7},
+  Zoom:{cat:"Video meetings", desc:"Brings in your Zoom users, how many meetings each person hosted, and who holds a paid licence.", reads:["Users and their licence type","Meetings each person hosted","Last time each person signed in"], metric:"Meetings hosted (90 days)", lic:130, price:15, n:118, seed:3},
+  Salesforce:{cat:"CRM", desc:"Brings in your Salesforce users, their profile and licence, and when each person last logged in.", reads:["Users and profiles","Licence type","Last login"], metric:"Logins (90 days)", lic:70, price:150, n:61, seed:19},
   Okta:{cat:"Sign-in (SSO)", desc:"Brings in everyone who signs in through Okta and which apps they open, so CloudEagle can spot apps nobody uses.", reads:["People and their status","Apps each person opens","Sign-ins in the last 90 days"], metric:"Sign-ins (90 days)", lic:260, price:6, n:214, seed:11},
-  Calendly:{cat:"Scheduling", desc:"Brings in your Calendly users and how many meetings each person hosted in the last 90 days. Built with AI from Calendly's API docs.", reads:["Users and their role","Meetings each person hosted","Last activity (Enterprise plan only)"], metric:"Meetings hosted (90 days)", lic:230, price:12, n:214, seed:0}
+  PagerDuty:{cat:"On-call and incidents", desc:"Brings in your PagerDuty users, their roles, and how often each person is on call.", reads:["Users and roles","On-call shifts","Licence type"], metric:"On-call shifts (90 days)", lic:40, price:21, n:36, seed:7, def:"Not connected"},
+  Jira:{cat:"Project tracking", desc:"Brings in your Jira users, their product access, and when each person was last active.", reads:["Users and product access","Last active","Groups"], metric:"Days active (90 days)", lic:150, price:8.6, n:132, seed:23, def:"Not connected"}
 };
 function appList(){
-  const list = ["Zoom","Slack","PagerDuty","Okta"];
+  const list = Object.keys(CATALOGUE).filter(n=>n!=="Calendly");
   if (S.live && I()) list.unshift(I().app);
   return list;
 }
 function appInfo(name){
-  const c = CATALOGUE[name] || {cat:"Custom app", desc:`Brings in your ${name} users and how much each person uses ${name}. Built with AI from ${name}'s API docs.`, reads:["Users","Usage","Roles"], metric:"Activity (90 days)", lic:60, price:10, n:48, seed:13};
-  const st = S.apps[name] || {};
   const custom = S.live && I() && I().app===name;
-  return {...c, name, custom, status: st.status || (custom ? "Synced" : c===CATALOGUE.PagerDuty ? "Not connected" : "Synced"), freq: st.freq || "Daily", alerts: st.alerts!==false, marked: st.marked || [], lastSync: st.lastSync || "Today, 6:00 AM"};
+  const c = CATALOGUE[name] || {cat:"Made with AI", desc:`Brings in your ${name} users and how much each person uses ${name}. Built with AI from ${name}'s API docs.`, reads:["Users","Usage","Roles"], metric:"Activity (90 days)", lic:60, price:10, n:48, seed:13};
+  const cc = custom ? {...c, cat: isCal()?"Scheduling · made with AI":"Made with AI", desc:`Brings in your ${name} users and how much each person uses ${name}. Built with AI from ${name}'s API docs.`, reads: accessLists(name).reads, metric: isCal()?"Meetings hosted (90 days)":c.metric, lic: isCal()?230:c.lic, price: isCal()?12:c.price} : c;
+  const st = S.apps[name] || {};
+  return {...cc, name, custom, status: st.status || (custom ? "Connected" : c.def || "Connected"), freq: st.freq || "Daily", alerts: st.alerts!==false, marked: st.marked || [], lastSync: st.lastSync || "Today, 6:00 AM"};
 }
 function rng(seed){ let s = seed*9301+49297; return () => (s = (s*9301+49297)%233280)/233280; }
 function appUsers(name){
   const a = appInfo(name);
-  if (name==="Calendly" || a.custom){
+  if (a.custom){
     const counts = {}; DATA.events.forEach(u=>counts[u]=(counts[u]||0)+1);
     return DATA.users.map(u=>({name:u.name, email:u.email, role:u.role, use:counts[u.uri]||0}));
   }
-  const r = rng(a.seed); const scale = {Zoom:30, Slack:90, PagerDuty:12, Okta:160}[name] || 20;
+  const r = rng(a.seed); const scale = {Zoom:30, Slack:90, PagerDuty:12, Okta:160, "Google Workspace":70, Salesforce:50, Jira:60}[name] || 20;
   return DATA.users.slice(0, a.n).map((u,i)=>{ const z = r(); return {name:u.name, email:u.email, role:i<3?"admin":"member", use: z<0.26 ? 0 : Math.max(1, Math.round(r()*scale))}; });
 }
 const money = n => "$" + Math.round(n).toLocaleString("en-US");
 
 /* ---------------- screen: integrations (cards) ---------------- */
+const SEEDS = [{app:"Miro", who:"Ankit Rao", step:2}];
 function scrIntegrations(){
-  const q = S.query.trim(), ql = q.toLowerCase();
-  const x = I();
+  const q = S.query.trim(), ql = q.toLowerCase(), x = I();
   let banner = "";
-  if (x && x.status!=="Live"){
-    if (x.status==="Waiting for approval" && x.builder==="dev") banner = nudge("warn", `Ravi finished the ${esc(x.app)} integration. It needs your approval.`, "Check his test, connect your company's account and turn it on.", `<button class="btn primary" data-act="openBuild3">Review and approve</button>`);
-    else if (x.builder==="self") banner = nudge("info", `You're adding ${esc(x.app)}`, `${stepLabel()}: ${STEP_NAMES[x.step-1]}. Pick up where you left off.`, `<button class="btn primary" data-act="openBuild">Continue</button>`);
-    else if (x.builder==="dev") banner = nudge("info", `Ravi Menon is building the ${esc(x.app)} integration`, `${stepLabel()}. We'll let you know when it's ready for you to approve.`);
-    else banner = nudge("info", `The CloudEagle team is building ${esc(x.app)}`, "We'll let you know when it's ready.");
-  } else if (S.live && x?.status==="Live" && !S.dismissLive) {
+  if (x && x.status==="Waiting for approval" && x.builder==="dev") banner = nudge("warn", `Ravi finished the ${esc(x.app)} integration. It needs your approval.`, "Check his test, review the permissions and turn it on.", `<button class="btn primary" data-act="openBuild4">Review and approve</button>`);
+  else if (x && x.status==="Changes requested" && x.builder==="dev") banner = nudge("info", `You asked Ravi for changes on ${esc(x.app)}`, "We'll let you know when he sends it back.");
+  else if (S.live && x?.status==="Live" && !S.dismissLive) {
     const inactive = appUsers(x.app).filter(u=>!u.use).length;
     banner = nudge("good", `${esc(x.app)} is now connected`, `${inactive} people haven't used it in 90 days. You could stop paying for those licences.`, `<button class="btn primary" data-act="openApp" data-app="${esc(x.app)}" data-tab="licences">See unused licences</button><button class="btn ghost" data-act="dismissLive" aria-label="Dismiss">✕</button>`);
   }
-  const apps = appList().filter(n => !ql || n.toLowerCase().includes(ql));
-  const knownMatch = appList().some(n=>n.toLowerCase()===ql);
-  let missing = "";
-  if (q && !knownMatch){
-    const reqMatch = x && x.app.toLowerCase()===ql && x.status!=="Live";
-    const seed = S.seeds.find(s=>s.app.toLowerCase()===ql);
-    if (reqMatch) missing = `<div class="card reveal"><div class="spread"><div><b>${esc(x.app)} has already been requested</b><div class="row" style="margin-top:6px">${statusPill(x.status)}<span class="small muted">${stepLabel()}</span></div></div>
-      ${x.status==="Waiting for approval"&&x.builder==="dev"?`<button class="btn primary" data-act="openBuild3">Review and approve</button>`:x.builder==="self"?`<button class="btn primary" data-act="openBuild">Continue</button>`:`<button class="btn" data-act="follow">Get updates</button>`}</div></div>`;
-    else if (seed) missing = `<div class="card reveal"><div class="spread"><b>${esc(seed.app)} has already been requested by ${esc(seed.by)}</b><button class="btn" data-act="follow">Get updates</button></div></div>`;
-    else if (!apps.length) missing = `<div class="card reveal"><div class="empty"><div class="ic">⌕</div><b style="font-size:15px">No App found</b>
-      <div class="muted">${esc(q)} isn't available yet. We can create the integration from ${esc(q)}'s API documentation.</div>
-      <div class="row" style="justify-content:center"><button class="btn primary" data-act="selfStart">Add ${esc(q)} with AI</button><button class="btn" data-act="openRequest">Ask someone else to add it</button></div>
-      <div class="small faint">“Add with AI” takes about 5 minutes. You can stop and come back any time.</div></div></div>`;
-  }
-  const rows = [
-    ...(x && x.status!=="Live" ? [{app:x.app, by:"Priya Sharma", to:x.builder==="dev"?"Ravi Menon":x.builder==="self"?"You":"CloudEagle team", status:x.status, step:stepLabel(), updated:x.updated||"Just now", mine:true}] : []),
-    ...S.seeds];
+  const items = [
+    ...(x && x.status!=="Live" ? [{kind:"build", name:x.app}] : []),
+    ...SEEDS.map(s=>({kind:"seed", name:s.app, s})),
+    ...appList().map(n=>({kind:"app", name:n}))];
+  const kindOf = it => it.kind!=="app" ? "progress" : appInfo(it.name).status==="Connected" ? "connected" : "available";
+  const counts = {all:items.length, connected:0, available:0, progress:0}; items.forEach(it=>counts[kindOf(it)]++);
+  const f = S.filter || "all";
+  const shown = items.filter(it => (f==="all" || kindOf(it)===f) && (!ql || it.name.toLowerCase().includes(ql)));
+  const filters = [["all","All"],["connected","Connected"],["available","Not connected"],["progress","In progress"]];
+  const empty = !shown.length ? (q ? `<div class="card reveal"><div class="empty"><div class="ic">⌕</div><b style="font-size:15px">No app found</b>
+      <div class="muted">${esc(q)} isn't in CloudEagle yet. You can create the integration from ${esc(q)}'s API documentation.</div>
+      <button class="btn primary" data-act="addBlank">+ Create ${esc(q)} integration</button></div></div>` : `<div class="dashed muted" style="text-align:center">Nothing here yet.</div>`) : "";
   return `${crumbs([["Admin Settings","goIntegrations"],["Integrations","goIntegrations"],["Direct Integrations"]])}
   <div class="spread"><div><h1>Direct Integrations</h1><p class="lede">Connect your apps so CloudEagle can see who uses them and which licences go unused.</p></div>
-    <button class="btn" data-act="addBlank">+ Add an app</button></div>
+    <button class="btn primary" data-act="addBlank">+ New integration</button></div>
   ${banner}
-  <div class="searchbox"><span class="muted">⌕</span><input id="q" aria-label="Search apps" value="${esc(S.query)}" placeholder="Search apps, for example Calendly"></div>
-  ${missing}
-  ${apps.length?`<div class="cards">${apps.map(appCard).join("")}<button class="appcard add" data-act="addBlank"><b style="font-size:28px;line-height:1">+</b><b>Add an app</b><span class="small muted">Not in the list? Build the integration yourself with AI, or ask someone.</span></button></div>`:""}
-  ${rows.length?`<details class="reqbox" ${x&&x.status!=="Live"?"open":""}><summary>Requested apps (${rows.length})</summary>
-  <div class="tablebox" style="margin-top:10px"><table><thead><tr><th>App</th><th>Asked by</th><th>Who's building it</th><th>Status</th><th>Step</th><th>Updated</th><th></th></tr></thead><tbody>
-  ${rows.map(r=>`<tr><td><b>${esc(r.app)}</b></td><td>${esc(r.by)}</td><td>${esc(r.to)}</td><td>${statusPill(r.status)}</td><td>${esc(r.step)}</td><td class="muted">${esc(r.updated)}</td>
-    <td>${r.mine?`<button class="btn sm" data-act="rowOpen">${r.status==="Waiting for approval"?"Review":"Open"}</button>`:`<button class="btn sm" data-act="follow">Get updates</button>`}</td></tr>`).join("")}
-  </tbody></table></div></details>`:""}`;
+  <div class="spread"><div class="searchbox"><span class="muted">⌕</span><input id="q" aria-label="Search apps" value="${esc(S.query)}" placeholder="Search apps"></div>
+    <div class="seg" role="group" aria-label="Filter">${filters.map(([k,l])=>`<button data-act="filt" data-f="${k}" aria-pressed="${f===k}">${l} <span class="faint">${counts[k]}</span></button>`).join("")}</div></div>
+  ${empty}
+  ${shown.length?`<div class="cards">${shown.map(it=>it.kind==="app"?appCard(it.name):it.kind==="build"?buildCard(I()):seedCard(it.s)).join("")}</div>`:""}
+  <div class="small faint">Can't find an app? Use <b>New integration</b>. CloudEagle reads the app's API documentation and writes the integration with AI.</div>`;
 }
 function appCard(name){
   const a = appInfo(name);
   return `<div class="appcard ${a.custom?"hl":""}" role="button" tabindex="0" data-act="openApp" data-app="${esc(name)}">
     <div class="row"><span class="logo">${esc(name[0])}</span><div style="flex:1;min-width:0"><b>${esc(name)}</b><div class="small muted">${esc(a.cat)}</div></div>${statusPill(a.status)}</div>
     <p class="small">${esc(a.desc)}</p>
-    <div class="row small muted">${a.custom?`<span class="pill purple">Made with AI · v${S.liveVersion}</span>`:""}${a.status==="Synced"?`Last synced ${esc(a.lastSync)}`:"Not connected yet"}</div>
-    <div class="row" style="margin-top:auto">${a.status==="Synced"?`<button class="btn sm" data-act="syncnow" data-app="${esc(name)}">Sync now</button>`:`<button class="btn sm primary" data-act="connectApp" data-app="${esc(name)}">Connect</button>`}<span class="small faint" style="margin-left:auto">Open →</span></div>
+    <div class="row small muted">${a.custom?`<span class="pill purple">Made with AI · v${S.liveVersion}</span>`:""}${a.status==="Connected"?`Last synced ${esc(a.lastSync)}`:"Not connected yet"}</div>
+    <div class="row" style="margin-top:auto">${a.status==="Connected"?`<button class="btn sm" data-act="syncnow" data-app="${esc(name)}">Sync now</button>`:`<button class="btn sm primary" data-act="connectApp" data-app="${esc(name)}">Connect</button>`}<span class="small faint" style="margin-left:auto">Open →</span></div>
   </div>`;
 }
-
-function requestModal(){
-  const d = S.draft;
-  const opt = (v,label,desc,extra="") => `<div class="radio ${d.builder===v?"on":""}"><label><input type="radio" name="builder" value="${v}" ${d.builder===v?"checked":""}> ${label}</label><div class="desc">${desc}</div>${d.builder===v?extra:""}</div>`;
-  return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="rqt"><div class="modal">
-    <div class="spread"><h2 id="rqt">Ask someone to add an app</h2><button class="btn sm" data-act="closeModal" aria-label="Close">✕</button></div>
-    <div class="field"><label for="rApp">App name</label><input class="input" id="rApp" value="${esc(d.app)}"></div>
-    <div class="field"><label for="rDocs">Link to the app's API documentation <span class="hint">optional</span></label><input class="input" id="rDocs" value="${esc(d.docsUrl)}" placeholder="https://developer.example.com/api"></div>
-    <div class="field"><span class="lab">What should CloudEagle bring in?</span><div class="checks-row">${["Users","Usage","Licences and roles"].map(n=>`<label><input type="checkbox" data-need="${n}" ${d.data.includes(n)?"checked":""}> ${n}</label>`).join("")}</div></div>
-    <div class="row"><span class="lockchip">🔒 Read-only</span><span class="small muted">The integration can only read data. It can't change anything in the app.</span></div>
-    <div class="field"><span class="lab">Who should build it?</span>
-      ${opt("dev","A developer on my team","They create and test it. You approve it before it goes live.",`<input class="input" id="rEmail" aria-label="Developer's email" value="${esc(d.email)}"><div class="small muted">We'll invite them with limited access: they can only see this integration, not your spend or contracts, and they can't turn it on.</div>`)}
-      ${opt("ce","The CloudEagle team","We build it and tell you when it's ready.")}
-    </div>
-    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="sendRequest">Send request</button></div>
-  </div></div>`;
+function buildCard(x){
+  const st = buildStatus(x);
+  const who = x.builder==="dev" ? `Ravi Menon is building it` : S.user==="priya" ? "You're building it with AI" : "Priya Sharma is building it";
+  const btn = st==="Needs your approval" ? `<button class="btn sm primary" data-act="openBuild4">Review and approve</button>`
+    : x.builder==="self" || x.status==="Draft" ? `<button class="btn sm primary" data-act="openBuild">Continue</button>`
+    : `<button class="btn sm" data-act="openBuild">View progress</button>`;
+  return `<div class="appcard hl" role="button" tabindex="0" data-act="openBuild">
+    <div class="row"><span class="logo">${esc(x.app[0])}</span><div style="flex:1;min-width:0"><b>${esc(x.app)}</b><div class="small muted">New · made with AI</div></div>${statusPill(st)}</div>
+    <p class="small">${esc(who)}. Step ${x.step} of 4: ${esc(STEP_NAMES[x.step-1])}.</p>
+    <div class="bar"><i style="width:${Math.round((x.step-(x.status==="Waiting for approval"?0:1))/4*100)}%"></i></div>
+    <div class="row" style="margin-top:auto">${btn}<span class="small faint" style="margin-left:auto">v${x.version}</span></div></div>`;
+}
+function seedCard(s){
+  return `<div class="appcard" role="button" tabindex="0" data-act="follow" data-app="${esc(s.app)}">
+    <div class="row"><span class="logo">${esc(s.app[0])}</span><div style="flex:1;min-width:0"><b>${esc(s.app)}</b><div class="small muted">New · made with AI</div></div>${statusPill("Building")}</div>
+    <p class="small">${esc(s.who)} is building it. Step ${s.step} of 4: ${esc(STEP_NAMES[s.step-1])}.</p>
+    <div class="bar"><i style="width:${(s.step-1)/4*100}%"></i></div>
+    <div class="row" style="margin-top:auto"><button class="btn sm" data-act="follow" data-app="${esc(s.app)}">Get updates</button></div></div>`;
 }
 /* ---------------- screens: developer home ---------------- */
 function scrAssigned(){
   const x = I();
-  const active = x && x.builder==="dev";
+  const active = x && x.builder==="dev" && x.status!=="Draft";
   let banner = "";
-  if (active && x.status==="In progress" && x.step===1 && !x.files) banner = nudge("info", `Priya Sharma asked you to build the ${esc(x.app)} integration`, "Three steps: create the code from the API docs, test it on a test account, then send it to Priya to turn on.", `<button class="btn primary" data-act="openBuild">Start</button>`);
+  if (active && x.status==="In progress" && !x.files) banner = nudge("info", `Priya Sharma asked you to build the ${esc(x.app)} integration`, "She already picked the data and approved the access. You create the code, test it, then send it back to her to turn on.", `<button class="btn primary" data-act="openBuild">Start</button>`);
   else if (active && x.status==="Changes requested") banner = nudge("warn", `Priya asked for changes on ${esc(x.app)}`, esc(x.changeNote||"Test it again and resend."), `<button class="btn primary" data-act="openBuild">Open</button>`);
   else if (active && x.status==="Waiting for approval") banner = nudge("info", "Sent to Priya", "We'll let you know when she turns it on.");
   else if (active && x.status==="Live") banner = nudge("good", `${esc(x.app)} is live`, `Priya approved version ${S.liveVersion}.`);
   return `${crumbs([["Integrations","goAssigned"],["Assigned to me"]])}
-  <div><h1>Assigned to me</h1><p class="lede">Integrations you've been asked to build.</p></div>
+  <div><h1>Assigned to me</h1><p class="lede">Integrations you've been asked to build. You only see these, not the company's spend or contracts.</p></div>
   ${banner}
-  ${active?`<div class="card"><div class="spread"><div class="row"><span class="logo">${esc(x.app[0])}</span><div><b>${esc(x.app)}</b><div class="small muted">Asked by Priya Sharma · ${esc(x.data.join(" · "))} · read-only</div></div></div>
-    <div class="row">${statusPill(x.status)}<span class="small muted">${stepLabel()}</span><button class="btn ${x.status==="In progress"||x.status==="Changes requested"?"primary":""}" data-act="openBuild">${x.files?"Continue":"Start"}</button></div></div></div>`
+  ${active?`<div class="card"><div class="spread"><div class="row"><span class="logo">${esc(x.app[0])}</span><div><b>${esc(x.app)}</b><div class="small muted">Asked by Priya Sharma · ${onFields(x).length} fields approved · read-only</div></div></div>
+    <div class="row">${statusPill(buildStatus(x))}<span class="small muted">${stepLabel()}</span><button class="btn ${x.status==="In progress"||x.status==="Changes requested"?"primary":""}" data-act="openBuild">${x.files?"Continue":"Start"}</button></div></div></div>`
   : `<div class="dashed muted" style="text-align:center">Nothing assigned to you right now.</div>`}`;
 }
 /* ---------------- build: shared ---------------- */
@@ -499,24 +588,57 @@ function scrBuild(){
   const tail = STEP_NAMES[step-1];
   const cr = S.user==="ravi" ? crumbs([["Integrations","goAssigned"],["Assigned to me","goAssigned"],[x.app,"openBuild"],[tail]])
     : adminCrumbs([x.app, "openBuild"],[tail]);
-  const title = `<div class="spread"><div class="row"><span class="logo">${esc(x.app[0])}</span><h1>${self?`Add ${esc(x.app)} with AI`:`${esc(x.app)} integration`}</h1>${statusPill(x.status)}<span class="pill purple">Version ${x.version}</span></div>
-    ${x.builder==="dev"&&S.user==="priya"?`<span class="small muted">Built by Ravi Menon</span>`:""}</div>`;
-  const intro = self && step===1 && !x.understanding && !S.hideIntro ? `<div class="howit reveal"><div class="spread"><b>How this works</b><button class="btn ghost sm" data-act="hideIntro">Got it</button></div>
-    <ol><li><b>Create the code.</b> We read ${esc(x.app)}'s API documentation and write the code. You check what we found first.</li>
-    <li><b>Test it.</b> We run it against a ${esc(x.app)} account and show you exactly what it brings in.</li>
-    <li><b>Turn it on.</b> Connect your company's ${esc(x.app)} account and it syncs every day.</li></ol>
-    <span class="small muted">About 5 minutes. Your progress is saved, so you can stop and come back.</span></div>` : "";
-  const body = step===1 ? step1() : step===2 ? step2() : step3();
+  const title = `<div class="spread"><div class="row"><span class="logo">${esc(x.app[0])}</span><h1>New integration: ${esc(x.app)}</h1>${statusPill(buildStatus(x))}<span class="pill purple">Version ${x.version}</span></div>
+    <span class="small muted">${x.builder==="dev"?(S.user==="priya"?"Built by Ravi Menon · you approve":"Asked by Priya Sharma"):"Built by you with AI"}</span></div>`;
+  const intro = self && step===1 && !x.accessApproved && !S.hideIntro ? `<div class="howit reveal"><div class="spread"><b>How this works</b><button class="btn ghost sm" data-act="hideIntro">Got it</button></div>
+    <ol><li><b>Data and access.</b> Pick what CloudEagle should bring in from ${esc(x.app)}. CloudEagle can only read what you approve.</li>
+    <li><b>Create the code.</b> AI reads ${esc(x.app)}'s API documentation and writes the code. You check what it found first.</li>
+    <li><b>Test it.</b> Run it on a test account and check what it brings in.</li>
+    <li><b>Turn it on.</b> Review the permissions, connect your company's account, and it syncs every day.</li></ol>
+    <span class="small muted">About 10 minutes. Your progress is saved, so you can stop and come back.</span></div>` : "";
+  const body = step===1 ? stepData() : step===2 ? stepCode() : step===3 ? stepTest() : stepOn();
   return `${cr}${title}${stepper(step)}${intro}${body}`;
 }
-/* ---------------- step 1: generate ---------------- */
+/* ---------------- step 1: data and access ---------------- */
+function stepData(){
+  const x = I(); const me = S.user, isAdmin = me==="priya"; const locked = !!x.files;
+  const canEdit = f => !locked && !LOCKED.has(f.key) && (isAdmin ? !(x.builder==="dev" && x.status!=="Draft" && f.by==="ravi") : (f.group==="tech" || f.by==="ravi"));
+  const row = f => `<label class="frow ${f.on?"on":""}"><input type="checkbox" data-field="${esc(f.key)}" ${f.on?"checked":""} ${canEdit(f)?"":"disabled"}>
+    <span class="ft"><span class="row" style="gap:6px"><b>${esc(f.label)}</b>${LOCKED.has(f.key)?`<span class="pill grey">Always</span>`:""}${f.by==="ravi"&&f.on?`<span class="pill purple">Added by Ravi</span>`:""}${f.custom&&f.by===me&&!locked?`<button class="linkbtn" data-act="delField" data-key="${esc(f.key)}">Remove</button>`:""}</span><span class="n">${esc(f.why)}</span></span></label>`;
+  const grp = (g, title, sub) => { const fs = x.fields.filter(f=>(f.group===g)); return fs.length?`<div class="fgroup"><div class="lab2">${title}${sub?` <span class="hint">${sub}</span>`:""}</div>${fs.map(row).join("")}</div>`:""; };
+  const canAdd = !locked && (isAdmin ? x.builder==="self" : true);
+  const addForm = canAdd ? `<div class="addfield"><input class="input" id="nfLabel" placeholder="Field name, for example: Time zone"><input class="input" id="nfWhy" placeholder="Why the code needs it"><button class="btn sm" data-act="addField">Add field</button></div>` : "";
+  const n = onFields(x).length;
+  const fieldsCard = `<div class="card"><div class="spread"><div><h2>What should CloudEagle bring in from ${esc(x.app)}?</h2><div class="small muted">Pick only what you need. CloudEagle reads these fields and nothing else.</div></div><span class="pill blue">${n} fields</span></div>
+    ${locked?nudge("info","Fields are locked because the code is written","To change them, make a new version after it's turned on."):""}
+    ${!isAdmin?nudge("info","Priya Sharma picked these fields","You can add technical fields the code needs. Priya sees anything you add before she turns it on."):""}
+    ${grp("core","Always brought in","needed to match people")}${grp("rec","Recommended","used to find unused licences")}${grp("opt","Optional")}
+    <div class="fgroup"><div class="lab2">Technical fields <span class="hint">the person building it adds what the code needs</span></div>${x.fields.filter(f=>f.group==="tech").map(row).join("")}${addForm}</div></div>`;
+  const accessCard = `<div class="card"><h2>What CloudEagle will be able to access</h2>
+    <div class="row"><span class="lockchip">🔒 Read-only</span><span class="small muted">${n} fields from ${esc(x.app)}</span></div>
+    ${permsBlock(x.app, {scopesNote:`The exact ${esc(x.app)} permissions appear after the AI reads the API docs, and again before you connect.`})}
+    <div class="small muted">Data is kept in your CloudEagle workspace and only admins can see it. Disconnecting stops the sync.</div></div>`;
+  let foot = "";
+  if (isAdmin && !x.accessApproved){
+    const dev = x.builder==="dev";
+    foot = `<div class="card"><label class="signoff"><input type="checkbox" id="accessOk" ${x.accessOk?"checked":""}> <span>I approve CloudEagle reading these <b>${n} fields</b> from ${esc(x.app)}. It can't change anything.</span></label>
+      ${dev?`<div class="row small muted">Ravi Menon (${esc(x.devEmail||"ravi.menon@acme.com")}) gets access to this integration only. He can't see your spend or contracts, and he can't turn it on.</div>`:""}
+      <div class="row" style="justify-content:flex-end">${dev?`<button class="btn primary" data-act="sendDev" ${x.accessOk?"":"disabled"}>Send to Ravi Menon</button>`:`<button class="btn primary" data-act="toCode" ${x.accessOk?"":"disabled"}>Next: Create the code →</button>`}</div></div>`;
+  } else if (isAdmin && x.builder==="dev"){
+    foot = nudge("good","You approved this access",`Ravi Menon is building it. ${x.status==="Waiting for approval"?"It's ready for you to turn on.":"We'll let you know when it's ready."}`, x.status==="Waiting for approval"?`<button class="btn primary" data-act="openBuild4">Review and approve</button>`:"");
+  } else {
+    foot = `<div class="row" style="justify-content:space-between"><span class="small muted">✓ Access approved by Priya Sharma</span>${x.step===1||!x.files?`<button class="btn primary" data-act="toCode">Next: Create the code →</button>`:""}</div>`;
+  }
+  return `<div class="datagrid">${fieldsCard}${accessCard}</div>${foot}`;
+}
+/* ---------------- step 2: create the code ---------------- */
 const READ_STEPS = ["Opening the documentation","Finding how to sign in","Finding how to list people","Finding usage data","Checking page sizes and request limits","Matching fields to CloudEagle"];
 const GEN_STEPS = ["Connection to the app","Sign-in","People and usage","Reading page by page","Handling errors","Activity log","Matching fields","Safety checks"];
 function progList(steps){
   const n = steps.length, k = Math.min(prog, n);
   return `<div class="bar"><i style="width:${Math.round(k/n*100)}%"></i></div><div class="prog">${steps.map((s,i)=>`<div class="pi ${i<k?"ok":i===k?"run":""}"><span class="m">${i<k?"✓":""}</span>${esc(s)}</div>`).join("")}</div>`;
 }
-function step1(){
+function stepCode(){
   const x = I(); const u = x.understanding; const ro = S.user!==builderUser();
   const langOpts = Object.entries(LANGS).map(([k,v])=>`<option value="${k}" ${x.language===k?"selected":""} ${!AI&&k!=="python"?"disabled":""}>${v}${!AI&&k!=="python"?" (needs AI)":""}</option>`).join("");
   let h = `<div class="card"><div class="spread"><div><h2>Where should we read from?</h2><div class="small muted">We read the app's API documentation and write code that brings its data into CloudEagle.</div></div><span class="lockchip">🔒 Read-only</span></div>
@@ -524,7 +646,7 @@ function step1(){
       <div class="field"><span class="lab">API documentation</span><div class="seg" role="group"><button data-docs="link" aria-pressed="${x.docsMode==="link"}">Paste a link</button><button data-docs="paste" aria-pressed="${x.docsMode==="paste"}">Paste the text</button></div>
         ${x.docsMode==="link"?`<input class="input" id="docsUrl" value="${esc(x.docsUrl)}" placeholder="https://developer.example.com/api" ${ro?"readonly":""}>`:`<textarea class="input" id="docsText" placeholder="Paste the API reference for ${esc(x.app)}" ${ro?"readonly":""}>${esc(x.docsText||"")}</textarea>`}</div>
       <div class="field"><label for="lang">Write the code in</label><select class="input" id="lang" ${ro?"disabled":""}>${langOpts}</select>
-        <span class="small muted">Brings in: ${esc(x.data.join(" · "))}</span></div>
+        <span class="small muted">Brings in ${onFields().length} approved fields · <button class="linkbtn" data-step="1">See fields</button></span></div>
     </div>
     ${!u && !ro ? `<div class="row"><button class="btn primary" data-act="readDocs" ${busy?"disabled":""}>Read the documentation</button><span class="small muted">You'll see what we found before any code is written.</span></div>`:""}
     ${busy==="read"?`<div class="reveal">${progList(READ_STEPS)}</div>`:""}
@@ -537,7 +659,7 @@ function step1(){
     if (busy==="gen") h += `<div class="card reveal"><div class="spread"><h3>Writing the ${esc(LANGS[x.language])} code</h3><button class="btn sm" data-act="stop">Stop</button></div>${progList(GEN_STEPS)}</div>`;
   }
   if (x.files) h += codeSection(ro) + simSection();
-  if (x.files && x.sim?.passed && !ro && x.step===1) h += nudge("good","The code passed all checks","Next: try it on a real ${esc(x.app)} account before turning it on.",`<button class="btn primary" data-act="toStep2">Next: Test it →</button>`);
+  if (x.files && x.sim?.passed && !ro && x.step===2) h += nudge("good","The code passed all checks",`Next: try it on a test ${esc(x.app)} account before turning it on.`,`<button class="btn primary" data-act="toTest">Next: Test it →</button>`);
   return h;
 }
 function understandingCards(u, ro){
@@ -550,8 +672,19 @@ function understandingCards(u, ro){
     ${card("paging","Pages of results",`<div class="mono">${esc(u.pagination)}</div>`)}
     ${card("rate","Request limits",u.rate_limits.map(s=>`<div class="mono">${esc(s)}</div>`).join(""))}
   </div>
-  ${card("map","How fields match CloudEagle",`<div class="tablebox"><table><thead><tr><th>${esc(app())} field</th><th>CloudEagle field</th></tr></thead><tbody>${u.mapping.map(m=>`<tr><td class="mono">${esc(m[0])}</td><td><b>→ ${esc(m[1])}</b></td></tr>`).join("")}</tbody></table></div>`)}
+  ${fieldsFound()}
   ${u.unknowns?.length?`<div class="dashed small"><span class="pill grey">Not in the documentation</span> ${u.unknowns.map(esc).join(" · ")}</div>`:""}`;
+}
+function fieldsFound(){
+  const rows = fieldMap(); const c = s => rows.filter(r=>r.s===s).length;
+  const pill = r => r.s==="yes"?`<span class="avail ok">✓ Available</span>`:r.s==="plan"?`<span class="avail" style="color:var(--amber)">⚠ ${esc(r.note||"Some plans only")}</span>`:r.s==="no"?`<span class="avail" style="color:var(--red)">✕ Not in the API</span>`:`<span class="avail faint">? Not sure</span>`;
+  const missing = rows.filter(r=>r.s==="no"); const scopes = scopesFor();
+  return `<div class="ucard reveal"><div class="hd"><h3>Your ${rows.length} fields in ${esc(app())}</h3><div class="row"><span class="pill green">${c("yes")} available</span>${c("plan")?`<span class="pill amber">${c("plan")} on some plans</span>`:""}${c("no")?`<span class="pill red">${c("no")} not in the API</span>`:""}</div></div>
+    <div class="tablebox"><table><thead><tr><th>CloudEagle field</th><th>Where it comes from in ${esc(app())}</th><th>Available?</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td><b>${esc(r.f.label)}</b></td><td class="mono">${esc(r.src||"—")}</td><td>${pill(r)}</td></tr>`).join("")}</tbody></table></div>
+    ${missing.length?nudge("info",`${esc(missing.map(r=>r.f.label).join(", "))} ${missing.length>1?"aren't":"isn't"} in ${esc(app())}'s API`,"The code leaves these empty. CloudEagle can fill them from Okta or your HR system instead."):""}</div>
+  <div class="ucard reveal"><div class="hd"><h3>Permissions the code needs</h3><span class="lockchip">🔒 Read-only</span></div>
+    ${scopes.length?`<div class="scopes">${scopes.map(s=>`<div class="scope-row"><span class="scopename">${esc(s.name)}</span><span class="small muted">${esc(s.why)}</span></div>`).join("")}</div><div class="small muted">Only what your fields need. Turning a field off removes its permission.</div>`:`<div class="small muted">The documentation doesn't name its permissions. You'll approve access when you sign in to ${esc(app())}.</div>`}</div>`;
 }
 function tabsFor(files){
   const names = Object.keys(files);
@@ -562,7 +695,7 @@ function codeSection(ro){
   const x = I(); const files = x.files; const f = files[x.activeFile]!==undefined ? x.activeFile : Object.keys(files)[0];
   const allPass = x.safety.every(r=>r.pass);
   return `<div class="spread reveal"><div class="row"><h2>Your code</h2><span class="pill grey">${esc(LANGS[x.language])}</span>${x.fMode==="live"?`<span class="pill purple">AI · ${esc(AI?.model||"AI")}</span>`:""}</div>
-    <div class="row"><button class="btn sm" data-act="download">Download code</button>${!ro&&x.step===1?`<button class="btn sm" data-act="genCode" ${busy?"disabled":""}>Regenerate</button>`:""}</div></div>
+    <div class="row"><button class="btn sm" data-act="download">Download code</button>${!ro&&x.step===2?`<button class="btn sm" data-act="genCode" ${busy?"disabled":""}>Regenerate</button>`:""}</div></div>
   <div class="codewrap reveal">
     <div class="tree"><div class="t">${esc(app().toUpperCase())}-INTEGRATION/</div>${Object.keys(files).map(n=>`<button data-file="${esc(n)}" aria-current="${n===f}">${esc(n)}</button>`).join("")}</div>
     <div class="editor"><div class="tabs">${tabsFor(files).map(t=>`<button data-file="${esc(t[1])}" aria-current="${t[1]===f}">${t[0]}</button>`).join("")}</div>
@@ -597,8 +730,8 @@ function simSection(){
   </div>`;
 }
 
-/* ---------------- step 2: test ---------------- */
-function step2(){
+/* ---------------- step 3: test ---------------- */
+function stepTest(){
   const x = I(); const ro = S.user!==builderUser(); const t = x.test; const live = runLog?.which==="test" ? runLog : null;
   const mode = x.testMode || "test";
   let h = `<div class="card"><div><h2>Test it on a real ${esc(x.app)} account</h2><div class="small muted">We run the code against a real account and show you what it brings in. Nothing is saved to CloudEagle yet.</div></div>`;
@@ -615,11 +748,12 @@ function step2(){
   if (live) h += `<div class="thinking row"><span class="pill blue">Running…</span><span class="small muted">${live.reqs.length} requests so far</span></div>${reqLog(live.reqs,"test")}`;
   h += `</div>`;
   if (t && !live) h += testReport(t, ro);
-  if (t && x.testSigned && !ro && x.step===2) h += nudge("good","Test approved", x.builder==="dev"?"Next: send it to Priya Sharma to turn on.":"Next: turn it on for your company.", `<button class="btn primary" data-act="toStep3">Next: Turn it on →</button>`);
+  if (t && x.testSigned && !ro && x.step===3) h += nudge("good","Test approved", x.builder==="dev"?"Next: send it to Priya Sharma to turn on.":"Next: turn it on for your company.", `<button class="btn primary" data-act="toOn">Next: Turn it on →</button>`);
   return h;
 }
 function testReport(t, ro){
-  const x = I(); const liveMode = t.mode==="live";
+  const x = I(); const liveMode = t.mode==="live"; const on = new Set(onFields().map(f=>f.key));
+  const cols = [["name","Name",r=>`<b>${esc(r.name)}</b>`],["email","Email",r=>`<span class="muted">${esc(r.email)}</span>`],["role","Role",r=>esc(r.role[0].toUpperCase()+r.role.slice(1))],["usage","Meetings (90 days)",r=>liveMode?"—":r.usage_90d?r.usage_90d:`<span class="pill amber">0</span>`],["added_on","Date added",r=>esc(r.added_on||"—")],["last_active","Last active",()=>`<span class="faint">Enterprise only</span>`],["status","Account",()=>`<span class="pill green">Active</span>`]].filter(c=>on.has(c[0]));
   return `<div class="report reveal"><div class="rh"><div><b>Test report</b> <span class="small muted">· ${liveMode?"Acme Corp (read-only check, first 100 people)":`${esc(x.app)} trial account “acme-test”`} · version ${x.version} · ${esc(LANGS[x.language])} · ${esc(t.at)}</span></div>
       <div class="row">${t.passed?`<span class="pill green">Passed</span>`:`<span class="pill red">Failed</span>`}<button class="btn sm" data-act="downloadReport">Download report</button></div></div>
     <div class="rb">
@@ -633,39 +767,44 @@ function testReport(t, ro){
       <div class="grid2">${[
         ["pass","Signed in with an admin account","Found the company account through /users/me"],
         ["pass",liveMode?`Read the first ${t.summary.users} people`:`Found all ${t.summary.users} people`,liveMode?"Stopped after one page, as asked":`${t.summary.pages.length} page of results`],
-        [liveMode?"warn":"pass",liveMode?"Meetings not read in a quick check":"Read meetings for each person",liveMode?"The full sync reads them after you turn it on":`${t.summary.meetings} meetings in the last 90 days`],
-        ["warn","“Last active” isn't available on this plan","Only Calendly Enterprise shares it. We leave it empty instead of guessing."],
-        ["pass",`Every person matched to CloudEagle's fields (${t.summary.mapped})`,"No missing names or emails"],
+        ...(on.has("usage")?[[liveMode?"warn":"pass",liveMode?"Meetings not read in a quick check":"Read meetings for each person",liveMode?"The full sync reads them after you turn it on":`${t.summary.meetings} meetings in the last 90 days`]]:[]),
+        ...(on.has("last_active")?[["warn","“Last active” isn't available on this plan","Only Calendly Enterprise shares it. We leave it empty instead of guessing."]]:[]),
+        ["pass",`Every person matched to your ${onFields().length} fields`,"No missing names or emails. Fields not in the API are left empty."],
         ["pass","Only read data","Nothing was created, changed or deleted"]].map(c=>`<div class="chk"><span class="m ${c[0]}">${c[0]==="pass"?"✓":"!"}</span><span>${esc(c[1])}<span class="n">${esc(c[2])}</span></span></div>`).join("")}</div>
-      <div><h3 style="margin-bottom:8px">What CloudEagle will bring in (sample)</h3><div class="tablebox"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Meetings (90 days)</th><th>Status</th></tr></thead><tbody>
-        ${t.records.slice(0,5).map(r=>`<tr><td><b>${esc(r.name)}</b></td><td class="muted">${esc(r.email)}</td><td>${esc(r.role[0].toUpperCase()+r.role.slice(1))}</td><td>${liveMode?"—":r.usage_90d}</td><td>${liveMode?`<span class="pill grey">After sync</span>`:r.status==="active"?`<span class="pill green">Active</span>`:`<span class="pill amber">Not active</span>`}</td></tr>`).join("")}
+      <div><h3 style="margin-bottom:8px">What CloudEagle will bring in (sample)</h3><div class="tablebox"><table><thead><tr>${cols.map(c=>`<th>${c[1]}</th>`).join("")}</tr></thead><tbody>
+        ${t.records.slice(0,5).map(r=>`<tr>${cols.map(c=>`<td>${c[2](r)}</td>`).join("")}</tr>`).join("")}
       </tbody></table></div></div>
       <details><summary>Every request we sent (${t.reqs.length})</summary><div style="margin-top:10px">${reqLog(t.reqs,"test")}</div></details>
       ${!ro?`<label class="signoff"><input type="checkbox" id="signoff" ${x.testSigned?"checked":""} ${x.testSigned?"disabled":""}> <span>I checked: ${esc(x.app)} also shows <b>${t.summary.users}</b> ${liveMode?"or more ":""}people, and the sample looks right. <b>Approve this test.</b></span></label>`:x.testSigned?`<div class="small ok">✓ Approved by ${esc(PEOPLE[builderUser()].name)}</div>`:""}
       <div class="small faint">Prototype: the account's answers are made up.</div>
     </div></div>`;
 }
-/* ---------------- step 3: turn it on ---------------- */
-function step3(){
+/* ---------------- step 4: turn it on ---------------- */
+function stepOn(){
   const x = I();
   if (x.status==="Live") return `<div class="card"><div class="success"><div class="big">✓</div><h2>${esc(x.app)} is on</h2><div class="muted">It syncs every day. Version ${S.liveVersion}.</div>
     <div class="row" style="justify-content:center"><button class="btn primary" data-act="openApp" data-app="${esc(x.app)}" data-tab="licences">See unused licences</button><button class="btn" data-act="goIntegrations">Back to integrations</button></div></div></div>`;
+  const rows = fieldMap(); const avail = rows.filter(r=>r.s!=="no");
   const summary = `<div class="card"><h2>What you're turning on</h2><div class="tablebox"><table><tbody>
-      <tr><td class="muted" style="width:170px">Brings in</td><td>People, meetings each person hosted, last activity (Enterprise plan only)</td></tr>
-      <tr><td class="muted">Access</td><td>🔒 Read-only. It can't change anything in ${esc(x.app)}.</td></tr>
+      <tr><td class="muted" style="width:170px">Brings in</td><td>${avail.map(r=>esc(r.f.label)+(r.s==="plan"?` <span class="faint">(${esc(r.note||"some plans")})</span>`:"")).join(", ")}</td></tr>
+      ${rows.length>avail.length?`<tr><td class="muted">Not in ${esc(x.app)}'s API</td><td>${rows.filter(r=>r.s==="no").map(r=>esc(r.f.label)).join(", ")} <span class="faint">· CloudEagle fills these from Okta or your HR system</span></td></tr>`:""}
       <tr><td class="muted">Code</td><td>Version ${x.version} · ${esc(LANGS[x.language])} · safety checks ${x.safety.filter(r=>r.pass).length} of ${x.safety.length} passed</td></tr>
       <tr><td class="muted">Tests</td><td>${x.sim?.passed&&!x.sim.skipped?"Automatic checks passed":"Automatic checks: not available for this app"} · Account test approved${x.testSigned?` by ${esc(PEOPLE[builderUser()].name)}`:""}</td></tr>
       <tr><td class="muted">Sync</td><td>Every day, once it's on</td></tr></tbody></table></div></div>`;
   if (S.user==="ravi"){
     if (x.status==="Waiting for approval") return summary + nudge("info","Sent to Priya","We'll let you know when she turns it on.");
-    return summary + `<div class="row"><button class="btn primary" data-act="submit">Send to Priya Sharma to turn on</button><span class="small muted">Only an admin can turn an integration on.</span></div>`;
+    return summary + `<div class="row"><button class="btn primary" data-act="submit">Send to Priya Sharma to turn on</button><span class="small muted">Only an admin can review the permissions and turn an integration on.</span></div>`;
   }
   if (x.builder==="dev" && x.status!=="Waiting for approval") return summary + nudge("info","Ravi is still working on this","We'll let you know when it's ready for you.");
   const P = x.preview;
-  const reuse = x.testMode==="live";
-  return summary + `<div class="card"><div class="spread"><h2>1. Connect your company's ${esc(x.app)} account</h2>${x.prodConnected?`<span class="pill green">● Connected: Acme Corp</span>`:""}</div>
-      ${x.prodConnected?`<div class="small muted">🔒 The key is stored safely. ${x.builder==="dev"?"Ravi and the AI never see it.":"The AI never sees it."}${reuse?" (Already connected during the test.)":""}</div>`:`<div class="row"><button class="btn primary" data-act="connectProd">Connect ${esc(x.app)}</button><span class="small muted">Sign in to ${esc(x.app)} and click Allow, like any other integration.</span></div>`}</div>
-    <div class="card"><div class="spread"><div><h2>2. Check the first sync</h2><div class="small muted">We read the first 100 people only and save nothing.</div></div>${x.prodConnected&&!P&&busy!=="preview"?`<button class="btn primary" data-act="preview">Run the check</button>`:""}</div>
+  const added = x.fields.filter(f=>f.on && f.by==="ravi");
+  return summary + `<div class="card"><div class="spread"><h2>1. Review the permissions</h2><span class="lockchip">🔒 Read-only</span></div>
+      <div class="small muted">This is everything CloudEagle will be able to see in your company's ${esc(x.app)} account.</div>
+      ${added.length?nudge("warn",`Ravi added ${added.length} field${added.length>1?"s":""} after you approved`, added.map(f=>`${esc(f.label)}: ${esc(f.why)}`).join(" · ")+". Turning it on approves these too."):""}
+      ${permsBlock(x.app)}</div>
+    <div class="card"><div class="spread"><h2>2. Connect your company's ${esc(x.app)} account</h2>${x.prodConnected?`<span class="pill green">● Connected: Acme Corp</span>`:""}</div>
+      ${x.prodConnected?`<div class="small muted">🔒 The key is stored safely. ${x.builder==="dev"?"Ravi and the AI never see it.":"The AI never sees it."}${x.testMode==="live"?" (Already connected during the test.)":""}</div>`:`<div class="row"><button class="btn primary" data-act="connectProd">Connect ${esc(x.app)}</button><span class="small muted">Sign in to ${esc(x.app)} and click Allow, like any other integration. You'll see the same permissions there.</span></div>`}</div>
+    <div class="card"><div class="spread"><div><h2>3. Check the first sync</h2><div class="small muted">We read the first 100 people only and save nothing.</div></div>${x.prodConnected&&!P&&busy!=="preview"?`<button class="btn primary" data-act="preview">Run the check</button>`:""}</div>
       ${busy==="preview"?`<div class="thinking row"><span class="pill blue">Reading…</span></div>`:""}
       ${P?`<div class="reveal" style="display:flex;flex-direction:column;gap:10px"><div class="row"><span class="ok">✓ ${P.users} people read</span><span class="ok">✓ No errors</span><span class="ok">✓ Read-only</span><span class="small muted">The full sync brings in everyone else.</span></div>
         <label class="signoff"><input type="checkbox" id="confirmProd" ${x.confirmed?"checked":""}> <span>This matches what I see in ${esc(x.app)}.</span></label></div>`:""}
@@ -679,7 +818,7 @@ function scrApp(){
   const users = appUsers(name); const inactive = users.filter(u=>!u.use);
   const tabs = [["overview","Overview"],["usage","Usage"],["licences","Licence management"],["settings","Settings"]];
   let body = "";
-  if (a.status!=="Synced" && tab!=="settings" && tab!=="overview"){
+  if (a.status!=="Connected" && tab!=="settings" && tab!=="overview"){
     body = `<div class="card"><div class="empty"><b>${esc(name)} isn't connected yet</b><div class="muted">Connect it to see who uses it.</div><button class="btn primary" data-act="connectApp" data-app="${esc(name)}">Connect ${esc(name)}</button></div></div>`;
   } else if (tab==="overview") body = appOverview(a, users, inactive);
   else if (tab==="usage") body = appUsage(a, users);
@@ -687,7 +826,7 @@ function scrApp(){
   else body = appSettings(a);
   return `${adminCrumbs([name])}
   <div class="spread"><div class="row"><span class="logo" style="width:40px;height:40px;font-size:18px">${esc(name[0])}</span><div><h1>${esc(name)}</h1><div class="small muted">${esc(a.cat)}</div></div>${statusPill(a.status)}${a.custom?`<span class="pill purple">Made with AI · v${S.liveVersion}</span>`:""}</div>
-    ${a.status==="Synced"?`<div class="row"><span class="small muted">Last synced ${esc(a.lastSync)}</span><button class="btn sm" data-act="syncnow" data-app="${esc(name)}">Sync now</button></div>`:`<button class="btn primary" data-act="connectApp" data-app="${esc(name)}">Connect</button>`}</div>
+    ${a.status==="Connected"?`<div class="row"><span class="small muted">Last synced ${esc(a.lastSync)}</span><button class="btn sm" data-act="syncnow" data-app="${esc(name)}">Sync now</button></div>`:`<button class="btn primary" data-act="connectApp" data-app="${esc(name)}">Connect</button>`}</div>
   <div class="apptabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" aria-selected="${k===tab}" class="${k===tab?"on":""}" data-act="tab" data-tab="${k}">${l}</button>`).join("")}</div>
   <div class="tabbody">${body}</div>`;
 }
@@ -701,17 +840,18 @@ function appOverview(a, users, inactive){
   return `<div class="card"><h2>What this integration does</h2><p style="margin:0">${esc(a.desc)}</p>
       <div class="grid3">${a.reads.map(r=>`<div class="chk"><span class="m pass">✓</span><span>${esc(r)}</span></div>`).join("")}</div>
       <div class="small muted">🔒 Read-only. CloudEagle can't change anything in ${esc(a.name)}.</div></div>
-    ${a.status==="Synced"?`<div class="tiles">
+    ${a.status==="Connected"?`<div class="tiles">
       <div class="tile"><div class="k">People</div><div class="v">${users.length}</div></div>
       <div class="tile"><div class="k">Licences you pay for</div><div class="v">${a.lic}</div></div>
       <div class="tile inact"><div class="k">Not used in 90 days</div><div class="v">${inactive.length}</div></div>
       <div class="tile save"><div class="k">Possible saving a year</div><div class="v">${money((inactive.length+Math.max(0,a.lic-users.length))*a.price*12)}</div></div></div>`:""}
     ${built}
+    ${a.custom&&a.status==="Connected"?`<div class="card"><h2>Health</h2><div class="grid3">${["Last sync finished with no errors",`${users.length} people brought in`,`No changes found in ${a.name}'s API`].map(s=>`<div class="chk"><span class="m pass">✓</span><span>${esc(s)}</span></div>`).join("")}</div><div class="small muted">We check ${esc(a.name)}'s API every day. If it changes, you get an alert and can make a new version. The current version keeps running until you approve the new one.</div></div>`:""}
     <div class="card"><h2>Connection</h2><div class="tablebox"><table><tbody>
       <tr><td class="muted" style="width:170px">Status</td><td>${statusPill(a.status)}</td></tr>
-      <tr><td class="muted">Account</td><td>${a.status==="Synced"?"Acme Corp":"—"}</td></tr>
+      <tr><td class="muted">Account</td><td>${a.status==="Connected"?"Acme Corp":"—"}</td></tr>
       <tr><td class="muted">Syncs</td><td>${esc(a.freq)}</td></tr>
-      <tr><td class="muted">Last sync</td><td>${a.status==="Synced"?esc(a.lastSync):"—"}</td></tr></tbody></table></div></div>`;
+      <tr><td class="muted">Last sync</td><td>${a.status==="Connected"?esc(a.lastSync):"—"}</td></tr></tbody></table></div></div>`;
 }
 function appUsage(a, users){
   const f = S.usageFilter || "all";
@@ -749,22 +889,23 @@ function appSettings(a){
       <div class="field"><span class="lab">Alerts</span><label class="row"><input type="checkbox" id="alerts" ${a.alerts?"checked":""}> Email me if a sync fails or the number of people changes a lot</label></div></div>
       <div><button class="btn primary" data-act="saveSettings" data-app="${esc(a.name)}">Save</button></div></div>
     <div class="card"><h2>Connected account</h2>
-      ${a.status==="Synced"?`<div class="row"><span class="pill green">● Acme Corp</span><span class="small muted">Connected by Priya Sharma</span><button class="btn sm" data-act="connectApp" data-app="${esc(a.name)}">Reconnect</button></div>`:`<div class="row"><span class="pill grey">Not connected</span><button class="btn primary sm" data-act="connectApp" data-app="${esc(a.name)}">Connect</button></div>`}</div>
+      ${a.status==="Connected"?`<div class="row"><span class="pill green">● Acme Corp</span><span class="small muted">Connected by Priya Sharma</span><button class="btn sm" data-act="connectApp" data-app="${esc(a.name)}">Reconnect</button></div>`:`<div class="row"><span class="pill grey">Not connected</span><button class="btn primary sm" data-act="connectApp" data-app="${esc(a.name)}">Connect</button></div>`}</div>
+    <div class="card"><div class="spread"><h2>Permissions</h2><span class="lockchip">🔒 Read-only</span></div>${permsBlock(a.name)}${a.custom?`<div class="small muted">To change the fields, make a new version below. Each new version is approved again.</div>`:""}</div>
     ${a.custom?`<div class="card"><h2>Versions</h2><div class="tablebox"><table><thead><tr><th>Version</th><th>Status</th><th>Language</th><th>Approved by</th><th></th></tr></thead><tbody>
       <tr><td><b>v${S.liveVersion}</b></td><td>${statusPill("Live")}</td><td>${esc(LANGS[x.language])}</td><td>Priya Sharma</td><td><button class="linkbtn" data-act="viewCode">View code</button></td></tr></tbody></table></div>
       <div class="row"><button class="btn" data-act="regenAsk">Make a new version</button><span class="small muted">Use this when ${esc(a.name)} changes its API. The current version keeps running until the new one is approved.</span></div></div>`:""}
-    ${a.status==="Synced"?`<div class="card danger"><h2>Disconnect</h2><div class="row"><span class="small muted">CloudEagle stops syncing ${esc(a.name)}. Data you already have stays.</span><button class="btn" data-act="disconnectAsk" data-app="${esc(a.name)}">Disconnect ${esc(a.name)}</button></div></div>`:""}`;
+    ${a.status==="Connected"?`<div class="card danger"><h2>Disconnect</h2><div class="row"><span class="small muted">CloudEagle stops syncing ${esc(a.name)}. Data you already have stays.</span><button class="btn" data-act="disconnectAsk" data-app="${esc(a.name)}">Disconnect ${esc(a.name)}</button></div></div>`:""}`;
 }
 /* ---------------- modals ---------------- */
 function oauthModal(kind){
   const name = kind==="app" ? S.connectName : app();
   const who = kind==="test" && (I()?.testMode||"test")==="test" ? "acme-test (trial)" : "Acme Corp";
   const user = S.user==="ravi" ? "ravi.menon" : "priya.sharma";
-  return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="oat"><div class="modal" style="width:min(440px,100%)"><div class="oauth">
-    <div class="brandline"><span class="logo" style="width:40px;height:40px">${esc(name[0])}</span><div><b id="oat">Sign in to ${esc(name)}</b><div class="small muted">${who} · ${user}@acme.com</div></div></div>
-    <div><b>CloudEagle</b> would like to:</div>
-    <div class="scope">✓ See the people in your account</div><div class="scope">✓ See how much each person uses ${esc(name)}</div>
-    <div class="dashed small">It can't create, change or delete anything.</div>
+  return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="oat"><div class="modal" style="width:min(520px,100%)"><div class="oauth">
+    <div class="brandline"><span class="logo" style="width:40px;height:40px">${esc(name[0])}</span><div><b id="oat">${kind==="app"?`Connect ${esc(name)}`:`Sign in to ${esc(name)}`}</b><div class="small muted">${who} · ${user}@acme.com</div></div></div>
+    <div><b>CloudEagle</b> is asking for read-only access.</div>
+    ${permsBlock(name)}
+    <div class="small muted">${kind==="test"?"This is a test. Nothing is saved to CloudEagle.":"You can disconnect any time in the app's Settings tab."}</div>
     <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="${kind==="test"?"allowTest":kind==="prod"?"allowProd":"allowApp"}">Allow</button></div>
   </div></div></div>`;
 }
@@ -780,15 +921,20 @@ function disconnectModal(){
     <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="disconnect">Disconnect</button></div></div></div>`;
 }
 function addModal(){
-  return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="adt"><div class="modal" style="width:min(520px,100%)">
-    <div class="spread"><h2 id="adt">Add an app</h2><button class="btn sm" data-act="closeModal" aria-label="Close">✕</button></div>
-    <div class="small muted">Any app with an API can be added. We read its documentation and write the integration for you.</div>
-    <div class="field"><label for="aApp">App name</label><input class="input" id="aApp" placeholder="For example: Calendly" value="${esc(S.addDraft?.app||"")}"></div>
-    <div class="field"><label for="aDocs">Link to its API documentation <span class="hint">optional, you can add it later</span></label><input class="input" id="aDocs" placeholder="https://developer.example.com/api" value="${esc(S.addDraft?.docsUrl||"")}"></div>
+  const d = S.addDraft || {app:"", docsUrl:"", builder:"self", email:"ravi.menon@acme.com"};
+  return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="adt"><div class="modal" style="width:min(560px,100%)">
+    <div class="spread"><h2 id="adt">New integration</h2><button class="btn sm" data-act="closeModal" aria-label="Close">✕</button></div>
+    <div class="small muted">Add any app that has an API. CloudEagle reads its API documentation and writes the integration with AI.</div>
+    <div class="field"><label for="aApp">App name</label><input class="input" id="aApp" placeholder="For example: Calendly" value="${esc(d.app)}"></div>
+    <div class="field"><label for="aDocs">Link to its API documentation <span class="hint">optional, you can add it later</span></label><input class="input" id="aDocs" placeholder="https://developer.example.com/api" value="${esc(d.docsUrl)}"></div>
+    <div class="field"><span class="lab">Who will build it?</span>
     <div class="choice">
-      <button class="ch rec" data-act="addSelf"><span class="row"><b>Build it myself with AI</b><span class="pill green">About 5 min</span></span><span class="small muted">We write the code, you test it and turn it on.</span></button>
-      <button class="ch" data-act="addAsk"><b>Ask someone else</b><span class="small muted">A developer on your team or the CloudEagle team builds it. You approve it.</span></button>
-    </div></div></div>`;
+      <button class="ch ${d.builder==="self"?"on":""}" data-act="pickBuilder" data-b="self" aria-pressed="${d.builder==="self"}"><b>I'll build it with AI</b><span class="small muted">You pick the data, AI writes the code, you test it and turn it on.</span></button>
+      <button class="ch ${d.builder==="dev"?"on":""}" data-act="pickBuilder" data-b="dev" aria-pressed="${d.builder==="dev"}"><b>Assign a developer</b><span class="small muted">You pick the data and approve access. They create and test it. You turn it on.</span></button>
+    </div></div>
+    ${d.builder==="dev"?`<div class="field reveal"><label for="aEmail">Developer's email</label><input class="input" id="aEmail" value="${esc(d.email)}"><span class="small muted">They get access to this integration only, not your spend or contracts, and they can't turn it on.</span></div>`:""}
+    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="addGo">Continue</button></div>
+  </div></div>`;
 }
 function codeModal(){
   const x = I(); const files = x.files || {}; const f = files[x.activeFile]!==undefined ? x.activeFile : Object.keys(files)[0];
@@ -805,7 +951,7 @@ function render(){
   const prevScroll = window.scrollY;
   document.getElementById("root").innerHTML = `${sidebar()}<div class="main">${topbar()}<main class="content ${enter?"enter":""}">${(scr||scrIntegrations)()}</main></div>`;
   const m = S.modal;
-  document.getElementById("overlay").innerHTML = m==="request"?requestModal():m==="oauthTest"?oauthModal("test"):m==="oauthProd"?oauthModal("prod"):m==="oauthApp"?oauthModal("app"):m==="regen"?regenModal():m==="disconnect"?disconnectModal():m==="code"?codeModal():m==="add"?addModal():"";
+  document.getElementById("overlay").innerHTML = m==="oauthTest"?oauthModal("test"):m==="oauthProd"?oauthModal("prod"):m==="oauthApp"?oauthModal("app"):m==="regen"?regenModal():m==="disconnect"?disconnectModal():m==="code"?codeModal():m==="add"?addModal():"";
   if (enter) window.scrollTo({top:0}); else window.scrollTo({top:prevScroll});
 }
 /* ---------------- safety checks (language-agnostic port) ---------------- */
@@ -855,7 +1001,7 @@ async function readDocs(){
   if (x.docsMode==="link" && !/^https?:\/\//.test(x.docsUrl||"") && !isCal()) return toast("Add the API documentation link, or paste the text.");
   busy="read"; ctl = new AbortController();
   const replay = () => sleep(4200).then(()=>({understanding:CAL_UNDERSTANDING, source:"captured", replay:true}));
-  const job = AI ? api("/api/understand", {app:x.app, docsUrl:x.docsMode==="link"?x.docsUrl:"", docsText:x.docsMode==="paste"?x.docsText:""}, ctl.signal) : (isCal() ? replay() : Promise.reject({message:"AI isn't configured on this deployment, so only Calendly can be read."}));
+  const job = AI ? api("/api/understand", {app:x.app, docsUrl:x.docsMode==="link"?x.docsUrl:"", docsText:x.docsMode==="paste"?x.docsText:"", fields:onFields().map(f=>({key:f.key,label:f.label}))}, ctl.signal) : (isCal() ? replay() : Promise.reject({message:"AI isn't configured on this deployment, so only Calendly can be read."}));
   try{
     const out = await animateWhile(READ_STEPS, job);
     busy=null; setI({understanding:out.understanding, uMode:out.replay?"replay":"live", uSource:out.source, ...resetBelow()});
@@ -869,7 +1015,7 @@ async function genCode(){
   const x = I(); busy="gen"; ctl = new AbortController(); render();
   const regen = !!x.files;
   const useAI = AI && x.uMode==="live";
-  const job = useAI ? api("/api/generate", {app:x.app, language:x.language, understanding:x.understanding}, ctl.signal).then(o=>({files:o.files, mode:"live"}))
+  const job = useAI ? api("/api/generate", {app:x.app, language:x.language, understanding:x.understanding, fields:onFields().map(f=>({key:f.key,label:f.label}))}, ctl.signal).then(o=>({files:o.files, mode:"live"}))
     : (isCal() && x.language==="python" ? sleep(5200).then(()=>({files:{...FILES}, mode:"replay"})) : Promise.reject({message:"AI isn't configured on this deployment."}));
   try{
     const out = await animateWhile(GEN_STEPS, job);
@@ -928,8 +1074,8 @@ async function runIntegration(ds, {maxPages=null, rateLimitOnce=null, onReq=()=>
   const ev = maxPages ? {out:[], pages:[]} : await all("/scheduled_events", {organization:org, min_start_time:ago.toISOString(), max_start_time:nowD.toISOString(), status:"active"});
   let errors = 0; if (!maxPages) { try { await all("/activity_log_entries", {organization:org}); } catch(e){ if (e.status!==403) errors++; } }
   const counts = {}; ev.out.forEach(e=>e.event_memberships.forEach(h=>counts[h.user]=(counts[h.user]||0)+1));
-  const records = m.out.map(x=>({name:x.user.name, email:x.user.email, role:x.role, usage_90d:counts[x.user.uri]||0, status:(counts[x.user.uri]||0)>0?"active":"inactive"}));
-  return {reqs, records, summary:{users:records.length, pages:m.pages, meetings:ev.out.length, waited, errors, mapped:7, duration:((performance.now()-t0)/1000).toFixed(1)}};
+  const records = m.out.map(x=>({name:x.user.name, email:x.user.email, role:x.role, added_on:String(x.created_at||"").slice(0,10), usage_90d:counts[x.user.uri]||0, status:(counts[x.user.uri]||0)>0?"active":"inactive"}));
+  return {reqs, records, summary:{users:records.length, pages:m.pages, meetings:ev.out.length, waited, errors, mapped:onFields().length, duration:((performance.now()-t0)/1000).toFixed(1)}};
 }
 async function runSim(){
   runLog = {which:"sim", reqs:[]}; selReq.sim = null; render();
@@ -968,12 +1114,13 @@ function switchUser(){
   toast(`You're now signed in as ${PEOPLE[other].name}`);
 }
 function openBuild(step){ set({screen:"build", viewStep: step||null, open:null, modal:null}); }
-function newIntegration(appName, docsUrl, builder){
+function newIntegration(appName, docsUrl, builder, email){
   const isC = appName.trim().toLowerCase()==="calendly";
-  S.I = {app:appName, docsUrl: docsUrl || (isC?"https://developer.calendly.com/api-docs/4b402d5ab3edd-calendly-developer":""), docsMode:(docsUrl||isC)?"link":"paste", docsText:"", data:["Users","Usage","Licences and roles"], builder, language:"python", step:1, version:(S.liveVersion||0)+1, status:builder==="ce"?"Requested":"In progress", updated:"Just now", testMode:"test", ...resetBelow(), understanding:null};
-  S.live = false; S.dismissLive = false; S.hideIntro = false; S.query = appName;
+  S.I = {app:appName, docsUrl: docsUrl || (isC?"https://developer.calendly.com/api-docs/4b402d5ab3edd-calendly-developer":""), docsMode:(docsUrl||isC)?"link":"paste", docsText:"", fields:defaultFields(), accessOk:false, accessApproved:false, builder, devEmail:email||"", language:"python", step:1, version:(S.liveVersion||0)+1, status:"Draft", updated:"Just now", testMode:"test", ...resetBelow(), understanding:null};
+  S.live = false; S.dismissLive = false; S.hideIntro = false; S.query = ""; S.filter = "all";
 }
 function patchApp(name, p){ S.apps[name] = Object.assign({}, S.apps[name], p); save(); render(); }
+function readAddDraft(){ const d = S.addDraft; const g = id => document.getElementById(id); if (g("aApp")) d.app=g("aApp").value; if (g("aDocs")) d.docsUrl=g("aDocs").value; if (g("aEmail")) d.email=g("aEmail").value; return d; }
 
 document.addEventListener("click", async (ev) => {
   if (S.open && !ev.target.closest(".menuwrap")) { S.open=null; render(); }
@@ -988,58 +1135,68 @@ document.addEventListener("click", async (ev) => {
   if (a==="toggleBell"){ set({open:S.open==="bell"?null:"bell"}); }
   else if (a==="toggleAcct"){ set({open:S.open==="acct"?null:"acct"}); }
   else if (a==="switch"){ switchUser(); }
-  else if (a==="goIntegrations"){ set({screen:S.user==="ravi"?"assigned":"integrations", viewStep:null, modal:null, query: S.screen==="integrations"?S.query:""}); }
+  else if (a==="goIntegrations"){ set({screen:S.user==="ravi"?"assigned":"integrations", viewStep:null, modal:null}); }
   else if (a==="goAssigned"){ set({screen:"assigned", viewStep:null}); }
-  else if (a==="resetDemo"){ try{ localStorage.removeItem(KEY); }catch(e){} S=fresh(); save(); lastKey=""; render(); toast("Demo reset. Start by searching for Calendly."); }
-  else if (a==="addBlank"){ S.addDraft={app:"", docsUrl:""}; set({modal:"add"}); setTimeout(()=>document.getElementById("aApp")?.focus(),50); }
-  else if (a==="addSelf"||a==="addAsk"){
-    const name=document.getElementById("aApp").value.trim(), docs=document.getElementById("aDocs").value.trim();
-    if (!name){ toast("Type the app's name first."); return; }
-    if (appList().some(n=>n.toLowerCase()===name.toLowerCase())){ set({modal:null, screen:"app", appName:appList().find(n=>n.toLowerCase()===name.toLowerCase()), tab:"overview"}); toast(`${name} is already available.`); return; }
-    if (a==="addSelf"){ newIntegration(name, docs, "self"); S.modal=null; save(); openBuild(); }
-    else { S.draft={app:name, docsUrl:docs || (name.toLowerCase()==="calendly"?"https://developer.calendly.com/api-docs/4b402d5ab3edd-calendly-developer":""), data:["Users","Usage","Licences and roles"], builder:"dev", email:"ravi.menon@acme.com"}; set({modal:"request"}); }
+  else if (a==="resetDemo"){ try{ localStorage.removeItem(KEY); }catch(e){} S=fresh(); save(); lastKey=""; render(); toast("Demo reset. Click + New integration to start."); }
+  else if (a==="filt"){ set({filter:t.dataset.f}); }
+  else if (a==="addBlank"){
+    if (I() && I().status!=="Live"){ toast(`Finish or approve ${I().app} first. This prototype builds one new integration at a time.`, {label:"Open it", run:()=>openBuild()}); return; }
+    S.addDraft={app:S.query.trim(), docsUrl:"", builder:"self", email:"ravi.menon@acme.com"}; set({modal:"add"}); setTimeout(()=>document.getElementById("aApp")?.focus(),50); }
+  else if (a==="pickBuilder"){ readAddDraft().builder=t.dataset.b; render(); }
+  else if (a==="addGo"){
+    const d = readAddDraft(); const name = d.app.trim();
+    if (!name){ toast("Type the app's name first."); document.getElementById("aApp")?.focus(); return; }
+    const hit = appList().find(n=>n.toLowerCase()===name.toLowerCase());
+    if (hit){ set({modal:null, screen:"app", appName:hit, tab:"overview"}); toast(`${hit} is already available. Connect it here.`); return; }
+    if (d.builder==="dev" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email.trim())){ toast("Add the developer's email."); return; }
+    newIntegration(name, d.docsUrl.trim(), d.builder, d.email.trim()); S.modal=null; save(); openBuild();
   }
-  else if (a==="selfStart"){ newIntegration(S.query.trim(), "", "self"); save(); openBuild(); }
-  else if (a==="openRequest"){ S.draft={app:S.query.trim()||"Calendly", docsUrl:S.query.trim().toLowerCase()==="calendly"?"https://developer.calendly.com/api-docs/4b402d5ab3edd-calendly-developer":"", data:["Users","Usage","Licences and roles"], builder:"dev", email:"ravi.menon@acme.com"}; set({modal:"request"}); }
-  else if (a==="closeModal"){ set({modal:null}); }
-  else if (a==="sendRequest"){
-    const d=S.draft; d.app=document.getElementById("rApp").value.trim()||"Calendly"; d.docsUrl=document.getElementById("rDocs").value.trim();
-    const em=document.getElementById("rEmail"); if (em) d.email=em.value.trim();
-    newIntegration(d.app, d.docsUrl, d.builder); S.I.data=d.data.slice(); S.modal=null;
-    if (d.builder==="dev"){ notify("ravi", `Priya Sharma asked you to build the ${d.app} integration`, "build"); save(); render(); toast(`Sent. Ravi Menon has been invited.`, {label:"Switch to Ravi", run:switchUser}); }
-    else { save(); render(); toast("Sent to the CloudEagle team. We'll let you know when it's ready."); }
+  else if (a==="addField"){
+    const label=document.getElementById("nfLabel").value.trim(), why=document.getElementById("nfWhy").value.trim();
+    if (!label){ toast("Type the field's name."); return; }
+    const key = "x_"+label.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
+    if (I().fields.some(f=>f.key===key||f.label.toLowerCase()===label.toLowerCase())){ toast("That field is already in the list."); return; }
+    S.I.fields.push({key, label, why: why||"Added by the developer", group:"tech", on:true, by:S.user, custom:true}); save(); render();
+    toast(S.user==="ravi" ? `${label} added. Priya sees it before she turns the integration on.` : `${label} added.`);
+  }
+  else if (a==="delField"){ S.I.fields = I().fields.filter(f=>f.key!==t.dataset.key); save(); render(); }
+  else if (a==="toCode"){ const p={accessApproved:true, step:Math.max(I().step,2)}; if (I().status==="Draft") p.status="In progress"; setI(p); S.viewStep=null; render(); }
+  else if (a==="sendDev"){
+    setI({accessApproved:true, status:"In progress", step:2, updated:"Just now"});
+    notify("ravi", `Priya Sharma asked you to build the ${app()} integration`, "build");
+    set({screen:"integrations", viewStep:null});
+    toast(`Sent. Ravi Menon has been invited.`, {label:"Switch to Ravi", run:switchUser});
   }
   else if (a==="openBuild"){ openBuild(); }
-  else if (a==="openBuild3"){ openBuild(3); }
+  else if (a==="openBuild4"){ openBuild(4); }
   else if (a==="hideIntro"){ set({hideIntro:true}); }
-  else if (a==="rowOpen"){ if (I().builder==="dev" && S.user==="priya") { if (I().status==="Waiting for approval") openBuild(3); else toast("Ravi is working on it. We'll let you know when it's ready."); } else openBuild(); }
-  else if (a==="follow"){ toast("We'll email you when this changes."); }
+  else if (a==="follow"){ toast(`We'll tell you when ${t.dataset.app||"it"} is ready to approve.`); }
   else if (a==="readDocs"){ readDocs(); }
   else if (a==="genCode"){ genCode(); }
   else if (a==="stop"){ ctl?.abort(); }
   else if (a==="runSim"){ runSim(); }
   else if (a==="skipSim"){ setI({sim:{passed:true, skipped:true, reqs:[], summary:null}}); }
-  else if (a==="toStep2"){ setI({step:Math.max(I().step,2)}); S.viewStep=null; render(); }
-  else if (a==="toStep3"){ const x=I(); const p={step:Math.max(x.step,3)}; if (x.testMode==="live" && x.builder==="self"){ p.prodConnected=true; } setI(p); S.viewStep=null; render(); }
+  else if (a==="toTest"){ setI({step:Math.max(I().step,3)}); S.viewStep=null; render(); }
+  else if (a==="toOn"){ const x=I(); const p={step:Math.max(x.step,4)}; if (x.testMode==="live" && x.builder==="self"){ p.prodConnected=true; } setI(p); S.viewStep=null; render(); }
   else if (a==="pickMode"){ setI({testMode:t.dataset.mode}); }
   else if (a==="connectTest"){ set({modal:"oauthTest"}); }
   else if (a==="allowTest"){ S.modal=null; setI({testConnected:true}); toast("Connected. Now run the test."); }
   else if (a==="runTest"){ runTest(); }
   else if (a==="downloadReport"){ downloadReport(); }
   else if (a==="download"){ downloadCode(); }
-  else if (a==="submit"){ setI({status:"Waiting for approval", updated:"Just now"}); notify("priya", `Ravi Menon finished ${app()}. It needs your approval.`, "3"); save(); render(); toast("Sent. Priya Sharma has been told.", {label:"Switch to Priya", run:switchUser}); }
+  else if (a==="submit"){ setI({status:"Waiting for approval", updated:"Just now"}); notify("priya", `Ravi Menon finished ${app()}. It needs your approval.`, "4"); save(); render(); toast("Sent. Priya Sharma has been told.", {label:"Switch to Priya", run:switchUser}); }
   else if (a==="connectProd"){ set({modal:"oauthProd"}); }
   else if (a==="allowProd"){ S.modal=null; setI({prodConnected:true}); toast(`${app()} connected.`); }
   else if (a==="preview"){ busy="preview"; render(); const r = await runIntegration(DATA, {maxPages:1, delay:120}); busy=null; setI({preview:{users:r.summary.users}}); }
   else if (a==="approve"){
     const v = I().version; S.liveVersion = v; S.live = true; S.dismissLive=false;
-    S.apps[I().app] = {status:"Synced", lastSync:"Just now"};
-    setI({status:"Live", step:3}); if (I().builder==="dev") notify("ravi", `Priya turned on ${app()} version ${v}.`, null);
+    S.apps[I().app] = {status:"Connected", lastSync:"Just now"};
+    setI({status:"Live", step:4}); if (I().builder==="dev") notify("ravi", `Priya turned on ${app()} version ${v}.`, null);
     save(); render(); toast(`${app()} is on. 214 people imported.`, {label:"See unused licences", run:()=>set({screen:"app", appName:app(), tab:"licences"})});
   }
   else if (a==="changesAsk"){ set({changes:true}); }
   else if (a==="cancelChanges"){ set({changes:false}); }
-  else if (a==="sendChanges"){ const note=document.getElementById("chNote").value; setI({status:"Changes requested", step:2, testSigned:false, test:null, changeNote:note, prodConnected:false, preview:null, confirmed:false}); notify("ravi", `Priya asked for changes on ${app()}`, "2"); S.changes=false; save(); set({screen:"integrations", viewStep:null}); toast("Sent to Ravi.", {label:"Switch to Ravi", run:switchUser}); }
+  else if (a==="sendChanges"){ const note=document.getElementById("chNote").value; setI({status:"Changes requested", step:3, testSigned:false, test:null, changeNote:note, prodConnected:false, preview:null, confirmed:false}); notify("ravi", `Priya asked for changes on ${app()}`, "3"); S.changes=false; save(); set({screen:"integrations", viewStep:null}); toast("Sent to Ravi.", {label:"Switch to Ravi", run:switchUser}); }
   else if (a==="openApp"){ set({screen:"app", appName:t.dataset.app||app(), tab:t.dataset.tab||"overview", open:null, sel:[], usageFilter:"all"}); }
   else if (a==="tab"){ set({tab:t.dataset.tab, sel:[]}); }
   else if (a==="ufilter"){ set({usageFilter:t.dataset.f}); }
@@ -1047,21 +1204,19 @@ document.addEventListener("click", async (ev) => {
   else if (a==="clearMarks"){ patchApp(S.appName, {marked:[]}); toast("Removed from your renewal plan."); }
   else if (a==="saveSettings"){ patchApp(t.dataset.app, {freq:document.getElementById("freq").value, alerts:document.getElementById("alerts").checked}); toast("Settings saved."); }
   else if (a==="connectApp"){ set({modal:"oauthApp", connectName:t.dataset.app}); }
-  else if (a==="allowApp"){ const n=S.connectName; S.modal=null; patchApp(n, {status:"Synced", lastSync:"Just now"}); toast(`${n} connected and synced.`); }
+  else if (a==="allowApp"){ const n=S.connectName; S.modal=null; patchApp(n, {status:"Connected", lastSync:"Just now"}); toast(`${n} connected and synced.`); }
   else if (a==="disconnectAsk"){ set({modal:"disconnect", connectName:t.dataset.app}); }
   else if (a==="disconnect"){ const n=S.connectName; S.modal=null; patchApp(n, {status:"Not connected"}); toast(`${n} disconnected.`); }
   else if (a==="viewCode"){ set({modal:"code"}); }
   else if (a==="dismissLive"){ set({dismissLive:true}); }
   else if (a==="regenAsk"){ set({modal:"regen", open:null}); }
   else if (a==="regen"){
-    const x = I(); S.I = {...x, step:1, version:S.liveVersion+1, status:"In progress", updated:"Just now", ...resetBelow()};
-    S.modal=null; save();
-    if (x.builder==="dev"){ notify("ravi", `Priya asked for a new version of ${x.app} (version ${S.liveVersion+1})`, "build"); set({screen:"integrations"}); toast(`Version ${S.liveVersion+1} started. ${x.app} keeps running on version ${S.liveVersion}.`, {label:"Switch to Ravi", run:switchUser}); }
-    else openBuild();
+    const x = I(); S.I = {...x, step:1, version:S.liveVersion+1, status:x.builder==="dev"?"Draft":"In progress", updated:"Just now", accessOk:false, accessApproved:false, ...resetBelow()};
+    S.modal=null; save(); openBuild();
+    toast(`Version ${S.liveVersion+1} started. Change the fields if you need to. ${x.app} keeps running on version ${S.liveVersion}.`);
   }
   else if (a==="syncnow"){ patchApp(t.dataset.app, {lastSync:"Just now"}); toast(`${t.dataset.app} synced.`); }
   else if (a==="toCE"){ toast("Sent to the CloudEagle team."); }
-  else if (a==="copylink"){ try{ await navigator.clipboard.writeText(location.href); toast("Link copied."); }catch(e){ toast("Copy the link from the address bar."); } }
 });
 document.addEventListener("keydown", e => {
   if (e.key==="Escape"){ if (S.modal) set({modal:null}); else if (S.open) set({open:null}); }
@@ -1075,8 +1230,8 @@ document.addEventListener("input", (ev) => {
 });
 document.addEventListener("change", (ev) => {
   const t = ev.target;
-  if (t.name==="builder"){ S.draft.app=document.getElementById("rApp").value; S.draft.docsUrl=document.getElementById("rDocs").value; S.draft.builder=t.value; render(); }
-  else if (t.dataset.need){ const d=S.draft.data; t.checked?d.push(t.dataset.need):d.splice(d.indexOf(t.dataset.need),1); }
+  if (t.dataset.field){ const f=S.I.fields.find(f=>f.key===t.dataset.field); if (f){ f.on=t.checked; if (S.user==="ravi") f.by = t.checked ? "ravi" : f.by; save(); render(); } }
+  else if (t.id==="accessOk"){ setI({accessOk:t.checked}); }
   else if (t.id==="lang"){ setI({language:t.value}); if (I().files) toast("Language changed. Click Regenerate to get the code in "+LANGS[t.value]+"."); }
   else if (t.id==="signoff" && t.checked){ setI({testSigned:true}); toast("Test approved."); }
   else if (t.id==="confirmProd"){ setI({confirmed:t.checked}); }

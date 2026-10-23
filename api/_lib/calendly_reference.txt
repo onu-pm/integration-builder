@@ -41,3 +41,11 @@ ERRORS
 
 TESTING
 Calendly has no dedicated developer sandbox; use trial accounts for testing.
+
+OAUTH SCOPES (Personal access tokens and OAuth apps request scopes; a new token has no API access until scopes are approved)
+- users:read — GET /users/me, GET /users/{uuid}
+- organizations:read — GET /organizations/{uuid}, GET /organization_memberships, GET /organization_invitations
+- scheduled_events:read — GET /scheduled_events, GET /scheduled_events/{uuid}/invitees
+- activity_log:read — GET /activity_log_entries (Enterprise plan only)
+- Write scopes (organizations:write, scheduled_events:write, ...) include the matching read scope. Read-only integrations must not request them.
+Source: https://developer.calendly.com/docs/authentication/scopes

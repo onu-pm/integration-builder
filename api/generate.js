@@ -13,7 +13,8 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return send(res, 405, { error: "Use POST" });
   if (rateLimited(req)) return send(res, 429, { error: "Too many requests from this network. Try again in an hour." });
   try {
-    const { app = "", understanding, language = "python" } = await readBody(req);
+    const { app = "", understanding, language = "python", fields = [] } = await readBody(req);
+    const wanted = (Array.isArray(fields) ? fields : []).slice(0, 30).map((f) => `${String(f.key || "").slice(0, 40)} (${String(f.label || "").slice(0, 60)})`).filter((s) => !s.startsWith(" "));
     if (!understanding || typeof understanding !== "object") return send(res, 400, { error: "Missing the reviewed understanding." });
     const L = LANGS[language] || LANGS.python;
     const appName = String(app).slice(0, 80) || "the app";
@@ -31,7 +32,7 @@ Responsibilities:
 - pagination: follow the app's paging to the last page, support a max pages limit.
 - errors: one error type per documented error code.
 - logging: structured JSON logs that mask tokens and emails (write REDACTED).
-- mapping: map to the CloudEagle user record.
+- mapping: map to the CloudEagle user record with exactly these fields: ${wanted.join(", ") || "the standard user record"}. Fields the spec's field_map marks "no" are always null; "plan" fields are null when the API refuses (403). Do not read any other personal data.
 Reply with ONLY a JSON object: {"files": {"<file name>": "<file content>", ...}}
 Keep each file concise (under 80 lines).`, { maxOutputTokens: 16384 });
 
