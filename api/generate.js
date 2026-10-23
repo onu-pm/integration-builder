@@ -13,18 +13,22 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return send(res, 405, { error: "Use POST" });
   if (rateLimited(req)) return send(res, 429, { error: "Too many requests from this network. Try again in an hour." });
   try {
-    const { app = "", understanding, language = "python", fields = [] } = await readBody(req);
+    const { app = "", understanding, language = "python", fields = [], part = 0 } = await readBody(req);
     const wanted = (Array.isArray(fields) ? fields : []).slice(0, 30).map((f) => `${String(f.key || "").slice(0, 40)} (${String(f.label || "").slice(0, 60)})`).filter((s) => !s.startsWith(" "));
     if (!understanding || typeof understanding !== "object") return send(res, 400, { error: "Missing the reviewed understanding." });
     const L = LANGS[language] || LANGS.python;
     const appName = String(app).slice(0, 80) || "the app";
 
+    const all = L.example.split(", ");
+    const names = part === 1 ? all.slice(0, 4) : part === 2 ? all.slice(4) : all;
+    const contract = `Shared interface (all files are written separately, so use exactly these names, adapted to ${L.label} naming style): client: ApiClient with get(path, params) returning parsed JSON; auth: getToken() reading an environment variable; users: listUsers(client); usage: usageByUser(client, users); pagination: fetchAll(client, path, params, maxPages); errors: ApiError, RateLimitError, AuthError, PlanRestrictedError; logging: getLogger(name) with redact(text); mapping: mapUser(rawUser, usage).`;
     const out = await gemini(`${RULES}
 
 Write a production-quality ${L.label} integration for ${appName} from this reviewed spec:
 ${JSON.stringify(understanding).slice(0, 20_000)}
 
-Use ${L.lib}. Split it into these files (use exactly these names): ${L.example}.
+Use ${L.lib}. Write ONLY these files now (use exactly these names): ${names.join(", ")}. The other files of the project are written separately.
+${contract}
 Responsibilities:
 - client: the only HTTP gateway. GET only, host allow-list, reads rate-limit headers, retries 429 and 5xx with backoff.
 - auth: token from an environment variable, or OAuth refresh if the app supports it.
@@ -34,10 +38,10 @@ Responsibilities:
 - logging: structured JSON logs that mask tokens and emails (write REDACTED).
 - mapping: map to the CloudEagle user record with exactly these fields: ${wanted.join(", ") || "the standard user record"}. Fields the spec's field_map marks "no" are always null; "plan" fields are null when the API refuses (403). Do not read any other personal data.
 Reply with ONLY a JSON object: {"files": {"<file name>": "<file content>", ...}}
-Keep each file concise (under 80 lines).`, { maxOutputTokens: 16384 });
+Keep each file concise (under 70 lines). No long comments.`, { maxOutputTokens: 12288 });
 
     const files = out?.files;
-    if (!files || typeof files !== "object" || Object.keys(files).length < 4) {
+    if (!files || typeof files !== "object" || Object.keys(files).length < Math.min(4, names.length) - 1) {
       return send(res, 502, { error: "The AI's answer didn't include the files. Try again." });
     }
     const clean = {};

@@ -254,6 +254,7 @@ details[open]>summary::before{content:"▾ ";}
 .menuwrap .pop button{border:0;background:none;text-align:left;padding:8px 10px;border-radius:6px}
 .menuwrap .pop button:hover{background:var(--bg)}
 .success{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:26px}
+.spin{width:34px;height:34px;border-radius:50%;border:3px solid var(--primary-soft);border-top-color:var(--primary);animation:sp .8s linear infinite}
 .success .big{width:56px;height:56px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-size:26px;font-weight:800;animation:pop .35s var(--ease)}
 button.nav{border:0;background:none;text-align:left;width:100%;cursor:pointer}
 button.nav:hover{background:rgba(255,255,255,.08)}
@@ -903,7 +904,7 @@ function stepOn(){
       ${added.length?nudge("warn",`Ravi added ${added.length} field${added.length>1?"s":""} after you approved`, added.map(f=>`${esc(f.label)}: ${esc(f.why)}`).join(" · ")+". Turning it on approves these too."):""}
       ${permsBlock(x.app)}</div>
     <div class="card"><div class="spread"><h2>2. Connect your company's ${esc(x.app)} account</h2>${x.prodConnected?`<span class="pill green">● Connected: Acme Corp</span>`:""}</div>
-      ${x.prodConnected?`<div class="small muted">🔒 The key is stored safely. ${x.builder==="dev"?"Ravi and the AI never see it.":"The AI never sees it."}${x.testMode==="live"?" (Already connected during the test.)":""}</div>`:`<div class="row"><button class="btn primary" data-act="connectProd">Connect ${esc(x.app)}</button><span class="small muted">Sign in to ${esc(x.app)} and click Allow, like any other integration. You'll see the same permissions there.</span></div>`}</div>
+      ${x.prodConnected?`<div class="small muted">🔒 The key is stored safely. ${x.builder==="dev"?"Ravi and the AI never see it.":"The AI never sees it."}</div>`:`<div class="row"><button class="btn primary" data-act="connectProd">Connect ${esc(x.app)}</button><span class="small muted">Sign in to ${esc(x.app)} and click Allow, like any other integration. You'll see the same permissions there.</span></div>`}</div>
     <div class="card"><div class="spread"><div><h2>3. Check the first sync</h2><div class="small muted">We read the first 100 people only and save nothing.</div></div>${x.prodConnected&&!P&&busy!=="preview"?`<button class="btn primary" data-act="preview">Run the check</button>`:""}</div>
       ${busy==="preview"?`<div class="thinking row"><span class="pill blue">Reading…</span></div>`:""}
       ${P?`<div class="reveal" style="display:flex;flex-direction:column;gap:10px"><div class="row"><span class="ok">✓ ${P.users} people read</span><span class="ok">✓ No errors</span><span class="ok">✓ Read-only</span><span class="small muted">The full sync brings in everyone else.</span></div>
@@ -999,26 +1000,34 @@ function appSettings(a){
 /* ---------------- modals ---------------- */
 function oauthModal(kind){
   const name = kind==="app" ? S.connectName : app();
-  const who = kind==="test" && (I()?.testMode||"test")==="test" ? "acme-test (trial)" : "Acme Corp";
-  const user = S.user==="ravi" ? "ravi.menon" : "priya.sharma";
-  return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="oat"><div class="modal" style="width:min(520px,100%)"><div class="oauth">
-    <div class="brandline">${logo(name,40)}<div><b id="oat">${kind==="app"?`Connect ${esc(name)}`:`Sign in to ${esc(name)}`}</b><div class="small muted">${who} · ${user}@acme.com</div></div></div>
+  const testAcct = kind==="test" && (I()?.testMode||"test")==="test";
+  const acct = testAcct ? "acme-test (trial)" : "Acme Corp";
+  const email = testAcct ? "test.admin@acme-demo.com" : S.user==="ravi" ? "ravi.menon@acme.com" : "priya.sharma@acme.com";
+  const stage = S.authStage || "redirect";
+  const wrap = inner => `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="oat"><div class="modal" style="width:min(520px,100%)"><div class="oauth">${inner}</div></div></div>`;
+  const sim = `<span class="pill grey">Simulated sign-in · prototype</span>`;
+  if (stage==="redirect"||stage==="back") return wrap(`<div class="success"><div class="spin"></div><b id="oat">${stage==="redirect"?`Taking you to ${esc(name)} to sign in…`:"Signed in. Taking you back to CloudEagle…"}</b><div class="small muted">${stage==="redirect"?`You sign in on ${esc(name)}'s own page. CloudEagle never sees your password.`:`${esc(name)} gives CloudEagle a read-only token.`}</div></div>`);
+  if (stage==="signin") return wrap(`<div class="spread"><div class="brandline">${logo(name,36)}<b id="oat">Sign in to ${esc(name)}</b></div>${sim}</div>
+    <div class="small muted">Step 1 of 2 · ${esc(acct)}</div>
+    <div class="field"><label for="dmEmail">Email</label><input class="input" id="dmEmail" value="${esc(email)}" readonly></div>
+    <div class="field"><label for="dmPw">Password</label><input class="input" id="dmPw" type="password" value="demo-password" readonly autocomplete="off"></div>
+    <div class="dashed small">Dummy login for this prototype. In the real product this page is ${esc(name)}'s own sign-in page (OAuth), and CloudEagle never sees or stores the password.</div>
+    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="authSignIn">Sign in</button></div>`);
+  return wrap(`<div class="spread"><div class="brandline">${logo(name,36)}<div><b id="oat">Allow CloudEagle to read ${esc(name)}?</b><div class="small muted">Step 2 of 2 · ${esc(acct)} · ${esc(email)}</div></div></div></div>
     <div><b>CloudEagle</b> is asking for read-only access.</div>
     ${permsBlock(name)}
     <div class="small muted">${kind==="test"?"This is a test. Nothing is saved to CloudEagle.":"You can disconnect any time in the app's Settings tab."}</div>
-    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="${kind==="test"?"allowTest":kind==="prod"?"allowProd":"allowApp"}">Allow</button></div>
-  </div></div></div>`;
+    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Deny</button><button class="btn primary" data-act="authAllow">Allow</button></div>`);
 }
-function regenModal(){
-  return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="rgt"><div class="modal" style="width:min(460px,100%)">
-    <h2 id="rgt">Make a new version?</h2><div class="muted">Version ${S.liveVersion+1} goes through the same steps again: create, test, approve. Tests only count for the code they ran on.</div>
-    ${nudge("warn",`${esc(app())} keeps running on version ${S.liveVersion} until version ${S.liveVersion+1} is approved.`,"")}
-    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="regen">Make version ${S.liveVersion+1}</button></div></div></div>`;
-}
-function disconnectModal(){
-  return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="dct"><div class="modal" style="width:min(440px,100%)">
-    <h2 id="dct">Disconnect ${esc(S.connectName)}?</h2><div class="muted">CloudEagle stops syncing ${esc(S.connectName)}. The data you already have stays. You can connect again any time.</div>
-    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="disconnect">Disconnect</button></div></div></div>`;
+function startAuth(kind, extra={}){ set({modal:{test:"oauthTest",prod:"oauthProd",app:"oauthApp"}[kind], authKind:kind, authStage:"redirect", ...extra}); setTimeout(()=>{ if (S.authStage==="redirect" && S.modal){ S.authStage="signin"; render(); } }, 1100); }
+function finishAuth(){
+  const kind = S.authKind; S.authStage="back"; render();
+  setTimeout(()=>{
+    S.modal=null; S.authStage=null;
+    if (kind==="test"){ setI({testConnected:true}); toast("Connected. Now run the test."); }
+    else if (kind==="prod"){ setI({prodConnected:true}); toast(`${app()} connected.`); }
+    else { const n=S.connectName; patchApp(n, {status:"Connected", lastSync:"Just now"}); toast(`${n} connected and synced.`); }
+  }, 900);
 }
 function addModal(){
   const d = S.addDraft || {app:"", docsUrl:"", builder:"self", email:"ravi.menon@acme.com"};
@@ -1128,11 +1137,17 @@ async function readDocs(){
     else { render(); toast(e.message||"The AI couldn't read the docs."); }
   }
 }
+async function genFiles(lang){
+  const x = I(); const body = p => ({app:x.app, language:lang, understanding:x.understanding, fields:onFields().map(f=>({key:f.key,label:f.label})), part:p});
+  const half = async p => { try { return await api("/api/generate", body(p), ctl.signal); } catch(e){ if (e?.name==="AbortError" && !ctl?.timedOut) throw e; await sleep(800); return api("/api/generate", body(p), ctl.signal); } };
+  const [a,b] = await Promise.all([half(1), half(2)]);
+  return {...a.files, ...b.files};
+}
 async function genCode(){
   const x = I(); busy="gen"; ctl = new AbortController(); render();
   const regen = !!x.files;
   const useAI = AI && x.uMode==="live";
-  const job = useAI ? api("/api/generate", {app:x.app, language:x.language, understanding:x.understanding, fields:onFields().map(f=>({key:f.key,label:f.label}))}, ctl.signal).then(o=>({files:o.files, mode:"live"}))
+  const job = useAI ? genFiles(x.language).then(files=>({files, mode:"live"}))
     : (isCal() && x.language==="python" ? sleep(5200).then(()=>({files:{...FILES}, mode:"replay"})) : Promise.reject({message:"AI isn't configured on this deployment."}));
   try{
     const out = await animateWhile(GEN_STEPS, job);
@@ -1224,11 +1239,12 @@ async function downloadLang(lang){
   if (!(AI && x.uMode==="live")) { render(); return toast(`Other languages need the AI. ${LANGS[x.language]} is ready to download.`); }
   busy="alt"; ctl=new AbortController(); render(); toast(`Generating the ${LANGS[lang]} code from the same API reading…`);
   try{
-    const o = await api("/api/generate", {app:x.app, language:lang, understanding:x.understanding, fields:onFields().map(f=>({key:f.key,label:f.label}))}, ctl.signal);
-    const checks = safetyChecks(o.files, x.app, x.docsText||CALENDLY_DOCS); busy=null;
-    if (!checks.every(r=>r.pass)){ render(); return toast(`The ${LANGS[lang]} code failed a safety check, so we didn't download it. Try again.`); }
-    S.I.alt = {...(x.alt||{}), [lang]:o.files}; save(); render(); downloadCode(o.files, lang); toast(`${LANGS[lang]} code downloaded. It passed all ${checks.length} safety checks.`);
-  }catch(e){ busy=null; render(); toast(e.message||"Couldn't generate that language."); }
+    const files = await genFiles(lang);
+    const checks = safetyChecks(files, x.app, x.docsText||CALENDLY_DOCS); busy=null;
+    const bad = checks.filter(r=>!r.pass);
+    if (bad.length){ render(); return toast(`The ${LANGS[lang]} code failed: ${bad.map(r=>r.label+(r.detail?` (${r.detail})`:"")).join("; ")}. Nothing was downloaded. Try again.`); }
+    S.I.alt = {...(x.alt||{}), [lang]:files}; save(); render(); downloadCode(files, lang); toast(`${LANGS[lang]} code downloaded. It passed all ${checks.length} safety checks.`);
+  }catch(e){ busy=null; render(); toast(`Couldn't generate the ${LANGS[lang]} code: ${e.message||"unknown error"}. Try again.`); }
 }
 function downloadReport(){
   const t = I().test; const rep = {app:app(), account:t.mode==="live"?"Acme Corp (read-only check)":"acme-test (trial)", version:I().version, language:LANGS[I().language], ran_at:t.at, passed:t.passed, summary:t.summary, requests:t.reqs.map(r=>({path:r.path, status:r.status})), sample:t.records.slice(0,5)};
@@ -1317,9 +1333,11 @@ document.addEventListener("click", async (ev) => {
   else if (a==="runSim"){ runSim(); }
   else if (a==="skipSim"){ setI({sim:{passed:true, skipped:true, reqs:[], summary:null}}); }
   else if (a==="toTest"){ setI({step:Math.max(I().step,3)}); S.viewStep=null; render(); }
-  else if (a==="toOn"){ const x=I(); const p={step:Math.max(x.step,4)}; if (x.testMode==="live" && x.builder==="self"){ p.prodConnected=true; } setI(p); S.viewStep=null; render(); }
+  else if (a==="toOn"){ const x=I(); const p={step:Math.max(x.step,4)}; setI(p); S.viewStep=null; render(); }
   else if (a==="pickMode"){ setI({testMode:t.dataset.mode}); }
-  else if (a==="connectTest"){ set({modal:"oauthTest"}); }
+  else if (a==="connectTest"){ startAuth("test"); }
+  else if (a==="authSignIn"){ S.authStage="consent"; render(); }
+  else if (a==="authAllow"){ finishAuth(); }
   else if (a==="allowTest"){ S.modal=null; setI({testConnected:true}); toast("Connected. Now run the test."); }
   else if (a==="runTest"){ runTest(); }
   else if (a==="downloadReport"){ downloadReport(); }
@@ -1327,7 +1345,7 @@ document.addEventListener("click", async (ev) => {
   else if (a==="dlMenu"){ set({open:S.open==="dl"?null:"dl"}); }
   else if (a==="dlLang"){ downloadLang(t.dataset.lang); }
   else if (a==="submit"){ setI({status:"Waiting for approval", updated:"Just now"}); notify("priya", `Ravi Menon finished ${app()}. It needs your approval.`, "4"); save(); render(); toast("Sent. Priya Sharma has been told.", {label:"Switch to Priya", run:switchUser}); }
-  else if (a==="connectProd"){ set({modal:"oauthProd"}); }
+  else if (a==="connectProd"){ startAuth("prod"); }
   else if (a==="allowProd"){ S.modal=null; setI({prodConnected:true}); toast(`${app()} connected.`); }
   else if (a==="preview"){ busy="preview"; render(); const r = await runIntegration(DATA, {maxPages:1, delay:120}); busy=null; setI({preview:{users:r.summary.users}}); }
   else if (a==="approve"){
@@ -1345,7 +1363,7 @@ document.addEventListener("click", async (ev) => {
   else if (a==="markSave"){ const name=S.appName; const cur=appInfo(name).marked; patchApp(name, {marked:[...new Set([...cur, ...(S.sel||[])])]}); S.sel=[]; save(); render(); toast("Added to your renewal plan."); }
   else if (a==="clearMarks"){ patchApp(S.appName, {marked:[]}); toast("Removed from your renewal plan."); }
   else if (a==="saveSettings"){ patchApp(t.dataset.app, {freq:document.getElementById("freq").value, alerts:document.getElementById("alerts").checked}); toast("Settings saved."); }
-  else if (a==="connectApp"){ set({modal:"oauthApp", connectName:t.dataset.app}); }
+  else if (a==="connectApp"){ startAuth("app", {connectName:t.dataset.app}); }
   else if (a==="allowApp"){ const n=S.connectName; S.modal=null; patchApp(n, {status:"Connected", lastSync:"Just now"}); toast(`${n} connected and synced.`); }
   else if (a==="disconnectAsk"){ set({modal:"disconnect", connectName:t.dataset.app}); }
   else if (a==="disconnect"){ const n=S.connectName; S.modal=null; patchApp(n, {status:"Not connected"}); toast(`${n} disconnected.`); }

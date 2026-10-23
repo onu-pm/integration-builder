@@ -40,7 +40,7 @@ export const injectionHits = (text) => INJECTION.filter((r) => r.test(text || ""
 
 // Best-effort per-instance limit so a public link can't run up usage.
 const hits = new Map();
-export function rateLimited(req, limit = 20, windowMs = 60 * 60 * 1000) {
+export function rateLimited(req, limit = 60, windowMs = 60 * 60 * 1000) {
   const ip = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "unknown";
   const now = Date.now();
   const recent = (hits.get(ip) || []).filter((t) => now - t < windowMs);
