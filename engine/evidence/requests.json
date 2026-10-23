@@ -1,0 +1,72 @@
+[
+  {
+    "method": "GET",
+    "path": "/users/me",
+    "status": 200,
+    "rate_limit_remaining": "499",
+    "reset": "60"
+  },
+  {
+    "method": "GET",
+    "path": "/organization_memberships?organization=https%3A%2F%2Fapi.calendly.com%2Forganizations%2FORG_SIM_001&count=100",
+    "status": 200,
+    "rate_limit_remaining": "498",
+    "reset": "60"
+  },
+  {
+    "method": "GET",
+    "path": "/organization_memberships?organization=https%3A%2F%2Fapi.calendly.com%2Forganizations%2FORG_SIM_001&count=100&page_token=100",
+    "status": 200,
+    "rate_limit_remaining": "497",
+    "reset": "60"
+  },
+  {
+    "method": "GET",
+    "path": "/organization_memberships?organization=https%3A%2F%2Fapi.calendly.com%2Forganizations%2FORG_SIM_001&count=100&page_token=200",
+    "status": 200,
+    "rate_limit_remaining": "496",
+    "reset": "60"
+  },
+  {
+    "method": "GET",
+    "path": "/scheduled_events?organization=https%3A%2F%2Fapi.calendly.com%2Forganizations%2FORG_SIM_001&min_start_time=2026-07-25T09%3A31%3A22.000000Z&max_start_time=2026-10-23T09%3A31%3A22.000000Z&status=active&count=100",
+    "status": 429,
+    "rate_limit_remaining": "0",
+    "reset": "2"
+  },
+  {
+    "method": "GET",
+    "path": "/scheduled_events?organization=https%3A%2F%2Fapi.calendly.com%2Forganizations%2FORG_SIM_001&min_start_time=2026-07-25T09%3A31%3A22.000000Z&max_start_time=2026-10-23T09%3A31%3A22.000000Z&status=active&count=100",
+    "status": 200,
+    "rate_limit_remaining": "495",
+    "reset": "60"
+  },
+  {
+    "method": "GET",
+    "path": "/scheduled_events?organization=https%3A%2F%2Fapi.calendly.com%2Forganizations%2FORG_SIM_001&min_start_time=2026-07-25T09%3A31%3A22.000000Z&max_start_time=2026-10-23T09%3A31%3A22.000000Z&status=active&count=100&page_token=100",
+    "status": 200,
+    "rate_limit_remaining": "494",
+    "reset": "60"
+  },
+  {
+    "method": "GET",
+    "path": "/scheduled_events?organization=https%3A%2F%2Fapi.calendly.com%2Forganizations%2FORG_SIM_001&min_start_time=2026-07-25T09%3A31%3A22.000000Z&max_start_time=2026-10-23T09%3A31%3A22.000000Z&status=active&count=100&page_token=200",
+    "status": 200,
+    "rate_limit_remaining": "493",
+    "reset": "60"
+  },
+  {
+    "method": "GET",
+    "path": "/scheduled_events?organization=https%3A%2F%2Fapi.calendly.com%2Forganizations%2FORG_SIM_001&min_start_time=2026-07-25T09%3A31%3A22.000000Z&max_start_time=2026-10-23T09%3A31%3A22.000000Z&status=active&count=100&page_token=300",
+    "status": 200,
+    "rate_limit_remaining": "492",
+    "reset": "60"
+  },
+  {
+    "method": "GET",
+    "path": "/activity_log_entries?organization=https%3A%2F%2Fapi.calendly.com%2Forganizations%2FORG_SIM_001&min_occurred_at=2026-07-25T09%3A31%3A22.000000Z&count=100",
+    "status": 403,
+    "rate_limit_remaining": "491",
+    "reset": "60"
+  }
+]

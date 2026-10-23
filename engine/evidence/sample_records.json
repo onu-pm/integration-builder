@@ -1,0 +1,80 @@
+[
+  {
+    "application": "Calendly",
+    "external_id": "https://api.calendly.com/users/USER_0001",
+    "name": "Aarav Shah 1",
+    "email": "user1@example-corp.com",
+    "role": "owner",
+    "added_on": "2025-10-27T09:31:22.000000Z",
+    "usage_90d": 4,
+    "usage_metric": "meetings_hosted",
+    "last_active": null,
+    "last_active_available": false,
+    "status": "active"
+  },
+  {
+    "application": "Calendly",
+    "external_id": "https://api.calendly.com/users/USER_0002",
+    "name": "Diya Shah 2",
+    "email": "user2@example-corp.com",
+    "role": "admin",
+    "added_on": "2025-08-15T09:31:22.000000Z",
+    "usage_90d": 1,
+    "usage_metric": "meetings_hosted",
+    "last_active": null,
+    "last_active_available": false,
+    "status": "active"
+  },
+  {
+    "application": "Calendly",
+    "external_id": "https://api.calendly.com/users/USER_0003",
+    "name": "Kabir Shah 3",
+    "email": "user3@example-corp.com",
+    "role": "admin",
+    "added_on": "2026-08-05T09:31:22.000000Z",
+    "usage_90d": 0,
+    "usage_metric": "meetings_hosted",
+    "last_active": null,
+    "last_active_available": false,
+    "status": "inactive"
+  },
+  {
+    "application": "Calendly",
+    "external_id": "https://api.calendly.com/users/USER_0004",
+    "name": "Meera Shah 4",
+    "email": "user4@example-corp.com",
+    "role": "admin",
+    "added_on": "2024-06-05T09:31:22.000000Z",
+    "usage_90d": 1,
+    "usage_metric": "meetings_hosted",
+    "last_active": null,
+    "last_active_available": false,
+    "status": "active"
+  },
+  {
+    "application": "Calendly",
+    "external_id": "https://api.calendly.com/users/USER_0005",
+    "name": "Rohan Shah 5",
+    "email": "user5@example-corp.com",
+    "role": "user",
+    "added_on": "2026-06-19T09:31:22.000000Z",
+    "usage_90d": 4,
+    "usage_metric": "meetings_hosted",
+    "last_active": null,
+    "last_active_available": false,
+    "status": "active"
+  },
+  {
+    "application": "Calendly",
+    "external_id": "https://api.calendly.com/users/USER_0006",
+    "name": "Sara Shah 6",
+    "email": "user6@example-corp.com",
+    "role": "user",
+    "added_on": "2025-02-04T09:31:22.000000Z",
+    "usage_90d": 1,
+    "usage_metric": "meetings_hosted",
+    "last_active": null,
+    "last_active_available": false,
+    "status": "active"
+  }
+]

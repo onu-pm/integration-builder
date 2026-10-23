@@ -1,0 +1,43 @@
+Calendly API v2 reference (key sections, captured from developer.calendly.com on 23 Oct 2026)
+
+OVERVIEW
+REST API. Base URL: https://api.calendly.com. All requests and responses are JSON. Send Accept: application/json.
+
+AUTHENTICATION
+Two methods, both sent as "Authorization: Bearer <token>".
+- Personal Access Token: created under Integrations > API & Webhooks. Tokens act with the permissions of the user who created them.
+- OAuth 2.0 (authorization code flow) for applications used by other organizations. Token endpoint: https://auth.calendly.com/oauth/token (grant_type=refresh_token to refresh). Only 8 OAuth tokens per user can be requested within 1 minute.
+
+FINDING THE USER AND ORGANIZATION URI
+GET /users/me returns {"resource": {...}} for the token owner. For personal access tokens, the user URI is resource.uri and the organization URI is resource.current_organization.
+
+LIST ORGANIZATION MEMBERSHIPS
+GET /organization_memberships
+Query parameters: organization (full organization URI), user (full user URI), email, role (owner | admin | user), count (1-100, default 20), page_token.
+Listing all members of an organization requires an Owner or Admin token.
+Response: {"collection": [ { "uri", "role", "user": { "uri", "name", "slug", "email", "scheduling_url", "timezone", "avatar_url", "locale", "created_at", "updated_at" }, "organization", "created_at", "updated_at" } ], "pagination": { "count", "next_page", "previous_page", "next_page_token", "previous_page_token" } }
+
+LIST EVENTS
+GET /scheduled_events
+Query parameters: organization (requires admin/owner), user, group, min_start_time, max_start_time (UTC, e.g. 2020-01-02T03:04:05.678123Z), status (active | canceled), count (1-100, default 20), sort (start_time:asc | start_time:desc), invitee_email, page_token.
+Each event: uri, name, status, start_time, end_time, event_type, location, invitees_counter, event_memberships (array of {user, user_email, user_name, buffered_start_time, buffered_end_time}), event_guests, cancellation, created_at, updated_at.
+
+LIST ACTIVITY LOG ENTRIES
+GET /activity_log_entries — requires an Enterprise subscription.
+Query parameters: organization (required), search_term, actor, sort, min_occurred_at, max_occurred_at, namespace, action, count (1-100, default 20), page_token.
+Each entry: uri, occurred_at, organization, actor {uri, display_name, organization, type}, action, namespace, details.
+The activity log records logins and user changes for Enterprise owners and admins.
+
+PAGINATION
+List endpoints are cursor-based. Pass count (max 100) and page_token. Read pagination.next_page_token from the response; it is null on the last page.
+
+RATE LIMITS
+Paid plans: 500 requests per minute per user. Free plan: 50 requests per minute.
+Every response includes X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset (seconds until reset).
+Exceeding the limit returns HTTP 429 Too Many Requests. Wait until the reset time before retrying; use backoff.
+
+ERRORS
+400 invalid argument, 401 unauthenticated (token invalid or revoked), 403 permission denied (role or plan), 404 resource not found, 429 too many requests, 500 internal error. Error bodies are JSON with "title" and "message".
+
+TESTING
+Calendly has no dedicated developer sandbox; use trial accounts for testing.

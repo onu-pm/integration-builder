@@ -1,0 +1,7 @@
+# Production stage: the customer's real Calendly organization (read-only).
+base_url: https://api.calendly.com
+allowed_hosts: [api.calendly.com]
+auth_method: oauth                       # recommended for organizations; PAT also supported
+usage_window_days: 90
+log_level: INFO
+deliver_to_cloudeagle: true

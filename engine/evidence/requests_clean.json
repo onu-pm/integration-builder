@@ -1,0 +1,72 @@
+[
+ [
+  "GET",
+  "/users/me",
+  200,
+  "499",
+  "60"
+ ],
+ [
+  "GET",
+  "/organization_memberships?organization={org}&count=100",
+  200,
+  "498",
+  "60"
+ ],
+ [
+  "GET",
+  "/organization_memberships?organization={org}&count=100&page_token=100",
+  200,
+  "497",
+  "60"
+ ],
+ [
+  "GET",
+  "/organization_memberships?organization={org}&count=100&page_token=200",
+  200,
+  "496",
+  "60"
+ ],
+ [
+  "GET",
+  "/scheduled_events?organization={org}&min_start_time={90 days ago}&max_start_time={now}&status=active&count=100",
+  429,
+  "0",
+  "2"
+ ],
+ [
+  "GET",
+  "/scheduled_events?organization={org}&min_start_time={90 days ago}&max_start_time={now}&status=active&count=100",
+  200,
+  "495",
+  "60"
+ ],
+ [
+  "GET",
+  "/scheduled_events?organization={org}&min_start_time={90 days ago}&max_start_time={now}&status=active&count=100&page_token=100",
+  200,
+  "494",
+  "60"
+ ],
+ [
+  "GET",
+  "/scheduled_events?organization={org}&min_start_time={90 days ago}&max_start_time={now}&status=active&count=100&page_token=200",
+  200,
+  "493",
+  "60"
+ ],
+ [
+  "GET",
+  "/scheduled_events?organization={org}&min_start_time={90 days ago}&max_start_time={now}&status=active&count=100&page_token=300",
+  200,
+  "492",
+  "60"
+ ],
+ [
+  "GET",
+  "/activity_log_entries?organization={org}&min_occurred_at={90 days ago}&count=100",
+  403,
+  "491",
+  "60"
+ ]
+]

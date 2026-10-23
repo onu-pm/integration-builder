@@ -1,0 +1,8 @@
+# Sandbox stage: CloudEagle's simulated Calendly, or a Calendly trial account.
+# Calendly has no developer sandbox, so trial accounts are Calendly's own suggestion.
+base_url: http://localhost:8765          # simulated Calendly; use https://api.calendly.com for a trial account
+allowed_hosts: [localhost, api.calendly.com]
+auth_method: pat                         # token read from CALENDLY_TOKEN, never stored here
+usage_window_days: 90
+log_level: INFO
+deliver_to_cloudeagle: false

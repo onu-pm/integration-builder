@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/understand.js": { "maxDuration": 60, "includeFiles": "api/_lib/calendly_reference.txt" },
+    "api/generate.js": { "maxDuration": 60 }
+  }
+}
