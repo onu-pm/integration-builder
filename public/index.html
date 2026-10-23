@@ -152,6 +152,7 @@ tr:last-child td{border-bottom:0}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .ucard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0;transition:border-color .2s,box-shadow .2s}
 .ucard.editing{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.grid2>.ucard:last-child:nth-child(odd){grid-column:1/-1}
 .ucard .hd{display:flex;justify-content:space-between;gap:8px;align-items:center}
 .ucard .acts{display:flex;gap:10px;font-size:12px}
 .linkbtn{border:0;background:none;color:var(--primary);font-weight:600;padding:0;font-size:12px}
@@ -259,6 +260,8 @@ button.nav:hover{background:rgba(255,255,255,.08)}
 .ch.on{border-color:var(--primary);background:#F7F9FF}
 .reqbox>summary{font-size:14px;color:var(--ink)}
 .card.danger{border-color:#F4C7CD}
+.datagrid .choice{grid-template-columns:minmax(0,1fr)}
+.guide{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:13px}
 .datagrid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
 .fgroup{display:flex;flex-direction:column;gap:6px}
 .lab2{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:2px}
@@ -354,6 +357,7 @@ function fieldMap(x=I()){
   const u = x?.understanding; const fm = (u && x.uMode==="live" && u.field_map) || [];
   if (!u) return onFields(x).map(f=>({f, s:"unknown", src:"", note:""}));
   return onFields(x).map(f=>{
+    if (f.api) return {f, s:"yes", src:f.api, note:""};
     const ai = fm.find(m=>m.field===f.key);
     if (ai) return {f, s:["yes","plan","no"].includes(ai.status)?ai.status:"unknown", src:ai.source||"", note:ai.note||""};
     const c = isCal() ? (CAL_FIELDS[f.key] || CAL_FIELDS[f.label.toLowerCase().replace(/[^a-z]/g,"")]) : null;
@@ -363,6 +367,10 @@ function fieldMap(x=I()){
 }
 function scopesFor(x=I()){
   if (!x?.understanding) return [];
+  const base = baseScopes(x); const extra = onFields(x).filter(f=>f.scope && f.scope!=="UNKNOWN" && !base.some(s=>s.name===f.scope)).map(f=>({name:f.scope, why:f.label}));
+  return [...base, ...extra.filter((s,i,a)=>a.findIndex(z=>z.name===s.name)===i)];
+}
+function baseScopes(x){
   const u = x.understanding;
   if (x.uMode==="live" && u.scopes?.length) return u.scopes.map(s=>({name:String(s.name), why:s.why||""}));
   if (isCal()){ const on = new Set(onFields(x).map(f=>f.key)); return CAL_SCOPES.filter(s=>s.need(on)).map(({name,why})=>({name,why})); }
@@ -602,7 +610,7 @@ function scrBuild(){
 /* ---------------- step 1: data and access ---------------- */
 function stepData(){
   const x = I(); const me = S.user, isAdmin = me==="priya"; const locked = !!x.files;
-  const canEdit = f => !locked && !LOCKED.has(f.key) && (isAdmin ? !(x.builder==="dev" && x.status!=="Draft" && f.by==="ravi") : (f.group==="tech" || f.by==="ravi"));
+  const canEdit = f => !locked && !LOCKED.has(f.key) && (isAdmin ? !(x.builder==="dev" && x.status!=="Draft" && f.by==="ravi") : (f.group==="tech" || f.group==="api" || f.by==="ravi"));
   const row = f => `<label class="frow ${f.on?"on":""}"><input type="checkbox" data-field="${esc(f.key)}" ${f.on?"checked":""} ${canEdit(f)?"":"disabled"}>
     <span class="ft"><span class="row" style="gap:6px"><b>${esc(f.label)}</b>${LOCKED.has(f.key)?`<span class="pill grey">Always</span>`:""}${f.by==="ravi"&&f.on?`<span class="pill purple">Added by Ravi</span>`:""}${f.custom&&f.by===me&&!locked?`<button class="linkbtn" data-act="delField" data-key="${esc(f.key)}">Remove</button>`:""}</span><span class="n">${esc(f.why)}</span></span></label>`;
   const grp = (g, title, sub) => { const fs = x.fields.filter(f=>(f.group===g)); return fs.length?`<div class="fgroup"><div class="lab2">${title}${sub?` <span class="hint">${sub}</span>`:""}</div>${fs.map(row).join("")}</div>`:""; };
@@ -613,6 +621,7 @@ function stepData(){
     ${locked?nudge("info","Fields are locked because the code is written","To change them, make a new version after it's turned on."):""}
     ${!isAdmin?nudge("info","Priya Sharma picked these fields","You can add technical fields the code needs. Priya sees anything you add before she turns it on."):""}
     ${grp("core","Always brought in","needed to match people")}${grp("rec","Recommended","used to find unused licences")}${grp("opt","Optional")}
+    ${grp("api","Extra APIs","added from the docs in step 2")}
     <div class="fgroup"><div class="lab2">Technical fields <span class="hint">the person building it adds what the code needs</span></div>${x.fields.filter(f=>f.group==="tech").map(row).join("")}${addForm}</div></div>`;
   const accessCard = `<div class="card"><h2>What CloudEagle will be able to access</h2>
     <div class="row"><span class="lockchip">🔒 Read-only</span><span class="small muted">${n} fields from ${esc(x.app)}</span></div>
@@ -632,8 +641,8 @@ function stepData(){
   return `<div class="datagrid">${fieldsCard}${accessCard}</div>${foot}`;
 }
 /* ---------------- step 2: create the code ---------------- */
-const READ_STEPS = ["Opening the documentation","Finding how to sign in","Finding how to list people","Finding usage data","Checking page sizes and request limits","Matching fields to CloudEagle"];
-const GEN_STEPS = ["Connection to the app","Sign-in","People and usage","Reading page by page","Handling errors","Activity log","Matching fields","Safety checks"];
+const READ_STEPS = ["Opening the documentation","API client: base address","Auth setup","Retrieving users","Usage data","Pagination","Error handling and request limits","Matching your fields"];
+const GEN_STEPS = ["API client","Auth setup","Retrieve users","Usage data","Pagination","Error handling","Logging","Field mapping","Safety checks"];
 function progList(steps){
   const n = steps.length, k = Math.min(prog, n);
   return `<div class="bar"><i style="width:${Math.round(k/n*100)}%"></i></div><div class="prog">${steps.map((s,i)=>`<div class="pi ${i<k?"ok":i===k?"run":""}"><span class="m">${i<k?"✓":""}</span>${esc(s)}</div>`).join("")}</div>`;
@@ -652,7 +661,7 @@ function stepCode(){
     ${busy==="read"?`<div class="reveal">${progList(READ_STEPS)}</div>`:""}
   </div>`;
   if (u){
-    h += `<div class="spread reveal"><div><h2>Here's what we found</h2><p class="lede">${x.uMode==="live"?`Read by AI${x.uSource==="captured"?" from Calendly's API reference":x.uSource==="pasted"?" from the text you pasted":" from the link"}`:"Read from Calendly's API reference"}. The code will follow these cards. If something is wrong, click Edit.</p></div>${!ro?`<button class="btn sm" data-act="readDocs" ${busy?"disabled":""}>Read again</button>`:""}</div>`;
+    h += `<div class="spread reveal"><div><h2>Here's what we found</h2><p class="lede">${x.uMode==="live"?`Read by AI${x.uSource==="captured"?" from Calendly's API reference":x.uSource==="pasted"?" from the text you pasted":" from the link"}`:"Read from Calendly's API reference"}. Each card is one part of the code: API client, auth setup, users, usage, pagination, error handling and logging. If something is wrong, click Edit.</p></div>${!ro?`<button class="btn sm" data-act="readDocs" ${busy?"disabled":""}>Read again</button>`:""}</div>`;
     h += understandingCards(u, ro);
     if (u.missing_users) h += nudge("bad","We couldn't find how to list people in this documentation","Try another link, paste more of the documentation, or ask the CloudEagle team.",`<button class="btn sm" data-act="toCE">Send to CloudEagle team</button>`);
     if (!x.files && !ro) h += `<div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="genCode" ${busy||u.missing_users?"disabled":""}>Write the ${esc(LANGS[x.language])} code</button></div>`;
@@ -665,15 +674,40 @@ function stepCode(){
 function understandingCards(u, ro){
   const card = (key,title,bodyHtml) => `<div class="ucard ${S.editing===key?"editing":""}"><div class="hd"><h3>${title}</h3><div class="acts">${!ro?`<button class="linkbtn" data-edit="${key}">${S.editing===key?"Done":"Edit"}</button>`:""}${/^https?:/.test(I().docsUrl||"")?`<a class="linkbtn" href="${esc(I().docsUrl)}" target="_blank" rel="noopener">View in docs</a>`:""}</div></div><div ${S.editing===key?`contenteditable="true" data-editbody="${key}"`:""}>${bodyHtml}</div></div>`;
   return `<div class="grid2 reveal">
-    ${card("api","Address",`<div class="mono">Base URL ${esc(u.base_url)}</div>`)}
-    ${card("auth","How to sign in",`<div class="mono">${esc(u.auth)}</div>${u.auth_warning?`<div class="chip-warn">⚠ ${esc(u.auth_warning)}</div>`:""}`)}
-    ${card("users",`How to list people (${u.users_steps.length} step${u.users_steps.length>1?"s":""})`,u.users_steps.map((s,i)=>`<div class="mono">${i+1}. ${esc(s)}</div>`).join(""))}
-    ${card("usage","How to see usage",u.usage.map(s=>`<div class="mono">${esc(s)}</div>`).join("")+(u.usage_note?`<div class="chip-info">ⓘ ${esc(u.usage_note)}</div>`:""))}
-    ${card("paging","Pages of results",`<div class="mono">${esc(u.pagination)}</div>`)}
-    ${card("rate","Request limits",u.rate_limits.map(s=>`<div class="mono">${esc(s)}</div>`).join(""))}
+    ${card("api","API client",`<div class="mono">Base URL ${esc(u.base_url)}</div><div class="mono">GET requests only, to ${esc((u.base_url||"").replace(/^https?:\/\//,"").split("/")[0])} only</div>`)}
+    ${card("auth","Auth setup",`<div class="mono">${esc(u.auth)}</div><div class="mono">Token kept in a secret store, never in the code</div>${u.auth_warning?`<div class="chip-warn">⚠ ${esc(u.auth_warning)}</div>`:""}`)}
+    ${card("users",`Retrieve users (${u.users_steps.length} call${u.users_steps.length>1?"s":""})`,u.users_steps.map((s,i)=>`<div class="mono">${i+1}. ${esc(s)}</div>`).join(""))}
+    ${card("usage","Usage data",u.usage.map(s=>`<div class="mono">${esc(s)}</div>`).join("")+(u.usage_note?`<div class="chip-info">ⓘ ${esc(u.usage_note)}</div>`:""))}
+    ${card("paging","Pagination",`<div class="mono">${esc(u.pagination)}</div><div class="mono">Follows every page to the end</div>`)}
+    ${card("errors","Error handling",[...u.rate_limits, "429 → wait for the reset time, then retry", "5xx → retry with backoff, up to 5 times", "403 on plan-only data → leave the field empty, keep going", "401 → stop and ask the admin to reconnect"].map(s=>`<div class="mono">${esc(s)}</div>`).join(""))}
+    ${card("logs","Logging",["One JSON line per request: endpoint, status, time, limit left","Tokens and emails masked as REDACTED","Sync summary: people found, pages, errors"].map(s=>`<div class="mono">${esc(s)}</div>`).join(""))}
   </div>
   ${fieldsFound()}
+  ${moreApis(ro)}
   ${u.unknowns?.length?`<div class="dashed small"><span class="pill grey">Not in the documentation</span> ${u.unknowns.map(esc).join(" · ")}</div>`:""}`;
+}
+const CAL_APIS = [
+  {id:"invites", api:"GET /organization_invitations", label:"Pending invitations", gives:"People invited who haven't joined yet", why:"Unaccepted invites can still use up seats you pay for", scope:"organizations:read", rec:true},
+  {id:"event_types", api:"GET /event_types", label:"Booking pages per person", gives:"Each person's event types (booking pages)", why:"Someone with no active booking page probably doesn't need a seat", scope:"event_types:read", rec:true},
+  {id:"groups", api:"GET /groups", label:"Groups (teams)", gives:"Teams in your Calendly account", why:"Shows which teams use Calendly", scope:"groups:read"},
+  {id:"invitees", api:"GET /scheduled_events/{uuid}/invitees", label:"Meeting invitees", gives:"Names and emails of people who booked meetings", why:"Not needed for licences, and it's personal data of people outside your company", scope:"scheduled_events:read", block:true}
+];
+function apisFor(){
+  const x = I(); const u = x.understanding;
+  if (x.uMode==="live" && u?.more_apis?.length) return u.more_apis.slice(0,6).map((a,i)=>({id:String(a.id||"api"+i).replace(/[^\w-]/g,"").slice(0,30)||"api"+i, api:a.api||"", label:a.label||a.api||"API", gives:a.gives||"", why:a.why||"", scope:a.scope||"UNKNOWN", block:!!a.block, rec:!a.block}));
+  return isCal() ? CAL_APIS : [];
+}
+function moreApis(ro){
+  const x = I(); const list = apisFor(); const locked = !!x.files;
+  if (busy==="apis") return `<div class="card reveal"><h3>Searching ${esc(app())}'s docs for more APIs…</h3>${progList(["Listing every endpoint","Keeping read-only ones","Checking which help with licences","Checking for personal data"])}</div>`;
+  if (!x.showApis) return `<div class="dashed spread reveal"><div><b>Need more than users and usage?</b><div class="small muted">The docs may have other APIs that help with licences, like pending invites or teams.</div></div>${!ro&&!locked?`<button class="btn" data-act="findApis">Find more APIs in the docs</button>`:""}</div>`;
+  if (!list.length) return `<div class="dashed small muted reveal">No other useful read-only APIs found in this documentation.</div>`;
+  const has = id => x.fields.some(f=>f.key==="api_"+id);
+  return `<div class="card reveal"><div class="spread"><div><h2>More APIs in ${esc(app())}'s docs</h2><div class="small muted">Read-only APIs we found that could help. Each one you include adds its permission, and the admin sees it before turning the integration on.</div></div></div>
+    <div class="tablebox"><table><thead><tr><th>API</th><th>What it gives</th><th>Why it helps</th><th>Permission</th><th></th></tr></thead><tbody>
+    ${list.map(a=>`<tr><td><b>${esc(a.label)}</b><div class="mono faint">${esc(a.api)}</div></td><td>${esc(a.gives)}</td><td class="small">${a.block?`<span style="color:var(--red)">${esc(a.why)}</span>`:esc(a.why)}</td><td><span class="scopename">${esc(a.scope)}</span></td>
+      <td>${a.block?`<span class="pill grey">Left out</span>`:has(a.id)?`<span class="row" style="gap:6px"><span class="pill green">Included</span>${!ro&&!locked?`<button class="linkbtn" data-act="dropApi" data-id="${esc(a.id)}">Remove</button>`:""}</span>`:!ro&&!locked?`<button class="btn sm ${a.rec?"primary":""}" data-act="addApi" data-id="${esc(a.id)}">Include</button>${a.rec?`<div class="small muted" style="margin-top:4px">Suggested</div>`:""}`:""}</td></tr>`).join("")}
+    </tbody></table></div></div>`;
 }
 function fieldsFound(){
   const rows = fieldMap(); const c = s => rows.filter(r=>r.s===s).length;
@@ -689,7 +723,7 @@ function fieldsFound(){
 function tabsFor(files){
   const names = Object.keys(files);
   const pick = re => names.find(n => re.test(n.toLowerCase()));
-  return [["API client",pick(/client/)],["Auth",pick(/auth/)],["Users",pick(/user/)],["Usage",pick(/usage/)],["Pagination",pick(/paginat/)],["Errors",pick(/error/)],["Logging",pick(/log/)],["Mapping",pick(/map/)]].filter(t=>t[1]);
+  return [["API client",pick(/client/)],["Auth setup",pick(/auth/)],["Retrieve users",pick(/user/)],["Usage data",pick(/usage/)],["Pagination",pick(/paginat/)],["Error handling",pick(/error/)],["Logging",pick(/log/)],["Field mapping",pick(/map/)]].filter(t=>t[1]);
 }
 function codeSection(ro){
   const x = I(); const files = x.files; const f = files[x.activeFile]!==undefined ? x.activeFile : Object.keys(files)[0];
@@ -734,7 +768,7 @@ function simSection(){
 function stepTest(){
   const x = I(); const ro = S.user!==builderUser(); const t = x.test; const live = runLog?.which==="test" ? runLog : null;
   const mode = x.testMode || "test";
-  let h = `<div class="card"><div><h2>Test it on a real ${esc(x.app)} account</h2><div class="small muted">We run the code against a real account and show you what it brings in. Nothing is saved to CloudEagle yet.</div></div>`;
+  let h = `<div class="datagrid"><div class="card"><div><h2>Test it before it touches real data</h2><div class="small muted">We run the code against a ${esc(x.app)} account and show you exactly what it brings in. Nothing is saved to CloudEagle yet.</div></div>`;
   if (!x.testConnected && !ro){
     h += `<div class="choice">
       <button class="ch ${mode==="test"?"rec on":""}" data-act="pickMode" data-mode="test"><span class="row"><b>Use a test account</b><span class="pill green">Recommended</span></span><span class="small muted">A trial or sandbox ${esc(x.app)} account. Safest choice.</span></button>
@@ -746,10 +780,30 @@ function stepTest(){
       ${!t && !live && !ro ? `<button class="btn primary" data-act="runTest">Run the test</button><span class="small muted">Takes a few seconds. Read-only.</span>`:""}</div>`;
   }
   if (live) h += `<div class="thinking row"><span class="pill blue">Running…</span><span class="small muted">${live.reqs.length} requests so far</span></div>${reqLog(live.reqs,"test")}`;
-  h += `</div>`;
+  h += `</div>${testGuide()}</div>`;
   if (t && !live) h += testReport(t, ro);
   if (t && x.testSigned && !ro && x.step===3) h += nudge("good","Test approved", x.builder==="dev"?"Next: send it to Priya Sharma to turn on.":"Next: turn it on for your company.", `<button class="btn primary" data-act="toOn">Next: Turn it on →</button>`);
   return h;
+}
+function testGuide(){
+  const x = I(); const cal = isCal(); const a = esc(x.app);
+  const steps = cal ? [
+    "Calendly has no developer sandbox. Start a free trial of a Teams plan with a separate email, for example it+calendly-test@acme.com.",
+    "Invite 3 to 5 teammates: one admin and a few users.",
+    "Book 2 or 3 test meetings, so there is usage to count.",
+    "Click <b>Connect a test account</b>, sign in to the trial and click Allow.",
+    "Run the test. Check the number of people matches Calendly's Admin → Users page."]
+  : [`Look in ${a}'s developer docs for a sandbox or developer account.`,
+    "No sandbox? Start a free trial with a separate email.",
+    "Add a few people with different roles and some activity.",
+    "Click <b>Connect a test account</b>, sign in and click Allow.",
+    `Run the test. Check the number of people matches ${a}'s own admin page.`];
+  return `<div class="card"><h2>How to test ${a}</h2>
+    <ol class="guide">${steps.map(s=>`<li>${s}</li>`).join("")}</ol>
+    <div class="dashed small"><b>Demo test account</b> <span class="pill grey">Prototype</span>
+      <div class="kv" style="margin-top:6px">Account: acme-test (trial)\nEmail: test.admin@acme-demo.com\nPassword: Demo@2026</div>
+      <div class="muted" style="margin-top:6px">Made up for this prototype. In the real product CloudEagle never asks for or shows ${a} passwords: you sign in on ${a}'s own page and CloudEagle only keeps a read-only token.</div></div>
+    <div class="small muted">Why a test account first? New code should never read your company's real data before you've seen what it does.</div></div>`;
 }
 function testReport(t, ro){
   const x = I(); const liveMode = t.mode==="live"; const on = new Set(onFields().map(f=>f.key));
@@ -1124,6 +1178,7 @@ function readAddDraft(){ const d = S.addDraft; const g = id => document.getEleme
 
 document.addEventListener("click", async (ev) => {
   if (S.open && !ev.target.closest(".menuwrap")) { S.open=null; render(); }
+  if (ev.target.classList?.contains("scrim")){ set({modal:null}); return; }
   const t = ev.target.closest("[data-act],[data-step],[data-file],[data-req],[data-docs],[data-note],[data-edit]"); if (!t || t.disabled) return;
   if (t.dataset.step){ const n=+t.dataset.step; set({viewStep: n===I().step?null:n}); return; }
   if (t.dataset.file){ S.I.activeFile=t.dataset.file; save(); render(); return; }
@@ -1132,6 +1187,7 @@ document.addEventListener("click", async (ev) => {
   if (t.dataset.edit){ const k=t.dataset.edit; if (S.editing===k){ S.editing=null; toast("Saved. The code will follow your change."); } else S.editing=k; render(); return; }
   if (t.dataset.note){ const n=S.notes[S.user].find(n=>String(n.id)===t.dataset.note); if(n){ n.read=true; S.open=null; save(); if(n.go){ openBuild(n.go==="build"?null:+n.go); } else render(); } return; }
   const a = t.dataset.act;
+  if (a==="closeModal"){ set({modal:null}); return; }
   if (a==="toggleBell"){ set({open:S.open==="bell"?null:"bell"}); }
   else if (a==="toggleAcct"){ set({open:S.open==="acct"?null:"acct"}); }
   else if (a==="switch"){ switchUser(); }
@@ -1159,6 +1215,9 @@ document.addEventListener("click", async (ev) => {
     S.I.fields.push({key, label, why: why||"Added by the developer", group:"tech", on:true, by:S.user, custom:true}); save(); render();
     toast(S.user==="ravi" ? `${label} added. Priya sees it before she turns the integration on.` : `${label} added.`);
   }
+  else if (a==="findApis"){ busy="apis"; prog=0; render(); for (let k=1;k<=4;k++){ await sleep(550); prog=k; render(); } busy=null; setI({showApis:true}); }
+  else if (a==="addApi"){ const ap=apisFor().find(z=>z.id===t.dataset.id); if (ap){ S.I.fields.push({key:"api_"+ap.id, label:ap.label, why:ap.why, group:"api", on:true, by:S.user, custom:true, api:ap.api, scope:ap.scope}); save(); render(); toast(`${ap.label} included. Permission added: ${ap.scope}.`); } }
+  else if (a==="dropApi"){ S.I.fields = I().fields.filter(f=>f.key!=="api_"+t.dataset.id); save(); render(); }
   else if (a==="delField"){ S.I.fields = I().fields.filter(f=>f.key!==t.dataset.key); save(); render(); }
   else if (a==="toCode"){ const p={accessApproved:true, step:Math.max(I().step,2)}; if (I().status==="Draft") p.status="In progress"; setI(p); S.viewStep=null; render(); }
   else if (a==="sendDev"){

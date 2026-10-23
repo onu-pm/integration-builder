@@ -3,7 +3,7 @@
 import { RULES, calendlyReference, fetchDocs, gemini, injectionHits, rateLimited, readBody, send } from "./_lib/core.js";
 import { lastModelUsed } from "./_lib/core.js";
 
-const SHAPE = `{"base_url": "...", "auth": "methods in one line", "auth_warning": "required role, or null", "users_steps": ["METHOD /path → what it gives", "..."], "usage": ["signal — METHOD /path (plan restriction if any)", "..."], "usage_note": "one line, or null", "pagination": "one line", "rate_limits": ["...", "..."], "mapping": [["app field", "CloudEagle field"], ...], "field_map": [{"field": "<key from the requested list>", "source": "where it comes from, e.g. METHOD /path → json.path", "status": "yes | plan | no", "note": "plan restriction or why it's missing, or null"}], "scopes": [{"name": "exact permission/scope name from the docs, or UNKNOWN", "why": "which field needs it"}], "unknowns": ["things the docs don't state"], "missing_users": false}`;
+const SHAPE = `{"base_url": "...", "auth": "methods in one line", "auth_warning": "required role, or null", "users_steps": ["METHOD /path → what it gives", "..."], "usage": ["signal — METHOD /path (plan restriction if any)", "..."], "usage_note": "one line, or null", "pagination": "one line", "rate_limits": ["...", "..."], "mapping": [["app field", "CloudEagle field"], ...], "field_map": [{"field": "<key from the requested list>", "source": "where it comes from, e.g. METHOD /path → json.path", "status": "yes | plan | no", "note": "plan restriction or why it's missing, or null"}], "scopes": [{"name": "exact permission/scope name from the docs, or UNKNOWN", "why": "which field needs it"}], "more_apis": [{"id": "short-id", "api": "GET /path", "label": "short name", "gives": "what it returns", "why": "how it helps track licences or usage", "scope": "exact permission name, or UNKNOWN", "block": false}], "unknowns": ["things the docs don't state"], "missing_users": false}`;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return send(res, 405, { error: "Use POST" });
@@ -45,6 +45,7 @@ ${SHAPE}
 The company asked for these fields (key: label): ${JSON.stringify(wanted)}
 In field_map, give one entry per requested field, in the same order. status "yes" = the API returns it, "plan" = only on some plans, "no" = the API doesn't offer it (never invent an endpoint).
 In scopes, list only the read-only permissions needed for the requested fields that are available. Use the exact names from the docs; if the docs don't name scopes, use "UNKNOWN".
+In more_apis, list up to 5 OTHER read-only endpoints in the docs (not already used above) that would help track licences, seats or usage. Set block to true for any endpoint that exposes personal data of people outside the company, and say why.
 Set missing_users to true only if the documentation has no way to list users.`, { maxOutputTokens: 4096 });
 
     const u = understanding || {};
@@ -55,6 +56,7 @@ Set missing_users to true only if the documentation has no way to list users.`, 
     u.rate_limits = Array.isArray(u.rate_limits) ? u.rate_limits : [];
     u.unknowns = Array.isArray(u.unknowns) ? u.unknowns : [];
     u.field_map = Array.isArray(u.field_map) ? u.field_map.filter((f) => f && f.field) : [];
+    u.more_apis = Array.isArray(u.more_apis) ? u.more_apis.filter((x) => x && x.api).slice(0, 6) : [];
     u.scopes = Array.isArray(u.scopes) ? u.scopes.filter((x) => x && x.name) : [];
     return send(res, 200, { understanding: u, source, docsChars: docs.length, model: lastModelUsed });
   } catch (e) {
