@@ -1,5 +1,6 @@
 // Generate the integration files from the reviewed spec, in the chosen language.
 import { RULES, gemini, rateLimited, readBody, send } from "./_lib/core.js";
+import { lastModelUsed } from "./_lib/core.js";
 
 const LANGS = {
   python: { label: "Python", lib: "the requests library", ext: ".py", example: "client.py, auth.py, users.py, usage.py, pagination.py, errors.py, logging_config.py, mapping.py" },
@@ -42,7 +43,7 @@ Keep each file concise (under 80 lines).`, { maxOutputTokens: 16384 });
     for (const [name, content] of Object.entries(files).slice(0, 14)) {
       clean[String(name).replace(/[^\w./-]/g, "").slice(0, 80) || "file" + L.ext] = String(content);
     }
-    return send(res, 200, { files: clean, language });
+    return send(res, 200, { files: clean, language, model: lastModelUsed });
   } catch (e) {
     return send(res, e.status || 500, { error: e.message || "Something went wrong" });
   }

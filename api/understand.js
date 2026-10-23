@@ -1,6 +1,7 @@
 // Stage 1-2: read the API docs (fetch the link server-side or use pasted text),
 // scan for prompt injection, then ask the model for a structured spec.
 import { RULES, calendlyReference, fetchDocs, gemini, injectionHits, rateLimited, readBody, send } from "./_lib/core.js";
+import { lastModelUsed } from "./_lib/core.js";
 
 const SHAPE = `{"base_url": "...", "auth": "methods in one line", "auth_warning": "required role, or null", "users_steps": ["METHOD /path → what it gives", "..."], "usage": ["signal — METHOD /path (plan restriction if any)", "..."], "usage_note": "one line, or null", "pagination": "one line", "rate_limits": ["...", "..."], "mapping": [["app field", "CloudEagle field"], ...], "unknowns": ["things the docs don't state"], "missing_users": false}`;
 
@@ -49,7 +50,7 @@ Set missing_users to true only if the documentation has no way to list users.`, 
     u.usage = Array.isArray(u.usage) ? u.usage : [];
     u.rate_limits = Array.isArray(u.rate_limits) ? u.rate_limits : [];
     u.unknowns = Array.isArray(u.unknowns) ? u.unknowns : [];
-    return send(res, 200, { understanding: u, source, docsChars: docs.length });
+    return send(res, 200, { understanding: u, source, docsChars: docs.length, model: lastModelUsed });
   } catch (e) {
     return send(res, e.status || 500, { error: e.message || "Something went wrong" });
   }

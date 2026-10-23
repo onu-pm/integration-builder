@@ -163,7 +163,7 @@ export async function callGemini(prompt, { maxOutputTokens, temperature }, model
         : r.status === 403 ? "Google refused the key (403). Create an unrestricted key in Google AI Studio."
         : r.status === 429 ? "Gemini's free limit is used up for now. Wait a minute and try again."
         : msg;
-      throw Object.assign(new Error(nice), { status: r.status === 429 ? 429 : 502 });
+      throw Object.assign(new Error(nice), { status: r.status === 429 ? 429 : 502, upstream: r.status });
     }
     const cand = data?.candidates?.[0];
     const text = (cand?.content?.parts || []).filter((p) => !p.thought).map((p) => p.text || "").join("");
@@ -178,9 +178,23 @@ export async function callGemini(prompt, { maxOutputTokens, temperature }, model
   }
 }
 
+// If a Gemini model is busy or over its limit, try the next free model.
+const GEMINI_FALLBACKS = ["gemini-3.6-flash", "gemini-3.1-flash-lite", "gemini-3.5-flash-lite"];
+const busyError = (e) => [429, 500, 502, 503].includes(e.upstream) || /high demand|overloaded|unavailable|try again later|resource.?exhausted/i.test(e.message || "");
+
+export let lastModelUsed = MODEL;
 export async function llm(prompt, { maxOutputTokens = 8192, temperature = 0.2 } = {}) {
   if (!PROVIDER) throw Object.assign(new Error("No AI key is set (NVIDIA_API_KEY or GEMINI_API_KEY)"), { status: 503 });
-  return PROVIDER === "NVIDIA" ? callNvidia(prompt, { maxOutputTokens, temperature }) : callGemini(prompt, { maxOutputTokens, temperature });
+  if (PROVIDER === "NVIDIA") return callNvidia(prompt, { maxOutputTokens, temperature });
+  const chain = [MODEL, ...GEMINI_FALLBACKS.filter((m) => m !== MODEL)];
+  const started = Date.now();
+  let last;
+  for (const model of chain) {
+    if (Date.now() - started > 35000) break; // leave time inside Vercel's 60s limit
+    try { const out = await callGemini(prompt, { maxOutputTokens, temperature }, model); lastModelUsed = model; return out; }
+    catch (e) { last = e; if (!busyError(e)) throw e; console.error(`Gemini ${model} busy, trying next:`, e.message); }
+  }
+  throw last;
 }
 export const gemini = llm; // older name used by the API routes
 
