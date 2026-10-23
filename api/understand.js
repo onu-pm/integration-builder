@@ -41,14 +41,14 @@ export default async function handler(req, res) {
 ${docs.slice(0, 150_000)}
 </documentation>
 
-Extract how to retrieve users and usage data for ${appName} so CloudEagle can track licences.
+Extract how to retrieve users and usage data for ${appName} so CloudEagle can track licences. For users_steps, use the core endpoint that lists ALL users/members of the workspace or organization (not a niche or beta feature). Keep every string short.
 Reply with ONLY a JSON object of exactly this shape (short strings, no markdown):
 ${SHAPE}
 The company asked for these fields (key: label): ${JSON.stringify(wanted)}
 In field_map, give one entry per requested field, in the same order. status "yes" = the API returns it, "plan" = only on some plans, "no" = the API doesn't offer it (never invent an endpoint).
 In scopes, list only the read-only permissions needed for the requested fields that are available. Use the exact names from the docs; if the docs don't name scopes, use "UNKNOWN".
 In more_apis, list up to 5 OTHER read-only endpoints in the docs (not already used above) that would help track licences, seats or usage. Set block to true for any endpoint that exposes personal data of people outside the company, and say why.
-Set missing_users to true only if the documentation has no way to list users.`, { maxOutputTokens: 4096 });
+Set missing_users to true only if the documentation has no way to list users.`, { maxOutputTokens: 8192 });
 
     const u = understanding || {};
     if (!u.base_url || !Array.isArray(u.users_steps) || !Array.isArray(u.mapping)) {

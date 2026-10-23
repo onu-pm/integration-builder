@@ -97,7 +97,10 @@ function links(text, base) {
       if (RELATED.test(u.pathname)) out.add(u.href);
     } catch {}
   }
-  return [...out];
+  // Rank: the users list matters most, then sign-in, paging and limits. Skip niche/beta pages.
+  const W = [[/\/(get-)?users?\b|list.?users|\/members?\b|memberships?/i, 10], [/auth|oauth|token|scope/i, 6], [/paginat/i, 5], [/rate.?limit|limits/i, 5], [/error/i, 3], [/audit|activity|log/i, 2]];
+  const score = (h) => { const p = new URL(h).pathname; let n = 0; for (const [re, w] of W) if (re.test(p)) n += w; if (/ai[-_]?studio|beta|preview|changelog|webhook/i.test(p)) n -= 8; return n - p.length / 100; };
+  return [...out].sort((a, b) => score(b) - score(a));
 }
 // Reads the docs link, renders it if needed, then follows up to 6 related pages on the same site.
 export async function fetchDocs(url) {
