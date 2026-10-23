@@ -6,18 +6,17 @@ Concept by **Anupam Kalita** for the CloudEagle Senior Product Manager assignmen
 
 ## Try it
 
-The flow has three steps, each ending where real work pauses:
+**Direct Integrations** shows every connected app as a card. Click a card to open it: **Overview**, **Usage**, **Licence management** (select unused licences to remove at renewal) and **Settings** (sync frequency, alerts, reconnect, versions, disconnect) all work.
 
-1. **Generate code** — read the API docs (link or pasted text), review what the AI understood, pick a language (Python, Node.js, Java, Go) and generate. Safety checks and sandbox tests run automatically.
-2. **Test on a real account** — connect a test/trial account, run the integration, review the test report (counts, checks, sample rows, request log) and sign off.
-3. **Go live** — the admin connects production, previews the first sync (read-only, first page) and approves.
+To add an app that isn't there, search for it (try *Calendly*) or click **+ Add an app**, then:
 
-Two ways through it:
+- **Build it myself with AI** — three steps in one place:
+  1. **Create the code** — paste the API docs link or text, check what the AI found, pick a language (Python, Node.js, Java, Go). Safety and automatic checks run on their own.
+  2. **Test it** — connect a test account (or do a read-only check on your company's account), read the test report and approve it.
+  3. **Turn it on** — connect your company's account, check the first sync and turn it on.
+- **Ask someone else** — assign a developer (Ravi) or the CloudEagle team. Switch between Priya and Ravi from the account menu (top right) or the buttons in the pop-up messages. The bell shows what each person needs to do.
 
-- **Hand-off:** as Priya (IT Admin) search *Calendly* → **Request integration** → assign a developer. Switch to Ravi from the toast or the account menu (top right; a red dot shows when the other account has news). Ravi builds and submits; Priya approves from the banner or the notification bell.
-- **Self-setup:** choose **I'll build it myself** in the request — Priya goes straight through all three steps.
-
-**Reset demo data** is in the account menu.
+**Reset demo** is at the bottom of the left menu.
 
 ## What's real and what's simulated
 

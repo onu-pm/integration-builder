@@ -238,6 +238,27 @@ details[open]>summary::before{content:"▾ ";}
 .menuwrap .pop button:hover{background:var(--bg)}
 .success{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:26px}
 .success .big{width:56px;height:56px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-size:26px;font-weight:800;animation:pop .35s var(--ease)}
+button.nav{border:0;background:none;text-align:left;width:100%;cursor:pointer}
+button.nav:hover{background:rgba(255,255,255,.08)}
+.nav.dim{opacity:.45;cursor:default}
+.side .spacer{flex:1}
+.resetbtn{color:#fff;border:1px solid rgba(255,255,255,.18)!important;justify-content:center;font-weight:700}
+.crumblink{border:0;background:none;padding:0;color:var(--primary);font-size:12px;font-weight:600}
+.crumblink:hover{text-decoration:underline}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.appcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s,transform .15s}
+.appcard:hover{border-color:var(--primary);box-shadow:0 8px 22px rgba(59,91,219,.12);transform:translateY(-2px)}
+.appcard.hl{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.appcard p{margin:0;color:var(--ink-2)}
+.appcard.add{border-style:dashed;align-items:center;justify-content:center;text-align:center;color:var(--primary);min-height:190px}
+.apptabs button{border:0;background:none;padding:10px 0;color:var(--ink-2);font-weight:600;border-bottom:2px solid transparent}
+.apptabs button.on{color:var(--primary);border-bottom-color:var(--primary)}
+.tabbody{display:flex;flex-direction:column;gap:16px;animation:rise .25s var(--ease) both}
+.howit{background:#F3F6FF;border:1px solid #D4DEFF;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.howit ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.ch.on{border-color:var(--primary);background:#F7F9FF}
+.reqbox>summary{font-size:14px;color:var(--ink)}
+.card.danger{border-color:#F4C7CD}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 @media (max-width:1180px){.codewrap{grid-template-columns:minmax(0,1fr)}.tree{flex-direction:row;flex-wrap:wrap}}
 @media (max-width:860px){.app{grid-template-columns:minmax(0,1fr)}.side{display:none}.grid2,.grid3,.choice{grid-template-columns:minmax(0,1fr)}.pm{grid-template-columns:minmax(0,1fr)}.pm .reqs{border-right:0;border-bottom:1px solid var(--line)}.content{padding:16px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}.top{padding:10px 16px}.acct .who{display:none}.drop{width:min(340px,calc(100vw - 32px))}}
@@ -268,12 +289,12 @@ const CAL_UNDERSTANDING = {
 };
 
 /* ---------------- state ---------------- */
-const KEY = "ce-aib-v2";
+const KEY = "ce-aib-v3";
 const fresh = () => ({
   user:"priya", screen:"integrations", query:"Calendly", open:null, modal:null,
   seeds:[{app:"Miro", by:"Ankit Rao", to:"CloudEagle team", status:"Requested", step:"—", updated:"Yesterday"},{app:"Loom", by:"Priya Sharma", to:"Ravi Menon", status:"Waiting for approval", step:"Step 3 of 3", updated:"2 days ago"}],
   I:null, live:false, liveVersion:0,
-  notes:{priya:[], ravi:[]}, viewStep:null
+  notes:{priya:[], ravi:[]}, viewStep:null, apps:{}, appName:null, tab:"overview", sel:[], usageFilter:"all"
 });
 let S; try { S = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY)||"{}")); } catch(e){ S = fresh(); }
 let AI = null, aiChecked = false, busy = null, prog = 0, runLog = null, selReq = {sim:null, test:null}, lastKey = "", ctl = null;
@@ -302,20 +323,20 @@ const unread = u => S.notes[u].filter(n=>!n.read).length;
 
 /* ---------------- shell ---------------- */
 function sidebar(){
+  const reset = `<button class="nav resetbtn" data-act="resetDemo">↺ Reset demo</button><div class="foot">Prototype · made-up data</div>`;
   if (S.user==="ravi") {
-    const n = S.I && S.I.builder==="dev" && S.I.status!=="Live" ? 1 : 0;
+    const n = S.I && S.I.builder==="dev" && !["Live"].includes(S.I.status) ? 1 : 0;
     return `<nav class="side" aria-label="Main"><div class="brand">CloudEagle</div>
       <div class="nav head"><span class="box"></span>Integrations</div>
-      <button class="nav sub2 active" data-act="goAssigned" style="border:0;background:rgba(255,255,255,.12);text-align:left">Assigned to me ${n?`<span class="count">${n}</span>`:""}</button>
-      <div class="foot">Prototype · fictional data</div></nav>`;
+      <button class="nav sub2 active" data-act="goAssigned">Assigned to me ${n?`<span class="count">${n}</span>`:""}</button>
+      <div class="spacer"></div>${reset}</nav>`;
   }
-  const onApp = S.screen==="app";
   return `<nav class="side" aria-label="Main"><div class="brand">CloudEagle</div>
-    ${["Dashboard","Applications","Users","Contracts","Renewals","Spend"].map(n=>`<div class="nav ${onApp&&n==="Applications"?"active":""}"><span class="box"></span>${n}</div>`).join("")}
-    <div class="nav head"><span class="box"></span>Admin Settings ▾</div>
-    <div class="nav sub">General</div><div class="nav sub">Integrations ▾</div>
-    <button class="nav sub2 ${onApp?"":"active"}" data-act="goIntegrations" style="border:0;${onApp?"background:none":"background:rgba(255,255,255,.12)"};text-align:left;width:100%">Direct Integrations</button>
-    <div class="foot">Prototype · fictional data</div></nav>`;
+    ${["Dashboard","Applications","Users","Contracts","Renewals","Spend"].map(n=>`<div class="nav dim" title="Not part of this prototype"><span class="box"></span>${n}</div>`).join("")}
+    <div class="nav head"><span class="box"></span>Admin Settings</div>
+    <div class="nav sub">Integrations</div>
+    <button class="nav sub2 active" data-act="goIntegrations">Direct Integrations</button>
+    <div class="spacer"></div>${reset}</nav>`;
 }
 function topbar(){
   const me = PEOPLE[S.user], other = S.user==="priya" ? "ravi" : "priya";
@@ -324,126 +345,173 @@ function topbar(){
   const notes = S.notes[S.user];
   return `<header class="top"><div class="search">Search apps, users, contracts</div><div class="sp"></div>
     <div class="menuwrap"><button class="iconbtn" data-act="toggleBell" aria-label="Notifications" aria-expanded="${S.open==="bell"}">🔔${unread(S.user)?`<span class="badge">${unread(S.user)}</span>`:""}</button>
-      ${S.open==="bell"?`<div class="drop" role="menu"><div class="hd">Notifications</div>${notes.length?notes.map(n=>`<button class="item" data-note="${n.id}">${n.read?"":`<span class="dot-new"></span>`}<span class="t"><b>${esc(n.text)}</b><span>${esc(n.at)} · ${n.go?"Open":"Dismiss"}</span></span></button>`).join(""):`<div class="small muted" style="padding:8px">You're all caught up.</div>`}</div>`:""}</div>
+      ${S.open==="bell"?`<div class="drop" role="menu"><div class="hd">Notifications</div>${notes.length?notes.map(n=>`<button class="item" data-note="${n.id}">${n.read?"":`<span class="dot-new"></span>`}<span class="t"><b>${esc(n.text)}</b><span>${esc(n.at)}${n.go?" · Open":""}</span></span></button>`).join(""):`<div class="small muted" style="padding:8px">Nothing new.</div>`}</div>`:""}</div>
     <div class="menuwrap"><button class="acct" data-act="toggleAcct" aria-expanded="${S.open==="acct"}">${otherUnread?`<span class="pulse" aria-hidden="true"></span>`:""}<span class="avatar ${S.user==="ravi"?"rm":""}">${me.ini}</span><span class="who"><b>${me.name}</b><span>${me.role}</span></span> ▾</button>
-      ${S.open==="acct"?`<div class="drop" role="menu"><div class="hd">Signed in as</div>
+      ${S.open==="acct"?`<div class="drop" role="menu"><div class="hd">You're signed in as</div>
         <div class="item" style="cursor:default"><span class="avatar ${S.user==="ravi"?"rm":""}">${me.ini}</span><span class="t"><b>${me.name}</b><span>${S.user==="priya"?"priya.sharma@acme.com · IT Admin":"ravi.menon@acme.com · Integration developer"}</span></span></div>
         <div class="sep"></div><div class="hd">Switch account</div>
-        ${canSwitch?`<button class="item" data-act="switch"><span class="avatar ${other==="ravi"?"rm":""}">${PEOPLE[other].ini}</span><span class="t"><b>${PEOPLE[other].name}</b><span>${PEOPLE[other].role}${otherUnread?` · ${otherUnread} new`:""}</span></span>${otherUnread?`<span class="dot-new"></span>`:""}</button>`:`<div class="small muted" style="padding:6px 8px 8px">Other accounts appear here once you assign a developer.</div>`}
-        <div class="sep"></div><button class="item" data-act="resetDemo"><span class="t"><b>Reset demo data</b><span>Start the flow again from the beginning</span></span></button>
+        ${canSwitch?`<button class="item" data-act="switch"><span class="avatar ${other==="ravi"?"rm":""}">${PEOPLE[other].ini}</span><span class="t"><b>${PEOPLE[other].name}</b><span>${PEOPLE[other].role}${otherUnread?` · ${otherUnread} new`:""}</span></span>${otherUnread?`<span class="dot-new"></span>`:""}</button>`:`<div class="small muted" style="padding:6px 8px 8px">Ravi's account shows up here after you ask him to build an integration.</div>`}
       </div>`:""}</div></header>`;
 }
+function crumbs(items){
+  return `<nav class="crumb" aria-label="Breadcrumb">${items.map((it,i)=> i===items.length-1 ? `<b>${esc(it[0])}</b>` : `<button class="crumblink" data-act="${it[1]}">${esc(it[0])}</button> <span class="faint">/</span> `).join("")}</nav>`;
+}
+const adminCrumbs = (...rest) => crumbs([["Admin Settings","goIntegrations"],["Integrations","goIntegrations"],["Direct Integrations","goIntegrations"],...rest]);
+const STEP_NAMES = ["Create the code","Test it","Turn it on"];
 function stepper(cur){
   const done = n => (n===1 && I().files && I().sim?.passed) || (n===2 && I().testSigned) || (n===3 && I().status==="Live");
   const can = n => n===1 || (n===2 && done(1)) || (n===3 && done(2));
-  const st = (n, label) => {
+  const st = (n) => {
     const cls = n===cur ? "cur" : done(n) ? "done" : can(n) ? "" : "locked";
-    const sub = n===cur ? "You're here" : done(n) ? "Done · review" : can(n) ? "Ready" : "Locked";
-    return `<button class="step ${cls}" data-step="${n}" ${can(n)?"":"disabled"}><span class="dot">${done(n)&&n!==cur?"✓":n}</span><span class="lbl"><b>${label}</b><span>${sub}</span></span></button>`;
+    const sub = n===cur ? "You are here" : done(n) ? "Done" : can(n) ? "Ready" : "Not yet";
+    return `<button class="step ${cls}" data-step="${n}" ${can(n)?"":"disabled"}><span class="dot">${done(n)&&n!==cur?"✓":n}</span><span class="lbl"><b>${STEP_NAMES[n-1]}</b><span>${sub}</span></span></button>`;
   };
-  return `<div class="stepper">${st(1,"Generate code")}<span class="track ${done(1)?"full":""}"><i></i></span>${st(2,"Test on a real account")}<span class="track ${done(2)?"full":""}"><i></i></span>${st(3,"Go live")}
-    <span class="sp"></span><span class="small muted">Step ${cur} of 3 · saved automatically</span><button class="btn sm" data-act="copylink">Copy link</button></div>`;
+  return `<div class="stepper">${st(1)}<span class="track ${done(1)?"full":""}"><i></i></span>${st(2)}<span class="track ${done(2)?"full":""}"><i></i></span>${st(3)}
+    <span class="sp"></span><span class="small muted">Step ${cur} of 3 · your progress is saved</span><button class="btn sm" data-act="copylink">Copy link</button></div>`;
 }
 function nudge(kind, title, text, actions=""){
   const ic = {info:"i", warn:"!", good:"✓", bad:"!"}[kind];
   return `<div class="nudge ${kind}" role="status"><span class="ic">${ic}</span><span class="tx"><b>${title}</b>${text?`<span class="small">${text}</span>`:""}</span>${actions}</div>`;
 }
-function statusPill(s){ const m={"Requested":"grey","In progress":"blue","Waiting for approval":"amber","Live":"green","Changes requested":"red"}; return `<span class="pill ${m[s]||"grey"}">${esc(s)}</span>`; }
+function statusPill(s){ const m={"Requested":"grey","In progress":"blue","Waiting for approval":"amber","Live":"green","Changes requested":"red","Synced":"green","Not connected":"grey"}; return `<span class="pill ${m[s]||"grey"}">${esc(s)}</span>`; }
 const stepLabel = () => { const x = I(); if (!x) return "—"; if (x.status==="Live") return "Live"; if (x.builder==="ce") return "—"; return `Step ${x.step} of 3`; };
+/* ---------------- apps (catalogue) ---------------- */
+const CATALOGUE = {
+  Zoom:{cat:"Video meetings", desc:"Brings in your Zoom users, how many meetings each person hosted, and who holds a paid licence.", reads:["Users and their licence type","Meetings each person hosted","Last time each person signed in"], metric:"Meetings hosted (90 days)", lic:130, price:15, n:118, seed:3},
+  Slack:{cat:"Team chat", desc:"Brings in your Slack members, how many days each was active, and who is a paid member or a guest.", reads:["Members and guests","Days active in the last 90 days","Plan for each member"], metric:"Days active (90 days)", lic:240, price:8.75, n:214, seed:5},
+  PagerDuty:{cat:"On-call and incidents", desc:"Brings in your PagerDuty users, their roles, and how often each person is on call.", reads:["Users and roles","On-call shifts","Licence type"], metric:"On-call shifts (90 days)", lic:40, price:21, n:36, seed:7},
+  Okta:{cat:"Sign-in (SSO)", desc:"Brings in everyone who signs in through Okta and which apps they open, so CloudEagle can spot apps nobody uses.", reads:["People and their status","Apps each person opens","Sign-ins in the last 90 days"], metric:"Sign-ins (90 days)", lic:260, price:6, n:214, seed:11},
+  Calendly:{cat:"Scheduling", desc:"Brings in your Calendly users and how many meetings each person hosted in the last 90 days. Built with AI from Calendly's API docs.", reads:["Users and their role","Meetings each person hosted","Last activity (Enterprise plan only)"], metric:"Meetings hosted (90 days)", lic:230, price:12, n:214, seed:0}
+};
+function appList(){
+  const list = ["Zoom","Slack","PagerDuty","Okta"];
+  if (S.live && I()) list.unshift(I().app);
+  return list;
+}
+function appInfo(name){
+  const c = CATALOGUE[name] || {cat:"Custom app", desc:`Brings in your ${name} users and how much each person uses ${name}. Built with AI from ${name}'s API docs.`, reads:["Users","Usage","Roles"], metric:"Activity (90 days)", lic:60, price:10, n:48, seed:13};
+  const st = S.apps[name] || {};
+  const custom = S.live && I() && I().app===name;
+  return {...c, name, custom, status: st.status || (custom ? "Synced" : c===CATALOGUE.PagerDuty ? "Not connected" : "Synced"), freq: st.freq || "Daily", alerts: st.alerts!==false, marked: st.marked || [], lastSync: st.lastSync || "Today, 6:00 AM"};
+}
+function rng(seed){ let s = seed*9301+49297; return () => (s = (s*9301+49297)%233280)/233280; }
+function appUsers(name){
+  const a = appInfo(name);
+  if (name==="Calendly" || a.custom){
+    const counts = {}; DATA.events.forEach(u=>counts[u]=(counts[u]||0)+1);
+    return DATA.users.map(u=>({name:u.name, email:u.email, role:u.role, use:counts[u.uri]||0}));
+  }
+  const r = rng(a.seed); const scale = {Zoom:30, Slack:90, PagerDuty:12, Okta:160}[name] || 20;
+  return DATA.users.slice(0, a.n).map((u,i)=>{ const z = r(); return {name:u.name, email:u.email, role:i<3?"admin":"member", use: z<0.26 ? 0 : Math.max(1, Math.round(r()*scale))}; });
+}
+const money = n => "$" + Math.round(n).toLocaleString("en-US");
 
-/* ---------------- screens: admin ---------------- */
+/* ---------------- screen: integrations (cards) ---------------- */
 function scrIntegrations(){
   const q = S.query.trim(), ql = q.toLowerCase();
-  const known = ["zoom","slack","pagerduty","okta"];
   const x = I();
   let banner = "";
   if (x && x.status!=="Live"){
-    if (x.status==="Waiting for approval" && x.builder==="dev") banner = nudge("warn", `${PEOPLE.ravi.name} submitted the ${esc(x.app)} integration for your approval`, "Review the test report, connect the production account and approve.", `<button class="btn primary" data-act="openBuild3">Review and approve</button>`);
-    else if (x.builder==="self") banner = nudge("info", `Continue setting up ${esc(x.app)}`, `You're on ${stepLabel()}. Your progress is saved.`, `<button class="btn primary" data-act="openBuild">Continue</button>`);
-    else if (x.builder==="dev") banner = nudge("info", `${PEOPLE.ravi.name} is building the ${esc(x.app)} integration`, `${stepLabel()}. You'll get a notification when it's ready for your approval.`);
-    else banner = nudge("info", `The CloudEagle team is building ${esc(x.app)}`, "You'll be notified when it's available.");
+    if (x.status==="Waiting for approval" && x.builder==="dev") banner = nudge("warn", `Ravi finished the ${esc(x.app)} integration. It needs your approval.`, "Check his test, connect your company's account and turn it on.", `<button class="btn primary" data-act="openBuild3">Review and approve</button>`);
+    else if (x.builder==="self") banner = nudge("info", `You're adding ${esc(x.app)}`, `${stepLabel()}: ${STEP_NAMES[x.step-1]}. Pick up where you left off.`, `<button class="btn primary" data-act="openBuild">Continue</button>`);
+    else if (x.builder==="dev") banner = nudge("info", `Ravi Menon is building the ${esc(x.app)} integration`, `${stepLabel()}. We'll let you know when it's ready for you to approve.`);
+    else banner = nudge("info", `The CloudEagle team is building ${esc(x.app)}`, "We'll let you know when it's ready.");
   } else if (S.live && x?.status==="Live" && !S.dismissLive) {
-    banner = nudge("good", `${esc(x.app)} is live · 69 people haven't used it in 90 days`, "That's 69 licences you could reclaim at renewal.", `<button class="btn primary" data-act="openApp">View usage</button><button class="btn ghost" data-act="dismissLive" aria-label="Dismiss">✕</button>`);
+    const inactive = appUsers(x.app).filter(u=>!u.use).length;
+    banner = nudge("good", `${esc(x.app)} is now connected`, `${inactive} people haven't used it in 90 days. You could stop paying for those licences.`, `<button class="btn primary" data-act="openApp" data-app="${esc(x.app)}" data-tab="licences">See unused licences</button><button class="btn ghost" data-act="dismissLive" aria-label="Dismiss">✕</button>`);
   }
-  let result = "";
-  const reqMatch = x && x.app.toLowerCase()===ql && x.status!=="Live";
-  if (!q) result = "";
-  else if (known.includes(ql) || (S.live && x?.app.toLowerCase()===ql)) result = "";
-  else if (reqMatch) result = `<div class="card"><div class="spread"><div><b>${esc(x.app)} has already been requested by Priya Sharma</b><div class="row" style="margin-top:6px">${statusPill(x.status)}<span class="small muted">${stepLabel()}</span></div></div>${x.status==="Waiting for approval"&&x.builder==="dev"?`<button class="btn primary" data-act="openBuild3">Review and approve</button>`:x.builder==="self"?`<button class="btn primary" data-act="openBuild">Continue</button>`:`<button class="btn" data-act="follow">Follow request</button>`}</div></div>`;
-  else if (S.seeds.some(s=>s.app.toLowerCase()===ql)) { const s=S.seeds.find(s=>s.app.toLowerCase()===ql); result = `<div class="card"><div class="spread"><b>${esc(s.app)} has already been requested by ${esc(s.by)}</b><button class="btn" data-act="follow">Follow request</button></div></div>`; }
-  else result = `<div class="card reveal"><div class="empty"><div class="ic">⌕</div><b style="font-size:15px">No App found</b><div class="muted">${esc(q)} isn't available as a ready-made integration yet.<br>Request it and we'll generate the integration from its API documentation.</div><button class="btn primary" data-act="openRequest">Request integration</button></div></div>`;
+  const apps = appList().filter(n => !ql || n.toLowerCase().includes(ql));
+  const knownMatch = appList().some(n=>n.toLowerCase()===ql);
+  let missing = "";
+  if (q && !knownMatch){
+    const reqMatch = x && x.app.toLowerCase()===ql && x.status!=="Live";
+    const seed = S.seeds.find(s=>s.app.toLowerCase()===ql);
+    if (reqMatch) missing = `<div class="card reveal"><div class="spread"><div><b>${esc(x.app)} has already been requested</b><div class="row" style="margin-top:6px">${statusPill(x.status)}<span class="small muted">${stepLabel()}</span></div></div>
+      ${x.status==="Waiting for approval"&&x.builder==="dev"?`<button class="btn primary" data-act="openBuild3">Review and approve</button>`:x.builder==="self"?`<button class="btn primary" data-act="openBuild">Continue</button>`:`<button class="btn" data-act="follow">Get updates</button>`}</div></div>`;
+    else if (seed) missing = `<div class="card reveal"><div class="spread"><b>${esc(seed.app)} has already been requested by ${esc(seed.by)}</b><button class="btn" data-act="follow">Get updates</button></div></div>`;
+    else if (!apps.length) missing = `<div class="card reveal"><div class="empty"><div class="ic">⌕</div><b style="font-size:15px">No App found</b>
+      <div class="muted">${esc(q)} isn't available yet. We can create the integration from ${esc(q)}'s API documentation.</div>
+      <div class="row" style="justify-content:center"><button class="btn primary" data-act="selfStart">Add ${esc(q)} with AI</button><button class="btn" data-act="openRequest">Ask someone else to add it</button></div>
+      <div class="small faint">“Add with AI” takes about 5 minutes. You can stop and come back any time.</div></div></div>`;
+  }
   const rows = [
-    ...(x && x.status!=="Live" ? [{app:x.app, by:"Priya Sharma", to:x.builder==="dev"?"Ravi Menon":x.builder==="self"?"Priya Sharma":"CloudEagle team", status:x.status, step:stepLabel(), updated:x.updated||"Just now", mine:true}] : []),
+    ...(x && x.status!=="Live" ? [{app:x.app, by:"Priya Sharma", to:x.builder==="dev"?"Ravi Menon":x.builder==="self"?"You":"CloudEagle team", status:x.status, step:stepLabel(), updated:x.updated||"Just now", mine:true}] : []),
     ...S.seeds];
-  const apps = [...(S.live?[{n:x.app, s:"Synced", custom:true}]:[]),{n:"Zoom",s:"Synced"},{n:"Slack",s:"Synced"},{n:"PagerDuty",s:"Not connected"},{n:"Okta",s:"Synced"}];
-  return `<div class="crumb">Admin Settings / Integrations / <b>Direct Integrations</b></div>
-  <div><h1>Direct Integrations</h1><p class="lede">Connect your apps to import users, usage and licences automatically.</p></div>
+  return `${crumbs([["Admin Settings","goIntegrations"],["Integrations","goIntegrations"],["Direct Integrations"]])}
+  <div class="spread"><div><h1>Direct Integrations</h1><p class="lede">Connect your apps so CloudEagle can see who uses them and which licences go unused.</p></div>
+    <button class="btn" data-act="addBlank">+ Add an app</button></div>
   ${banner}
-  <div class="searchbox"><span class="muted">⌕</span><input id="q" aria-label="Search integrations" value="${esc(S.query)}" placeholder="Search integrations"></div>
-  ${result}
-  <div class="spread"><h3>Requested integrations</h3><span class="faint small">${rows.length} requests</span></div>
-  <div class="tablebox"><table><thead><tr><th>App</th><th>Requested by</th><th>Assigned to</th><th>Status</th><th>Step</th><th>Updated</th><th></th></tr></thead><tbody>
+  <div class="searchbox"><span class="muted">⌕</span><input id="q" aria-label="Search apps" value="${esc(S.query)}" placeholder="Search apps, for example Calendly"></div>
+  ${missing}
+  ${apps.length?`<div class="cards">${apps.map(appCard).join("")}<button class="appcard add" data-act="addBlank"><b style="font-size:28px;line-height:1">+</b><b>Add an app</b><span class="small muted">Not in the list? Build the integration yourself with AI, or ask someone.</span></button></div>`:""}
+  ${rows.length?`<details class="reqbox" ${x&&x.status!=="Live"?"open":""}><summary>Requested apps (${rows.length})</summary>
+  <div class="tablebox" style="margin-top:10px"><table><thead><tr><th>App</th><th>Asked by</th><th>Who's building it</th><th>Status</th><th>Step</th><th>Updated</th><th></th></tr></thead><tbody>
   ${rows.map(r=>`<tr><td><b>${esc(r.app)}</b></td><td>${esc(r.by)}</td><td>${esc(r.to)}</td><td>${statusPill(r.status)}</td><td>${esc(r.step)}</td><td class="muted">${esc(r.updated)}</td>
-    <td>${r.mine?`<button class="btn sm" data-act="rowOpen">${r.status==="Waiting for approval"?"Review":"Open"}</button>`:`<button class="btn sm" data-act="follow">View</button>`}</td></tr>`).join("")}
-  </tbody></table></div>
-  <h3>Available integrations</h3>
-  <div class="list">${apps.map(a=>`<div class="app-row ${a.custom?"hl":""}"><span class="logo">${esc(a.n[0])}</span><span class="nm">${esc(a.n)}${a.custom?` <span class="pill grey">Custom</span><span class="pill purple">AI-generated · v${S.liveVersion}</span>`:""}</span>
-    <span class="small ${a.s==="Synced"?"ok":"faint"}">${a.custom?"● ":""}${a.s}</span>
-    ${a.s==="Synced"?`<button class="btn sm" data-act="syncnow" data-app="${esc(a.n)}">Sync Now</button>`:`<button class="btn sm" data-act="connectOther">Connect</button>`}
-    ${a.custom?`<div class="menuwrap"><button class="btn sm" aria-label="More actions" data-act="toggleAppMenu">⋮</button>${S.open==="appmenu"?`<div class="pop"><button data-act="openApp">View usage</button><button data-act="versions">Version history</button><button data-act="regenAsk">Regenerate</button><button data-act="disconnect">Disconnect</button></div>`:""}</div>`:""}
-  </div>`).join("")}</div>`;
+    <td>${r.mine?`<button class="btn sm" data-act="rowOpen">${r.status==="Waiting for approval"?"Review":"Open"}</button>`:`<button class="btn sm" data-act="follow">Get updates</button>`}</td></tr>`).join("")}
+  </tbody></table></div></details>`:""}`;
+}
+function appCard(name){
+  const a = appInfo(name);
+  return `<div class="appcard ${a.custom?"hl":""}" role="button" tabindex="0" data-act="openApp" data-app="${esc(name)}">
+    <div class="row"><span class="logo">${esc(name[0])}</span><div style="flex:1;min-width:0"><b>${esc(name)}</b><div class="small muted">${esc(a.cat)}</div></div>${statusPill(a.status)}</div>
+    <p class="small">${esc(a.desc)}</p>
+    <div class="row small muted">${a.custom?`<span class="pill purple">Made with AI · v${S.liveVersion}</span>`:""}${a.status==="Synced"?`Last synced ${esc(a.lastSync)}`:"Not connected yet"}</div>
+    <div class="row" style="margin-top:auto">${a.status==="Synced"?`<button class="btn sm" data-act="syncnow" data-app="${esc(name)}">Sync now</button>`:`<button class="btn sm primary" data-act="connectApp" data-app="${esc(name)}">Connect</button>`}<span class="small faint" style="margin-left:auto">Open →</span></div>
+  </div>`;
 }
 
 function requestModal(){
   const d = S.draft;
   const opt = (v,label,desc,extra="") => `<div class="radio ${d.builder===v?"on":""}"><label><input type="radio" name="builder" value="${v}" ${d.builder===v?"checked":""}> ${label}</label><div class="desc">${desc}</div>${d.builder===v?extra:""}</div>`;
   return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="rqt"><div class="modal">
-    <div class="spread"><h2 id="rqt">Request integration</h2><button class="btn sm" data-act="closeModal" aria-label="Close">✕</button></div>
+    <div class="spread"><h2 id="rqt">Ask someone to add an app</h2><button class="btn sm" data-act="closeModal" aria-label="Close">✕</button></div>
     <div class="field"><label for="rApp">App name</label><input class="input" id="rApp" value="${esc(d.app)}"></div>
-    <div class="field"><label for="rDocs">API documentation link <span class="hint">optional — the developer can add it</span></label><input class="input" id="rDocs" value="${esc(d.docsUrl)}"></div>
-    <div class="field"><span class="lab">Data needed</span><div class="checks-row">${["Users","Usage","Licenses / roles"].map(n=>`<label><input type="checkbox" data-need="${n}" ${d.data.includes(n)?"checked":""}> ${n}</label>`).join("")}</div></div>
-    <div class="row"><span class="lockchip">🔒 Read-only</span><span class="small muted">Generated integrations can only read data.</span></div>
-    <div class="field"><span class="lab">Who will build it?</span>
-      ${opt("dev","Assign to a developer","They generate and test it; you approve go-live.",`<input class="input" id="rEmail" aria-label="Developer email" value="${esc(d.email)}"><div class="small muted">They'll be invited as an Integration developer: access to this integration only, no spend or contract data, can't approve go-live.</div>`)}
-      ${opt("self","I'll build it myself","Generate, test and go live yourself, step by step.")}
-      ${opt("ce","Ask the CloudEagle team","We'll build it and notify you when it's available.")}
+    <div class="field"><label for="rDocs">Link to the app's API documentation <span class="hint">optional</span></label><input class="input" id="rDocs" value="${esc(d.docsUrl)}" placeholder="https://developer.example.com/api"></div>
+    <div class="field"><span class="lab">What should CloudEagle bring in?</span><div class="checks-row">${["Users","Usage","Licences and roles"].map(n=>`<label><input type="checkbox" data-need="${n}" ${d.data.includes(n)?"checked":""}> ${n}</label>`).join("")}</div></div>
+    <div class="row"><span class="lockchip">🔒 Read-only</span><span class="small muted">The integration can only read data. It can't change anything in the app.</span></div>
+    <div class="field"><span class="lab">Who should build it?</span>
+      ${opt("dev","A developer on my team","They create and test it. You approve it before it goes live.",`<input class="input" id="rEmail" aria-label="Developer's email" value="${esc(d.email)}"><div class="small muted">We'll invite them with limited access: they can only see this integration, not your spend or contracts, and they can't turn it on.</div>`)}
+      ${opt("ce","The CloudEagle team","We build it and tell you when it's ready.")}
     </div>
-    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="sendRequest">${d.builder==="self"?"Create and start":"Send request"}</button></div>
+    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="sendRequest">Send request</button></div>
   </div></div>`;
 }
-
 /* ---------------- screens: developer home ---------------- */
 function scrAssigned(){
   const x = I();
   const active = x && x.builder==="dev";
   let banner = "";
-  if (active && x.status==="In progress" && x.step===1 && !x.files) banner = nudge("info", `Priya Sharma assigned you the ${esc(x.app)} integration`, "Generate the code from its API docs, test it on a real account, then submit it for approval.", `<button class="btn primary" data-act="openBuild">Start building</button>`);
-  else if (active && x.status==="Changes requested") banner = nudge("warn", `Priya requested changes on ${esc(x.app)}`, esc(x.changeNote||"Re-test and resubmit."), `<button class="btn primary" data-act="openBuild">Open</button>`);
-  else if (active && x.status==="Waiting for approval") banner = nudge("info", "Waiting for Priya's approval", "You'll be notified when it's live.");
-  else if (active && x.status==="Live") banner = nudge("good", `${esc(x.app)} is live`, `Priya approved v${S.liveVersion}. Nice work.`);
-  return `<div class="crumb">Integrations / <b>Assigned to me</b></div>
+  if (active && x.status==="In progress" && x.step===1 && !x.files) banner = nudge("info", `Priya Sharma asked you to build the ${esc(x.app)} integration`, "Three steps: create the code from the API docs, test it on a test account, then send it to Priya to turn on.", `<button class="btn primary" data-act="openBuild">Start</button>`);
+  else if (active && x.status==="Changes requested") banner = nudge("warn", `Priya asked for changes on ${esc(x.app)}`, esc(x.changeNote||"Test it again and resend."), `<button class="btn primary" data-act="openBuild">Open</button>`);
+  else if (active && x.status==="Waiting for approval") banner = nudge("info", "Sent to Priya", "We'll let you know when she turns it on.");
+  else if (active && x.status==="Live") banner = nudge("good", `${esc(x.app)} is live`, `Priya approved version ${S.liveVersion}.`);
+  return `${crumbs([["Integrations","goAssigned"],["Assigned to me"]])}
   <div><h1>Assigned to me</h1><p class="lede">Integrations you've been asked to build.</p></div>
   ${banner}
-  ${active?`<div class="card"><div class="spread"><div class="row"><span class="logo">${esc(x.app[0])}</span><div><b>${esc(x.app)}</b><div class="small muted">Requested by Priya Sharma · ${esc(x.data.join(" · "))} · read-only</div></div></div>
-    <div class="row">${statusPill(x.status)}<span class="small muted">${stepLabel()}</span><button class="btn ${x.status==="In progress"||x.status==="Changes requested"?"primary":""}" data-act="openBuild">${x.files?"Continue":"Start building"}</button></div></div></div>`
+  ${active?`<div class="card"><div class="spread"><div class="row"><span class="logo">${esc(x.app[0])}</span><div><b>${esc(x.app)}</b><div class="small muted">Asked by Priya Sharma · ${esc(x.data.join(" · "))} · read-only</div></div></div>
+    <div class="row">${statusPill(x.status)}<span class="small muted">${stepLabel()}</span><button class="btn ${x.status==="In progress"||x.status==="Changes requested"?"primary":""}" data-act="openBuild">${x.files?"Continue":"Start"}</button></div></div></div>`
   : `<div class="dashed muted" style="text-align:center">Nothing assigned to you right now.</div>`}`;
 }
-
 /* ---------------- build: shared ---------------- */
-function buildCrumb(tail){
-  return S.user==="ravi" ? `<div class="crumb">Integrations / Assigned to me / ${esc(app())} / <b>${tail}</b></div>` : `<div class="crumb">Admin Settings / Integrations / Direct Integrations / ${esc(app())} / <b>${tail}</b></div>`;
-}
 function scrBuild(){
   const x = I(); const step = S.viewStep || x.step;
-  const title = `<div class="spread"><div class="row"><span class="logo">${esc(x.app[0])}</span><h1>${esc(x.app)} integration</h1>${statusPill(x.status)}<span class="pill purple">v${x.version}</span></div>
+  const self = x.builder==="self";
+  const tail = STEP_NAMES[step-1];
+  const cr = S.user==="ravi" ? crumbs([["Integrations","goAssigned"],["Assigned to me","goAssigned"],[x.app,"openBuild"],[tail]])
+    : adminCrumbs([x.app, "openBuild"],[tail]);
+  const title = `<div class="spread"><div class="row"><span class="logo">${esc(x.app[0])}</span><h1>${self?`Add ${esc(x.app)} with AI`:`${esc(x.app)} integration`}</h1>${statusPill(x.status)}<span class="pill purple">Version ${x.version}</span></div>
     ${x.builder==="dev"&&S.user==="priya"?`<span class="small muted">Built by Ravi Menon</span>`:""}</div>`;
+  const intro = self && step===1 && !x.understanding && !S.hideIntro ? `<div class="howit reveal"><div class="spread"><b>How this works</b><button class="btn ghost sm" data-act="hideIntro">Got it</button></div>
+    <ol><li><b>Create the code.</b> We read ${esc(x.app)}'s API documentation and write the code. You check what we found first.</li>
+    <li><b>Test it.</b> We run it against a ${esc(x.app)} account and show you exactly what it brings in.</li>
+    <li><b>Turn it on.</b> Connect your company's ${esc(x.app)} account and it syncs every day.</li></ol>
+    <span class="small muted">About 5 minutes. Your progress is saved, so you can stop and come back.</span></div>` : "";
   const body = step===1 ? step1() : step===2 ? step2() : step3();
-  return `${buildCrumb(["Generate code","Test","Go live"][step-1])}${title}${stepper(step)}${body}`;
+  return `${cr}${title}${stepper(step)}${intro}${body}`;
 }
-
 /* ---------------- step 1: generate ---------------- */
-const READ_STEPS = ["Fetching the documentation","Finding authentication","Finding how to list users","Finding usage data","Reading pagination and rate limits","Mapping fields to CloudEagle's format"];
-const GEN_STEPS = ["API client","Auth setup","Users and usage","Pagination","Error handling","Logging","Field mapping","Safety checks"];
+const READ_STEPS = ["Opening the documentation","Finding how to sign in","Finding how to list people","Finding usage data","Checking page sizes and request limits","Matching fields to CloudEagle"];
+const GEN_STEPS = ["Connection to the app","Sign-in","People and usage","Reading page by page","Handling errors","Activity log","Matching fields","Safety checks"];
 function progList(steps){
   const n = steps.length, k = Math.min(prog, n);
   return `<div class="bar"><i style="width:${Math.round(k/n*100)}%"></i></div><div class="prog">${steps.map((s,i)=>`<div class="pi ${i<k?"ok":i===k?"run":""}"><span class="m">${i<k?"✓":""}</span>${esc(s)}</div>`).join("")}</div>`;
@@ -451,39 +519,39 @@ function progList(steps){
 function step1(){
   const x = I(); const u = x.understanding; const ro = S.user!==builderUser();
   const langOpts = Object.entries(LANGS).map(([k,v])=>`<option value="${k}" ${x.language===k?"selected":""} ${!AI&&k!=="python"?"disabled":""}>${v}${!AI&&k!=="python"?" (needs AI)":""}</option>`).join("");
-  let h = `<div class="card"><div class="spread"><h2>Source</h2><span class="lockchip">🔒 Read-only access</span></div>
+  let h = `<div class="card"><div class="spread"><div><h2>Where should we read from?</h2><div class="small muted">We read the app's API documentation and write code that brings its data into CloudEagle.</div></div><span class="lockchip">🔒 Read-only</span></div>
     <div class="grid2">
-      <div class="field"><span class="lab">API documentation</span><div class="seg" role="group"><button data-docs="link" aria-pressed="${x.docsMode==="link"}">Docs link</button><button data-docs="paste" aria-pressed="${x.docsMode==="paste"}">Paste text</button></div>
+      <div class="field"><span class="lab">API documentation</span><div class="seg" role="group"><button data-docs="link" aria-pressed="${x.docsMode==="link"}">Paste a link</button><button data-docs="paste" aria-pressed="${x.docsMode==="paste"}">Paste the text</button></div>
         ${x.docsMode==="link"?`<input class="input" id="docsUrl" value="${esc(x.docsUrl)}" placeholder="https://developer.example.com/api" ${ro?"readonly":""}>`:`<textarea class="input" id="docsText" placeholder="Paste the API reference for ${esc(x.app)}" ${ro?"readonly":""}>${esc(x.docsText||"")}</textarea>`}</div>
-      <div class="field"><label for="lang">Generate code in</label><select class="input" id="lang" ${ro?"disabled":""}>${langOpts}</select>
-        <span class="small muted">Data needed: ${esc(x.data.join(" · "))}</span></div>
+      <div class="field"><label for="lang">Write the code in</label><select class="input" id="lang" ${ro?"disabled":""}>${langOpts}</select>
+        <span class="small muted">Brings in: ${esc(x.data.join(" · "))}</span></div>
     </div>
-    ${!u && !ro ? `<div class="row"><button class="btn primary" data-act="readDocs" ${busy?"disabled":""}>Read documentation</button><span class="small muted">The AI reads the docs and shows what it found before writing any code.</span></div>`:""}
+    ${!u && !ro ? `<div class="row"><button class="btn primary" data-act="readDocs" ${busy?"disabled":""}>Read the documentation</button><span class="small muted">You'll see what we found before any code is written.</span></div>`:""}
     ${busy==="read"?`<div class="reveal">${progList(READ_STEPS)}</div>`:""}
   </div>`;
   if (u){
-    h += `<div class="spread reveal"><div><h2>What we understood from the docs</h2><p class="lede">${x.uMode==="live"?`Read by AI${x.uSource==="captured"?" from Calendly's API reference":x.uSource==="pasted"?" from the pasted text":" from the docs link"}`:"Read from Calendly's API reference"}. The code will follow these cards — edit anything that's wrong.</p></div>${!ro?`<button class="btn sm" data-act="readDocs" ${busy?"disabled":""}>Read again</button>`:""}</div>`;
+    h += `<div class="spread reveal"><div><h2>Here's what we found</h2><p class="lede">${x.uMode==="live"?`Read by AI${x.uSource==="captured"?" from Calendly's API reference":x.uSource==="pasted"?" from the text you pasted":" from the link"}`:"Read from Calendly's API reference"}. The code will follow these cards. If something is wrong, click Edit.</p></div>${!ro?`<button class="btn sm" data-act="readDocs" ${busy?"disabled":""}>Read again</button>`:""}</div>`;
     h += understandingCards(u, ro);
-    if (u.missing_users) h += nudge("bad","We couldn't find how to list users in this documentation","Add another docs link, paste more of the reference, or send it to the CloudEagle team.",`<button class="btn sm" data-act="toCE">Send to CloudEagle team</button>`);
-    if (!x.files && !ro) h += `<div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="genCode" ${busy||u.missing_users?"disabled":""}>Generate ${esc(LANGS[x.language])} code</button></div>`;
-    if (busy==="gen") h += `<div class="card reveal"><div class="spread"><h3>Writing the ${esc(LANGS[x.language])} integration</h3><button class="btn sm" data-act="stop">Stop</button></div>${progList(GEN_STEPS)}</div>`;
+    if (u.missing_users) h += nudge("bad","We couldn't find how to list people in this documentation","Try another link, paste more of the documentation, or ask the CloudEagle team.",`<button class="btn sm" data-act="toCE">Send to CloudEagle team</button>`);
+    if (!x.files && !ro) h += `<div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="genCode" ${busy||u.missing_users?"disabled":""}>Write the ${esc(LANGS[x.language])} code</button></div>`;
+    if (busy==="gen") h += `<div class="card reveal"><div class="spread"><h3>Writing the ${esc(LANGS[x.language])} code</h3><button class="btn sm" data-act="stop">Stop</button></div>${progList(GEN_STEPS)}</div>`;
   }
   if (x.files) h += codeSection(ro) + simSection();
-  if (x.files && x.sim?.passed && !ro && x.step===1) h += nudge("good","Code passed the safety checks and the sandbox tests","Next: run it against a real Calendly test account before it touches production.",`<button class="btn primary" data-act="toStep2">Test on a real account →</button>`);
+  if (x.files && x.sim?.passed && !ro && x.step===1) h += nudge("good","The code passed all checks","Next: try it on a real ${esc(x.app)} account before turning it on.",`<button class="btn primary" data-act="toStep2">Next: Test it →</button>`);
   return h;
 }
 function understandingCards(u, ro){
   const card = (key,title,bodyHtml) => `<div class="ucard ${S.editing===key?"editing":""}"><div class="hd"><h3>${title}</h3><div class="acts">${!ro?`<button class="linkbtn" data-edit="${key}">${S.editing===key?"Done":"Edit"}</button>`:""}${/^https?:/.test(I().docsUrl||"")?`<a class="linkbtn" href="${esc(I().docsUrl)}" target="_blank" rel="noopener">View in docs</a>`:""}</div></div><div ${S.editing===key?`contenteditable="true" data-editbody="${key}"`:""}>${bodyHtml}</div></div>`;
   return `<div class="grid2 reveal">
-    ${card("api","API",`<div class="mono">Base URL ${esc(u.base_url)}</div>`)}
-    ${card("auth","Authentication",`<div class="mono">${esc(u.auth)}</div>${u.auth_warning?`<div class="chip-warn">⚠ ${esc(u.auth_warning)}</div>`:""}`)}
-    ${card("users",`Users (${u.users_steps.length} step${u.users_steps.length>1?"s":""})`,u.users_steps.map((s,i)=>`<div class="mono">${i+1}. ${esc(s)}</div>`).join(""))}
-    ${card("usage","Usage",u.usage.map(s=>`<div class="mono">${esc(s)}</div>`).join("")+(u.usage_note?`<div class="chip-info">ⓘ ${esc(u.usage_note)}</div>`:""))}
-    ${card("paging","Pagination",`<div class="mono">${esc(u.pagination)}</div>`)}
-    ${card("rate","Rate limits",u.rate_limits.map(s=>`<div class="mono">${esc(s)}</div>`).join(""))}
+    ${card("api","Address",`<div class="mono">Base URL ${esc(u.base_url)}</div>`)}
+    ${card("auth","How to sign in",`<div class="mono">${esc(u.auth)}</div>${u.auth_warning?`<div class="chip-warn">⚠ ${esc(u.auth_warning)}</div>`:""}`)}
+    ${card("users",`How to list people (${u.users_steps.length} step${u.users_steps.length>1?"s":""})`,u.users_steps.map((s,i)=>`<div class="mono">${i+1}. ${esc(s)}</div>`).join(""))}
+    ${card("usage","How to see usage",u.usage.map(s=>`<div class="mono">${esc(s)}</div>`).join("")+(u.usage_note?`<div class="chip-info">ⓘ ${esc(u.usage_note)}</div>`:""))}
+    ${card("paging","Pages of results",`<div class="mono">${esc(u.pagination)}</div>`)}
+    ${card("rate","Request limits",u.rate_limits.map(s=>`<div class="mono">${esc(s)}</div>`).join(""))}
   </div>
-  ${card("map","Field mapping to CloudEagle format",`<div class="tablebox"><table><thead><tr><th>${esc(app())} field</th><th>CloudEagle field</th></tr></thead><tbody>${u.mapping.map(m=>`<tr><td class="mono">${esc(m[0])}</td><td><b>→ ${esc(m[1])}</b></td></tr>`).join("")}</tbody></table></div>`)}
-  ${u.unknowns?.length?`<div class="dashed small"><span class="pill grey">Not stated in the docs</span> ${u.unknowns.map(esc).join(" · ")}</div>`:""}`;
+  ${card("map","How fields match CloudEagle",`<div class="tablebox"><table><thead><tr><th>${esc(app())} field</th><th>CloudEagle field</th></tr></thead><tbody>${u.mapping.map(m=>`<tr><td class="mono">${esc(m[0])}</td><td><b>→ ${esc(m[1])}</b></td></tr>`).join("")}</tbody></table></div>`)}
+  ${u.unknowns?.length?`<div class="dashed small"><span class="pill grey">Not in the documentation</span> ${u.unknowns.map(esc).join(" · ")}</div>`:""}`;
 }
 function tabsFor(files){
   const names = Object.keys(files);
@@ -493,7 +561,7 @@ function tabsFor(files){
 function codeSection(ro){
   const x = I(); const files = x.files; const f = files[x.activeFile]!==undefined ? x.activeFile : Object.keys(files)[0];
   const allPass = x.safety.every(r=>r.pass);
-  return `<div class="spread reveal"><div class="row"><h2>Generated code</h2><span class="pill grey">${esc(LANGS[x.language])}</span>${x.fMode==="live"?`<span class="pill purple">AI · ${esc(AI?.model||"Gemini")}</span>`:""}</div>
+  return `<div class="spread reveal"><div class="row"><h2>Your code</h2><span class="pill grey">${esc(LANGS[x.language])}</span>${x.fMode==="live"?`<span class="pill purple">AI · ${esc(AI?.model||"Gemini")}</span>`:""}</div>
     <div class="row"><button class="btn sm" data-act="download">Download code</button>${!ro&&x.step===1?`<button class="btn sm" data-act="genCode" ${busy?"disabled":""}>Regenerate</button>`:""}</div></div>
   <div class="codewrap reveal">
     <div class="tree"><div class="t">${esc(app().toUpperCase())}-INTEGRATION/</div>${Object.keys(files).map(n=>`<button data-file="${esc(n)}" aria-current="${n===f}">${esc(n)}</button>`).join("")}</div>
@@ -501,7 +569,7 @@ function codeSection(ro){
       <div class="fname"><span>${esc(f)}</span><span>${files[f].split("\n").length} lines</span></div><pre class="code" tabindex="0">${esc(files[f])}</pre></div>
     <div class="checks"><div class="spread"><h3>Safety checks</h3>${allPass?`<span class="pill green">${x.safety.length}/${x.safety.length}</span>`:`<span class="pill red">Failed</span>`}</div>${x.safety.map(r=>`<div class="chk"><span class="m ${r.pass?"pass":"fail"}">${r.pass?"✓":"!"}</span><span>${esc(r.label)}${r.detail?`<span class="d">${esc(r.detail)}</span>`:""}</span></div>`).join("")}</div>
   </div>
-  ${allPass?"":nudge("bad","Safety checks failed","Regenerate the code. Code that fails a safety check can't be tested or deployed.")}`;
+  ${allPass?"":nudge("bad","A safety check failed","Click Regenerate. Code that fails a safety check can't be tested or turned on.")}`;
 }
 function reqLog(reqs, which){
   if (!reqs?.length) return "";
@@ -514,137 +582,232 @@ function reqLog(reqs, which){
 }
 function simSection(){
   const x = I(); const s = x.sim; const live = runLog?.which==="sim" ? runLog : null;
-  if (!isCal()) return `<div class="card reveal"><h2>Sandbox tests</h2>${nudge("info","The simulated sandbox for this app is generated from its docs","This prototype includes Calendly's simulator. For other apps, continue with the test on a real account.",`<button class="btn" data-act="skipSim">Continue</button>`)}</div>`;
+  if (!isCal()) return `<div class="card reveal"><h2>Automatic checks</h2>${nudge("info","Automatic checks for this app are built from its documentation","This prototype only has Calendly's. You can still test it on a real account next.",`<button class="btn" data-act="skipSim">Continue</button>`)}</div>`;
   const reqs = live ? live.reqs : s?.reqs;
-  return `<div class="card reveal"><div class="spread"><div><h2>Sandbox tests</h2><div class="small muted">Run automatically after every generation against a simulated Calendly built from the docs: 214 test users, a forced rate limit and a non-Enterprise plan.</div></div>
+  return `<div class="card reveal"><div class="spread"><div><h2>Automatic checks</h2><div class="small muted">Every time the code is written, we run it against a practice copy of Calendly with 214 made-up people. We also make it hit the request limit and a plan restriction on purpose.</div></div>
       ${live?`<span class="pill blue">Running…</span>`:s?.passed?`<span class="pill green">Passed ✓</span>`:`<button class="btn" data-act="runSim">Run tests</button>`}</div>
     ${reqLog(reqs,"sim")}
     ${s?.passed && !live ? `<div class="grid3">${[
-      `${s.summary.users} users across ${s.summary.pages.length} pages (${s.summary.pages.join(" + ")})`,
+      `Found all ${s.summary.users} people across ${s.summary.pages.length} pages (${s.summary.pages.join(" + ")})`,
       `${s.summary.meetings} meetings counted (last 90 days)`,
-      `Rate limit hit once: waited ${s.summary.waited}s and retried`,
-      `Enterprise-only activity log: marked unavailable, sync continued`,
-      `Every record mapped to the CloudEagle format`,
-      `Only read requests, only to Calendly's host`].map(t=>`<div class="chk"><span class="m pass">✓</span><span>${esc(t)}</span></div>`).join("")}</div>`:""}
+      `Hit the request limit, waited ${s.summary.waited} seconds and tried again`,
+      `Activity log is Enterprise-only: left empty, kept going`,
+      `Every person matched to CloudEagle's fields`,
+      `Only read data, only from Calendly`].map(t=>`<div class="chk"><span class="m pass">✓</span><span>${esc(t)}</span></div>`).join("")}</div>`:""}
   </div>`;
 }
 
-/* ---------------- step 2: test on a real account ---------------- */
+/* ---------------- step 2: test ---------------- */
 function step2(){
   const x = I(); const ro = S.user!==builderUser(); const t = x.test; const live = runLog?.which==="test" ? runLog : null;
-  let h = `<div class="card"><div class="spread"><div><h2>Test on a real ${esc(x.app)} account</h2><div class="small muted">Point the integration at a test or trial account and check the data matches what ${esc(x.app)} shows. Nothing is saved to CloudEagle.</div></div>
-    ${x.testConnected?`<span class="pill green">● Connected: acme-test (trial)</span>`:""}</div>
-    ${!x.testConnected && !ro ? `<div class="row"><button class="btn primary" data-act="connectTest">Connect a ${esc(x.app)} test account</button><span class="small muted">Uses ${esc(x.app)}'s own sign-in. The key goes to CloudEagle's vault; you never see it.</span></div>`:""}
-    ${x.testConnected && !t && !live && !ro ? `<div class="row"><button class="btn primary" data-act="runTest">Run test</button><span class="small muted">Read-only. Takes a few seconds.</span></div>`:""}
-    ${live?`<div class="thinking row"><span class="pill blue">Running…</span><span class="small muted">${live.reqs.length} requests so far</span></div>${reqLog(live.reqs,"test")}`:""}
-  </div>`;
+  const mode = x.testMode || "test";
+  let h = `<div class="card"><div><h2>Test it on a real ${esc(x.app)} account</h2><div class="small muted">We run the code against a real account and show you what it brings in. Nothing is saved to CloudEagle yet.</div></div>`;
+  if (!x.testConnected && !ro){
+    h += `<div class="choice">
+      <button class="ch ${mode==="test"?"rec on":""}" data-act="pickMode" data-mode="test"><span class="row"><b>Use a test account</b><span class="pill green">Recommended</span></span><span class="small muted">A trial or sandbox ${esc(x.app)} account. Safest choice.</span></button>
+      <button class="ch ${mode==="live"?"rec on":""}" data-act="pickMode" data-mode="live"><b>Check my company's account (read-only)</b><span class="small muted">No test account? We read only the first 100 people and save nothing.${x.builder==="dev"?" Your admin may need to sign in.":""}</span></button>
+    </div>
+    <div class="row"><button class="btn primary" data-act="connectTest">Connect ${mode==="test"?"a test account":"your company's account"}</button><span class="small muted">You'll sign in to ${esc(x.app)} and click Allow. The key is stored safely; nobody sees it.</span></div>`;
+  } else if (x.testConnected) {
+    h += `<div class="row"><span class="pill green">● Connected: ${mode==="test"?"acme-test (trial)":"Acme Corp (read-only check)"}</span>
+      ${!t && !live && !ro ? `<button class="btn primary" data-act="runTest">Run the test</button><span class="small muted">Takes a few seconds. Read-only.</span>`:""}</div>`;
+  }
+  if (live) h += `<div class="thinking row"><span class="pill blue">Running…</span><span class="small muted">${live.reqs.length} requests so far</span></div>${reqLog(live.reqs,"test")}`;
+  h += `</div>`;
   if (t && !live) h += testReport(t, ro);
-  if (t && x.testSigned && !ro && x.step===2) h += nudge("good","Test signed off", x.builder==="dev"?"Next: submit it to Priya Sharma for approval.":"Next: connect your production account and go live.", `<button class="btn primary" data-act="toStep3">Continue to Go live →</button>`);
+  if (t && x.testSigned && !ro && x.step===2) h += nudge("good","Test approved", x.builder==="dev"?"Next: send it to Priya Sharma to turn on.":"Next: turn it on for your company.", `<button class="btn primary" data-act="toStep3">Next: Turn it on →</button>`);
   return h;
 }
 function testReport(t, ro){
-  const x = I();
-  return `<div class="report reveal"><div class="rh"><div><b>Test report</b> <span class="small muted">· ${esc(x.app)} trial account “acme-test” · v${x.version} · ${esc(LANGS[x.language])} · ${esc(t.at)}</span></div>
+  const x = I(); const liveMode = t.mode==="live";
+  return `<div class="report reveal"><div class="rh"><div><b>Test report</b> <span class="small muted">· ${liveMode?"Acme Corp (read-only check, first 100 people)":`${esc(x.app)} trial account “acme-test”`} · version ${x.version} · ${esc(LANGS[x.language])} · ${esc(t.at)}</span></div>
       <div class="row">${t.passed?`<span class="pill green">Passed</span>`:`<span class="pill red">Failed</span>`}<button class="btn sm" data-act="downloadReport">Download report</button></div></div>
     <div class="rb">
       <div class="tiles">
-        <div class="tile"><div class="k">Users found</div><div class="v">${t.summary.users}</div></div>
-        <div class="tile"><div class="k">Meetings (90 days)</div><div class="v">${t.summary.meetings}</div></div>
-        <div class="tile"><div class="k">Requests</div><div class="v">${t.reqs.length}</div></div>
+        <div class="tile"><div class="k">People found</div><div class="v">${t.summary.users}</div></div>
+        <div class="tile"><div class="k">Meetings (90 days)</div><div class="v">${liveMode?"—":t.summary.meetings}</div></div>
+        <div class="tile"><div class="k">Requests sent</div><div class="v">${t.reqs.length}</div></div>
         <div class="tile"><div class="k">Errors</div><div class="v">${t.summary.errors}</div></div>
-        <div class="tile"><div class="k">Duration</div><div class="v">${t.summary.duration}s</div></div>
+        <div class="tile"><div class="k">Time taken</div><div class="v">${t.summary.duration}s</div></div>
       </div>
       <div class="grid2">${[
-        ["pass","Signed in with an Admin token","Bearer token from the vault; organization found via /users/me"],
-        ["pass",`Listed all ${t.summary.users} users`,`${t.summary.pages.length} page${t.summary.pages.length>1?"s":""} of up to 100`],
-        ["pass","Read usage from scheduled events",`${t.summary.meetings} meetings in the last 90 days`],
-        ["warn","Activity log not available on this plan","Expected for non-Enterprise accounts; “Last active” left empty"],
-        ["pass",`Mapped every record to CloudEagle (${t.summary.mapped} fields)`,"No missing names or emails"],
-        ["pass","Only read requests","No create, update or delete calls"]].map(c=>`<div class="chk"><span class="m ${c[0]}">${c[0]==="pass"?"✓":"!"}</span><span>${esc(c[1])}<span class="n">${esc(c[2])}</span></span></div>`).join("")}</div>
-      <div><h3 style="margin-bottom:8px">Sample of what will be imported</h3><div class="tablebox"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Meetings (90 days)</th><th>Status</th></tr></thead><tbody>
-        ${t.records.slice(0,5).map(r=>`<tr><td><b>${esc(r.name)}</b></td><td class="muted">${esc(r.email)}</td><td>${esc(r.role[0].toUpperCase()+r.role.slice(1))}</td><td>${r.usage_90d}</td><td>${r.status==="active"?`<span class="pill green">Active</span>`:`<span class="pill amber">Inactive</span>`}</td></tr>`).join("")}
+        ["pass","Signed in with an admin account","Found the company account through /users/me"],
+        ["pass",liveMode?`Read the first ${t.summary.users} people`:`Found all ${t.summary.users} people`,liveMode?"Stopped after one page, as asked":`${t.summary.pages.length} page of results`],
+        [liveMode?"warn":"pass",liveMode?"Meetings not read in a quick check":"Read meetings for each person",liveMode?"The full sync reads them after you turn it on":`${t.summary.meetings} meetings in the last 90 days`],
+        ["warn","“Last active” isn't available on this plan","Only Calendly Enterprise shares it. We leave it empty instead of guessing."],
+        ["pass",`Every person matched to CloudEagle's fields (${t.summary.mapped})`,"No missing names or emails"],
+        ["pass","Only read data","Nothing was created, changed or deleted"]].map(c=>`<div class="chk"><span class="m ${c[0]}">${c[0]==="pass"?"✓":"!"}</span><span>${esc(c[1])}<span class="n">${esc(c[2])}</span></span></div>`).join("")}</div>
+      <div><h3 style="margin-bottom:8px">What CloudEagle will bring in (sample)</h3><div class="tablebox"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Meetings (90 days)</th><th>Status</th></tr></thead><tbody>
+        ${t.records.slice(0,5).map(r=>`<tr><td><b>${esc(r.name)}</b></td><td class="muted">${esc(r.email)}</td><td>${esc(r.role[0].toUpperCase()+r.role.slice(1))}</td><td>${liveMode?"—":r.usage_90d}</td><td>${liveMode?`<span class="pill grey">After sync</span>`:r.status==="active"?`<span class="pill green">Active</span>`:`<span class="pill amber">Not active</span>`}</td></tr>`).join("")}
       </tbody></table></div></div>
-      <details><summary>Request log (${t.reqs.length})</summary><div style="margin-top:10px">${reqLog(t.reqs,"test")}</div></details>
-      ${!ro?`<label class="signoff"><input type="checkbox" id="signoff" ${I().testSigned?"checked":""} ${I().testSigned?"disabled":""}> <span>The user count (<b>${t.summary.users}</b>) matches the ${esc(x.app)} admin panel, and the sample looks right. <b>Sign off this test.</b></span></label>`:I().testSigned?`<div class="small ok">✓ Signed off by ${esc(PEOPLE[builderUser()].name)}</div>`:""}
-      <div class="small faint">Prototype: test-account responses are simulated.</div>
+      <details><summary>Every request we sent (${t.reqs.length})</summary><div style="margin-top:10px">${reqLog(t.reqs,"test")}</div></details>
+      ${!ro?`<label class="signoff"><input type="checkbox" id="signoff" ${x.testSigned?"checked":""} ${x.testSigned?"disabled":""}> <span>I checked: ${esc(x.app)} also shows <b>${t.summary.users}</b> ${liveMode?"or more ":""}people, and the sample looks right. <b>Approve this test.</b></span></label>`:x.testSigned?`<div class="small ok">✓ Approved by ${esc(PEOPLE[builderUser()].name)}</div>`:""}
+      <div class="small faint">Prototype: the account's answers are made up.</div>
     </div></div>`;
 }
-
-/* ---------------- step 3: go live ---------------- */
+/* ---------------- step 3: turn it on ---------------- */
 function step3(){
   const x = I();
-  if (x.status==="Live") return `<div class="card"><div class="success"><div class="big">✓</div><h2>${esc(x.app)} is live</h2><div class="muted">Syncing daily · v${S.liveVersion}</div><button class="btn primary" data-act="openApp">View usage</button></div></div>`;
-  const summary = `<div class="card"><h2>Summary</h2><div class="tablebox"><table><tbody>
-      <tr><td class="muted" style="width:170px">Reads</td><td>Users, meetings hosted, last active (Enterprise only)</td></tr>
-      <tr><td class="muted">Access</td><td>🔒 Read-only</td></tr>
-      <tr><td class="muted">Code</td><td>v${x.version} · ${esc(LANGS[x.language])} · safety checks ${x.safety.filter(r=>r.pass).length}/${x.safety.length}</td></tr>
-      <tr><td class="muted">Tests</td><td>${x.sim?.passed?"Sandbox passed":"Sandbox: not available for this app"} · Test account passed${x.testSigned?` · signed off by ${esc(PEOPLE[builderUser()].name)}`:""}</td></tr>
-      <tr><td class="muted">Sync</td><td>Daily, after approval</td></tr></tbody></table></div></div>`;
+  if (x.status==="Live") return `<div class="card"><div class="success"><div class="big">✓</div><h2>${esc(x.app)} is on</h2><div class="muted">It syncs every day. Version ${S.liveVersion}.</div>
+    <div class="row" style="justify-content:center"><button class="btn primary" data-act="openApp" data-app="${esc(x.app)}" data-tab="licences">See unused licences</button><button class="btn" data-act="goIntegrations">Back to integrations</button></div></div></div>`;
+  const summary = `<div class="card"><h2>What you're turning on</h2><div class="tablebox"><table><tbody>
+      <tr><td class="muted" style="width:170px">Brings in</td><td>People, meetings each person hosted, last activity (Enterprise plan only)</td></tr>
+      <tr><td class="muted">Access</td><td>🔒 Read-only. It can't change anything in ${esc(x.app)}.</td></tr>
+      <tr><td class="muted">Code</td><td>Version ${x.version} · ${esc(LANGS[x.language])} · safety checks ${x.safety.filter(r=>r.pass).length} of ${x.safety.length} passed</td></tr>
+      <tr><td class="muted">Tests</td><td>${x.sim?.passed&&!x.sim.skipped?"Automatic checks passed":"Automatic checks: not available for this app"} · Account test approved${x.testSigned?` by ${esc(PEOPLE[builderUser()].name)}`:""}</td></tr>
+      <tr><td class="muted">Sync</td><td>Every day, once it's on</td></tr></tbody></table></div></div>`;
   if (S.user==="ravi"){
-    if (x.status==="Waiting for approval") return summary + nudge("info","Submitted for approval","Priya Sharma has been notified. You'll get a notification when it's live.");
-    return summary + `<div class="row"><button class="btn primary" data-act="submit">Submit to Priya Sharma for approval</button><span class="small muted">The developer can't switch an integration on alone.</span></div>`;
+    if (x.status==="Waiting for approval") return summary + nudge("info","Sent to Priya","We'll let you know when she turns it on.");
+    return summary + `<div class="row"><button class="btn primary" data-act="submit">Send to Priya Sharma to turn on</button><span class="small muted">Only an admin can turn an integration on.</span></div>`;
   }
-  if (x.builder==="dev" && x.status!=="Waiting for approval") return summary + nudge("info","Waiting for Ravi to submit","You'll be notified when it's ready for your approval.");
+  if (x.builder==="dev" && x.status!=="Waiting for approval") return summary + nudge("info","Ravi is still working on this","We'll let you know when it's ready for you.");
   const P = x.preview;
-  return summary + `<div class="card"><div class="spread"><h2>1. Connect your production ${esc(x.app)} account</h2>${x.prodConnected?`<span class="pill green">● Connected: Acme Corp</span>`:""}</div>
-      ${x.prodConnected?`<div class="small muted">🔒 Key stored in CloudEagle's vault. ${x.builder==="dev"?"Ravi and the AI never see it.":"The AI never sees it."}</div>`:`<div class="row"><button class="btn primary" data-act="connectProd">Connect ${esc(x.app)}</button><span class="small muted">Same as any Direct Integration: sign in to ${esc(x.app)} and click Allow.</span></div>`}</div>
-    <div class="card"><div class="spread"><div><h2>2. Preview the first sync</h2><div class="small muted">Read-only, first page only, nothing saved.</div></div>${x.prodConnected&&!P&&!busy?`<button class="btn primary" data-act="preview">Run preview</button>`:""}</div>
+  const reuse = x.testMode==="live";
+  return summary + `<div class="card"><div class="spread"><h2>1. Connect your company's ${esc(x.app)} account</h2>${x.prodConnected?`<span class="pill green">● Connected: Acme Corp</span>`:""}</div>
+      ${x.prodConnected?`<div class="small muted">🔒 The key is stored safely. ${x.builder==="dev"?"Ravi and the AI never see it.":"The AI never sees it."}${reuse?" (Already connected during the test.)":""}</div>`:`<div class="row"><button class="btn primary" data-act="connectProd">Connect ${esc(x.app)}</button><span class="small muted">Sign in to ${esc(x.app)} and click Allow, like any other integration.</span></div>`}</div>
+    <div class="card"><div class="spread"><div><h2>2. Check the first sync</h2><div class="small muted">We read the first 100 people only and save nothing.</div></div>${x.prodConnected&&!P&&busy!=="preview"?`<button class="btn primary" data-act="preview">Run the check</button>`:""}</div>
       ${busy==="preview"?`<div class="thinking row"><span class="pill blue">Reading…</span></div>`:""}
-      ${P?`<div class="reveal" style="display:flex;flex-direction:column;gap:10px"><div class="row"><span class="ok">✓ ${P.users} users read</span><span class="ok">✓ 0 errors</span><span class="ok">✓ Read-only</span><span class="small muted">The full sync will import the rest.</span></div>
-        <label class="signoff"><input type="checkbox" id="confirmProd" ${x.confirmed?"checked":""}> <span>This matches what I see in ${esc(x.app)}'s admin panel.</span></label></div>`:""}
+      ${P?`<div class="reveal" style="display:flex;flex-direction:column;gap:10px"><div class="row"><span class="ok">✓ ${P.users} people read</span><span class="ok">✓ No errors</span><span class="ok">✓ Read-only</span><span class="small muted">The full sync brings in everyone else.</span></div>
+        <label class="signoff"><input type="checkbox" id="confirmProd" ${x.confirmed?"checked":""}> <span>This matches what I see in ${esc(x.app)}.</span></label></div>`:""}
     </div>
-    <div class="row"><button class="btn primary" data-act="approve" ${x.prodConnected&&P&&x.confirmed?"":"disabled"}>${x.builder==="dev"?"Approve and go live":"Go live"}</button>${x.builder==="dev"?`<button class="btn" data-act="changesAsk">Request changes</button>`:""}</div>
-    ${S.changes?`<div class="card reveal"><div class="field"><label for="chNote">What should Ravi change?</label><textarea class="input" id="chNote" style="font-family:var(--f-ui);min-height:70px">The meetings count looks low for Sales. Please check the date filter.</textarea></div><div class="row"><button class="btn primary" data-act="sendChanges">Send to Ravi</button><button class="btn" data-act="cancelChanges">Cancel</button></div></div>`:""}`;
+    <div class="row"><button class="btn primary" data-act="approve" ${x.prodConnected&&P&&x.confirmed?"":"disabled"}>${x.builder==="dev"?"Approve and turn on":"Turn it on"}</button>${x.builder==="dev"?`<button class="btn" data-act="changesAsk">Ask Ravi for changes</button>`:""}</div>
+    ${S.changes?`<div class="card reveal"><div class="field"><label for="chNote">What should Ravi change?</label><textarea class="input" id="chNote" style="font-family:var(--f-ui);min-height:70px">The meetings count looks low for the Sales team. Please check the date range.</textarea></div><div class="row"><button class="btn primary" data-act="sendChanges">Send to Ravi</button><button class="btn" data-act="cancelChanges">Cancel</button></div></div>`:""}`;
 }
-
-/* ---------------- usage page ---------------- */
+/* ---------------- app detail ---------------- */
 function scrApp(){
-  const counts = {}; DATA.events.forEach(u=>counts[u]=(counts[u]||0)+1);
-  const users = DATA.users.map(u=>({...u, m:counts[u.uri]||0}));
-  const inactive = users.filter(u=>u.m===0).length;
-  return `<div class="crumb">Applications / <b>${esc(app())}</b></div>
-  <div class="row"><span class="logo">${esc(app()[0])}</span><h1>${esc(app())}</h1><span class="pill purple">AI-generated · v${S.liveVersion}</span><span class="ok small">● Synced just now</span></div>
-  <div class="apptabs"><span>Overview</span><span class="on">Usage</span><span>License Management</span><span>Direct Integration</span></div>
-  ${nudge("warn",`${inactive} people haven't hosted a meeting in 90 days`,"Review them before the next renewal.",`<button class="btn" data-act="noop">Start licence review</button>`)}
-  <div class="tiles"><div class="tile"><div class="k">Users</div><div class="v">${users.length}</div></div>
-    <div class="tile inact"><div class="k">Inactive (90 days)</div><div class="v">${inactive}</div></div>
-    <div class="tile save"><div class="k">Potential saving</div><div class="v">${inactive} licences</div></div></div>
-  <div class="tablebox"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Meetings (90 days)</th><th>Last active</th><th>Status</th></tr></thead><tbody>
-    ${users.slice(0,10).map(u=>`<tr><td><b>${esc(u.name)}</b></td><td class="muted">${esc(u.email)}</td><td>${esc(u.role[0].toUpperCase()+u.role.slice(1))}</td><td>${u.m}</td><td class="faint">Enterprise only</td><td>${u.m?`<span class="pill green">Active</span>`:`<span class="pill amber">Inactive</span>`}</td></tr>`).join("")}
-  </tbody></table></div>
-  <div class="small faint">Showing 10 of ${users.length}</div>`;
+  const name = S.appName || appList()[0]; const a = appInfo(name); const tab = S.tab || "overview";
+  const users = appUsers(name); const inactive = users.filter(u=>!u.use);
+  const tabs = [["overview","Overview"],["usage","Usage"],["licences","Licence management"],["settings","Settings"]];
+  let body = "";
+  if (a.status!=="Synced" && tab!=="settings" && tab!=="overview"){
+    body = `<div class="card"><div class="empty"><b>${esc(name)} isn't connected yet</b><div class="muted">Connect it to see who uses it.</div><button class="btn primary" data-act="connectApp" data-app="${esc(name)}">Connect ${esc(name)}</button></div></div>`;
+  } else if (tab==="overview") body = appOverview(a, users, inactive);
+  else if (tab==="usage") body = appUsage(a, users);
+  else if (tab==="licences") body = appLicences(a, users, inactive);
+  else body = appSettings(a);
+  return `${adminCrumbs([name])}
+  <div class="spread"><div class="row"><span class="logo" style="width:40px;height:40px;font-size:18px">${esc(name[0])}</span><div><h1>${esc(name)}</h1><div class="small muted">${esc(a.cat)}</div></div>${statusPill(a.status)}${a.custom?`<span class="pill purple">Made with AI · v${S.liveVersion}</span>`:""}</div>
+    ${a.status==="Synced"?`<div class="row"><span class="small muted">Last synced ${esc(a.lastSync)}</span><button class="btn sm" data-act="syncnow" data-app="${esc(name)}">Sync now</button></div>`:`<button class="btn primary" data-act="connectApp" data-app="${esc(name)}">Connect</button>`}</div>
+  <div class="apptabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" aria-selected="${k===tab}" class="${k===tab?"on":""}" data-act="tab" data-tab="${k}">${l}</button>`).join("")}</div>
+  <div class="tabbody">${body}</div>`;
 }
-
+function appOverview(a, users, inactive){
+  const x = I();
+  const built = a.custom ? `<div class="card"><h2>How this integration was made</h2><div class="tablebox"><table><tbody>
+    <tr><td class="muted" style="width:170px">Made by</td><td>AI, from ${esc(a.name)}'s API documentation${x.fMode==="live"?` (${esc(AI?.model||"Gemini")})`:""}</td></tr>
+    <tr><td class="muted">Code</td><td>Version ${S.liveVersion} · ${esc(LANGS[x.language])} · <button class="linkbtn" data-act="viewCode">View the code</button></td></tr>
+    <tr><td class="muted">Tested</td><td>Automatic checks passed · account test approved by ${esc(PEOPLE[builderUser()].name)}</td></tr>
+    <tr><td class="muted">Turned on by</td><td>Priya Sharma</td></tr></tbody></table></div></div>` : "";
+  return `<div class="card"><h2>What this integration does</h2><p style="margin:0">${esc(a.desc)}</p>
+      <div class="grid3">${a.reads.map(r=>`<div class="chk"><span class="m pass">✓</span><span>${esc(r)}</span></div>`).join("")}</div>
+      <div class="small muted">🔒 Read-only. CloudEagle can't change anything in ${esc(a.name)}.</div></div>
+    ${a.status==="Synced"?`<div class="tiles">
+      <div class="tile"><div class="k">People</div><div class="v">${users.length}</div></div>
+      <div class="tile"><div class="k">Licences you pay for</div><div class="v">${a.lic}</div></div>
+      <div class="tile inact"><div class="k">Not used in 90 days</div><div class="v">${inactive.length}</div></div>
+      <div class="tile save"><div class="k">Possible saving a year</div><div class="v">${money((inactive.length+Math.max(0,a.lic-users.length))*a.price*12)}</div></div></div>`:""}
+    ${built}
+    <div class="card"><h2>Connection</h2><div class="tablebox"><table><tbody>
+      <tr><td class="muted" style="width:170px">Status</td><td>${statusPill(a.status)}</td></tr>
+      <tr><td class="muted">Account</td><td>${a.status==="Synced"?"Acme Corp":"—"}</td></tr>
+      <tr><td class="muted">Syncs</td><td>${esc(a.freq)}</td></tr>
+      <tr><td class="muted">Last sync</td><td>${a.status==="Synced"?esc(a.lastSync):"—"}</td></tr></tbody></table></div></div>`;
+}
+function appUsage(a, users){
+  const f = S.usageFilter || "all";
+  const list = users.filter(u => f==="all" || (f==="active" ? u.use : !u.use));
+  const active = users.filter(u=>u.use).length;
+  return `<div class="tiles"><div class="tile"><div class="k">People</div><div class="v">${users.length}</div></div>
+      <div class="tile"><div class="k">Active in 90 days</div><div class="v">${active}</div></div>
+      <div class="tile inact"><div class="k">Not active</div><div class="v">${users.length-active}</div></div></div>
+    <div class="spread"><div class="seg" role="group" aria-label="Filter">${[["all","Everyone"],["active","Active"],["inactive","Not active"]].map(([k,l])=>`<button data-act="ufilter" data-f="${k}" aria-pressed="${f===k}">${l}</button>`).join("")}</div><span class="small muted">Showing ${Math.min(15,list.length)} of ${list.length}</span></div>
+    <div class="tablebox"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>${esc(a.metric)}</th><th>Status</th></tr></thead><tbody>
+      ${list.slice(0,15).map(u=>`<tr><td><b>${esc(u.name)}</b></td><td class="muted">${esc(u.email)}</td><td>${esc(u.role[0].toUpperCase()+u.role.slice(1))}</td><td>${u.use}</td><td>${u.use?`<span class="pill green">Active</span>`:`<span class="pill amber">Not active</span>`}</td></tr>`).join("")}
+    </tbody></table></div>`;
+}
+function appLicences(a, users, inactive){
+  const marked = new Set(a.marked);
+  const unusedSeats = a.lic - users.length;
+  return `<div class="tiles">
+      <div class="tile"><div class="k">Licences you pay for</div><div class="v">${a.lic}</div></div>
+      <div class="tile"><div class="k">Given to people</div><div class="v">${users.length}</div></div>
+      <div class="tile inact"><div class="k">Given but not used</div><div class="v">${inactive.length}</div></div>
+      <div class="tile inact"><div class="k">Never given out</div><div class="v">${Math.max(0,unusedSeats)}</div></div>
+      <div class="tile save"><div class="k">Possible saving a year</div><div class="v">${money((inactive.length+Math.max(0,unusedSeats))*a.price*12)}</div></div></div>
+    ${marked.size?nudge("good",`${marked.size} licence${marked.size>1?"s":""} marked to remove at renewal`,`That saves about ${money(marked.size*a.price*12)} a year. We'll add them to your renewal plan.`,`<button class="btn" data-act="clearMarks">Undo</button>`):nudge("info",`${inactive.length} people haven't used ${esc(a.name)} in 90 days`,"Select who to remove at the next renewal.")}
+    <div class="spread"><label class="row small"><input type="checkbox" id="markAll" ${inactive.length&&inactive.every(u=>marked.has(u.email)||(S.sel||[]).includes(u.email))?"checked":""}> Select all ${inactive.length}</label>
+      <button class="btn primary" data-act="markSave" ${S.sel&&S.sel.length?"":"disabled"}>Remove at renewal (${(S.sel||[]).length})</button></div>
+    <div class="tablebox"><table><thead><tr><th></th><th>Name</th><th>Email</th><th>${esc(a.metric)}</th><th>Cost a year</th><th></th></tr></thead><tbody>
+      ${inactive.slice(0,20).map(u=>`<tr><td><input type="checkbox" data-sel="${esc(u.email)}" aria-label="Select ${esc(u.name)}" ${(S.sel||[]).includes(u.email)?"checked":""} ${marked.has(u.email)?"disabled checked":""}></td><td><b>${esc(u.name)}</b></td><td class="muted">${esc(u.email)}</td><td>0</td><td>${money(a.price*12)}</td><td>${marked.has(u.email)?`<span class="pill green">Marked</span>`:""}</td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="small faint">Showing ${Math.min(20,inactive.length)} of ${inactive.length} people who haven't used it.</div>`;
+}
+function appSettings(a){
+  const x = I();
+  return `<div class="card"><h2>Sync</h2>
+      <div class="grid2"><div class="field"><label for="freq">How often to sync</label><select class="input" id="freq">${["Every 6 hours","Daily","Weekly"].map(o=>`<option ${a.freq===o?"selected":""}>${o}</option>`).join("")}</select></div>
+      <div class="field"><span class="lab">Alerts</span><label class="row"><input type="checkbox" id="alerts" ${a.alerts?"checked":""}> Email me if a sync fails or the number of people changes a lot</label></div></div>
+      <div><button class="btn primary" data-act="saveSettings" data-app="${esc(a.name)}">Save</button></div></div>
+    <div class="card"><h2>Connected account</h2>
+      ${a.status==="Synced"?`<div class="row"><span class="pill green">● Acme Corp</span><span class="small muted">Connected by Priya Sharma</span><button class="btn sm" data-act="connectApp" data-app="${esc(a.name)}">Reconnect</button></div>`:`<div class="row"><span class="pill grey">Not connected</span><button class="btn primary sm" data-act="connectApp" data-app="${esc(a.name)}">Connect</button></div>`}</div>
+    ${a.custom?`<div class="card"><h2>Versions</h2><div class="tablebox"><table><thead><tr><th>Version</th><th>Status</th><th>Language</th><th>Approved by</th><th></th></tr></thead><tbody>
+      <tr><td><b>v${S.liveVersion}</b></td><td>${statusPill("Live")}</td><td>${esc(LANGS[x.language])}</td><td>Priya Sharma</td><td><button class="linkbtn" data-act="viewCode">View code</button></td></tr></tbody></table></div>
+      <div class="row"><button class="btn" data-act="regenAsk">Make a new version</button><span class="small muted">Use this when ${esc(a.name)} changes its API. The current version keeps running until the new one is approved.</span></div></div>`:""}
+    ${a.status==="Synced"?`<div class="card danger"><h2>Disconnect</h2><div class="row"><span class="small muted">CloudEagle stops syncing ${esc(a.name)}. Data you already have stays.</span><button class="btn" data-act="disconnectAsk" data-app="${esc(a.name)}">Disconnect ${esc(a.name)}</button></div></div>`:""}`;
+}
 /* ---------------- modals ---------------- */
 function oauthModal(kind){
-  const test = kind==="test";
+  const name = kind==="app" ? S.connectName : app();
+  const who = kind==="test" && (I()?.testMode||"test")==="test" ? "acme-test (trial)" : "Acme Corp";
+  const user = S.user==="ravi" ? "ravi.menon" : "priya.sharma";
   return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="oat"><div class="modal" style="width:min(440px,100%)"><div class="oauth">
-    <div class="brandline"><span class="logo" style="width:40px;height:40px">${esc(app()[0])}</span><div><b id="oat">Sign in to ${esc(app())}</b><div class="small muted">${test?"acme-test (trial)":"Acme Corp"} · ${test?"ravi.menon":"priya.sharma"}@acme.com</div></div></div>
-    <div><b>CloudEagle${test?" (test)":""}</b> wants to:</div>
-    <div class="scope">✓ View users in your organization</div><div class="scope">✓ View scheduled events</div><div class="scope">✓ View the activity log, if your plan includes it</div>
+    <div class="brandline"><span class="logo" style="width:40px;height:40px">${esc(name[0])}</span><div><b id="oat">Sign in to ${esc(name)}</b><div class="small muted">${who} · ${user}@acme.com</div></div></div>
+    <div><b>CloudEagle</b> would like to:</div>
+    <div class="scope">✓ See the people in your account</div><div class="scope">✓ See how much each person uses ${esc(name)}</div>
     <div class="dashed small">It can't create, change or delete anything.</div>
-    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="${test?"allowTest":"allowProd"}">Allow</button></div>
+    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="${kind==="test"?"allowTest":kind==="prod"?"allowProd":"allowApp"}">Allow</button></div>
   </div></div></div>`;
 }
 function regenModal(){
   return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="rgt"><div class="modal" style="width:min(460px,100%)">
-    <h2 id="rgt">Regenerate the integration?</h2><div class="muted">This creates version ${S.liveVersion+1}. It goes back through testing and approval, because tests only prove the code they ran on.</div>
-    ${nudge("warn",`${esc(app())} stays live on v${S.liveVersion} until v${S.liveVersion+1} is approved.`,"")}
-    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="regen">Regenerate</button></div></div></div>`;
+    <h2 id="rgt">Make a new version?</h2><div class="muted">Version ${S.liveVersion+1} goes through the same steps again: create, test, approve. Tests only count for the code they ran on.</div>
+    ${nudge("warn",`${esc(app())} keeps running on version ${S.liveVersion} until version ${S.liveVersion+1} is approved.`,"")}
+    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="regen">Make version ${S.liveVersion+1}</button></div></div></div>`;
 }
-
+function disconnectModal(){
+  return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="dct"><div class="modal" style="width:min(440px,100%)">
+    <h2 id="dct">Disconnect ${esc(S.connectName)}?</h2><div class="muted">CloudEagle stops syncing ${esc(S.connectName)}. The data you already have stays. You can connect again any time.</div>
+    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="disconnect">Disconnect</button></div></div></div>`;
+}
+function addModal(){
+  return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="adt"><div class="modal" style="width:min(520px,100%)">
+    <div class="spread"><h2 id="adt">Add an app</h2><button class="btn sm" data-act="closeModal" aria-label="Close">✕</button></div>
+    <div class="small muted">Any app with an API can be added. We read its documentation and write the integration for you.</div>
+    <div class="field"><label for="aApp">App name</label><input class="input" id="aApp" placeholder="For example: Calendly" value="${esc(S.addDraft?.app||"")}"></div>
+    <div class="field"><label for="aDocs">Link to its API documentation <span class="hint">optional, you can add it later</span></label><input class="input" id="aDocs" placeholder="https://developer.example.com/api" value="${esc(S.addDraft?.docsUrl||"")}"></div>
+    <div class="choice">
+      <button class="ch rec" data-act="addSelf"><span class="row"><b>Build it myself with AI</b><span class="pill green">About 5 min</span></span><span class="small muted">We write the code, you test it and turn it on.</span></button>
+      <button class="ch" data-act="addAsk"><b>Ask someone else</b><span class="small muted">A developer on your team or the CloudEagle team builds it. You approve it.</span></button>
+    </div></div></div>`;
+}
+function codeModal(){
+  const x = I(); const files = x.files || {}; const f = files[x.activeFile]!==undefined ? x.activeFile : Object.keys(files)[0];
+  return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="cdt"><div class="modal" style="width:min(980px,100%)">
+    <div class="spread"><h2 id="cdt">${esc(x.app)} integration · version ${S.liveVersion} · ${esc(LANGS[x.language])}</h2><div class="row"><button class="btn sm" data-act="download">Download</button><button class="btn sm" data-act="closeModal" aria-label="Close">✕</button></div></div>
+    <div class="codewrap" style="grid-template-columns:200px minmax(0,1fr)"><div class="tree">${Object.keys(files).map(n=>`<button data-file="${esc(n)}" aria-current="${n===f}">${esc(n)}</button>`).join("")}</div>
+    <div class="editor"><div class="fname"><span>${esc(f)}</span></div><pre class="code" tabindex="0">${esc(files[f]||"")}</pre></div></div></div></div>`;
+}
 /* ---------------- render ---------------- */
 function render(){
   const scr = {integrations:scrIntegrations, assigned:scrAssigned, build:scrBuild, app:scrApp}[S.screen];
-  const key = S.user+S.screen+(S.viewStep||S.I?.step||"");
+  const key = S.user+S.screen+(S.appName||"")+(S.tab||"")+(S.viewStep||S.I?.step||"");
   const enter = key!==lastKey; lastKey = key;
   const prevScroll = window.scrollY;
   document.getElementById("root").innerHTML = `${sidebar()}<div class="main">${topbar()}<main class="content ${enter?"enter":""}">${(scr||scrIntegrations)()}</main></div>`;
   const m = S.modal;
-  document.getElementById("overlay").innerHTML = m==="request"?requestModal():m==="oauthTest"?oauthModal("test"):m==="oauthProd"?oauthModal("prod"):m==="regen"?regenModal():"";
+  document.getElementById("overlay").innerHTML = m==="request"?requestModal():m==="oauthTest"?oauthModal("test"):m==="oauthProd"?oauthModal("prod"):m==="oauthApp"?oauthModal("app"):m==="regen"?regenModal():m==="disconnect"?disconnectModal():m==="code"?codeModal():m==="add"?addModal():"";
   if (enter) window.scrollTo({top:0}); else window.scrollTo({top:prevScroll});
 }
-
 /* ---------------- safety checks (language-agnostic port) ---------------- */
 function safetyChecks(files, appName, docsText){
   const base = (S.I?.understanding?.base_url||"").replace(/^https?:\/\//,"").split("/")[0];
@@ -768,14 +931,15 @@ async function runSim(){
   const r = await runIntegration(DATA, {rateLimitOnce:"/scheduled_events", onReq:q=>{ runLog.reqs=q.slice(); render(); }});
   runLog = null; selReq.sim = r.reqs.findIndex(q=>q.status===429);
   setI({sim:{passed: r.summary.users===214 && r.summary.pages.join()==="100,100,14", reqs:r.reqs, summary:r.summary}});
-  toast("Sandbox tests passed: 214 users across 3 pages.");
+  toast("Automatic checks passed: found all 214 people.");
 }
 async function runTest(){
   runLog = {which:"test", reqs:[]}; selReq.test = null; render();
-  const r = await runIntegration(TRIAL, {onReq:q=>{ runLog.reqs=q.slice(); render(); }, delay:260});
+  const liveMode = (I().testMode||"test")==="live";
+  const r = await runIntegration(liveMode ? DATA : TRIAL, {maxPages: liveMode?1:null, onReq:q=>{ runLog.reqs=q.slice(); render(); }, delay:260});
   runLog = null;
-  setI({test:{passed:true, at:now(), reqs:r.reqs, records:r.records, summary:r.summary}});
-  toast("Test finished. Review the report and sign off.");
+  setI({test:{passed:true, mode:liveMode?"live":"test", at:now(), reqs:r.reqs, records:r.records, summary:r.summary}});
+  toast("Test finished. Check the report, then approve it.");
 }
 
 /* ---------------- downloads ---------------- */
@@ -787,92 +951,116 @@ async function downloadCode(){
   saveBlob(await zip.generateAsync({type:"blob"}), `${app().toLowerCase()}-integration-v${I().version}.zip`);
 }
 function downloadReport(){
-  const t = I().test; const rep = {app:app(), account:"acme-test (trial)", version:I().version, language:LANGS[I().language], ran_at:t.at, passed:t.passed, summary:t.summary, requests:t.reqs.map(r=>({path:r.path, status:r.status})), sample:t.records.slice(0,5)};
+  const t = I().test; const rep = {app:app(), account:t.mode==="live"?"Acme Corp (read-only check)":"acme-test (trial)", version:I().version, language:LANGS[I().language], ran_at:t.at, passed:t.passed, summary:t.summary, requests:t.reqs.map(r=>({path:r.path, status:r.status})), sample:t.records.slice(0,5)};
   saveBlob(new Blob([JSON.stringify(rep,null,2)],{type:"application/json"}), `${app().toLowerCase()}-test-report-v${I().version}.json`);
 }
 
-/* ---------------- navigation ---------------- */
+/* ---------------- navigation and events ---------------- */
 function home(u){ return u==="ravi" ? "assigned" : "integrations"; }
 function switchUser(){
   const other = S.user==="priya" ? "ravi" : "priya";
-  S.notes[other] = S.notes[other].map(n=>n);
   set({user:other, screen:home(other), open:null, viewStep:null, modal:null});
-  toast(`Signed in as ${PEOPLE[other].name}`);
+  toast(`You're now signed in as ${PEOPLE[other].name}`);
 }
-function openBuild(step){ set({screen:"build", viewStep: step||null, open:null}); }
+function openBuild(step){ set({screen:"build", viewStep: step||null, open:null, modal:null}); }
+function newIntegration(appName, docsUrl, builder){
+  const isC = appName.trim().toLowerCase()==="calendly";
+  S.I = {app:appName, docsUrl: docsUrl || (isC?"https://developer.calendly.com/api-docs/4b402d5ab3edd-calendly-developer":""), docsMode:(docsUrl||isC)?"link":"paste", docsText:"", data:["Users","Usage","Licences and roles"], builder, language:"python", step:1, version:(S.liveVersion||0)+1, status:builder==="ce"?"Requested":"In progress", updated:"Just now", testMode:"test", ...resetBelow(), understanding:null};
+  S.live = false; S.dismissLive = false; S.hideIntro = false; S.query = appName;
+}
+function patchApp(name, p){ S.apps[name] = Object.assign({}, S.apps[name], p); save(); render(); }
 
 document.addEventListener("click", async (ev) => {
   if (S.open && !ev.target.closest(".menuwrap")) { S.open=null; render(); }
   const t = ev.target.closest("[data-act],[data-step],[data-file],[data-req],[data-docs],[data-note],[data-edit]"); if (!t || t.disabled) return;
   if (t.dataset.step){ const n=+t.dataset.step; set({viewStep: n===I().step?null:n}); return; }
-  if (t.dataset.file){ setI({activeFile:t.dataset.file}); return; }
+  if (t.dataset.file){ S.I.activeFile=t.dataset.file; save(); render(); return; }
   if (t.dataset.req){ const [w,k]=t.dataset.req.split(":"); selReq[w]=+k; render(); return; }
   if (t.dataset.docs){ setI({docsMode:t.dataset.docs}); return; }
-  if (t.dataset.edit){ const k=t.dataset.edit; if (S.editing===k){ S.editing=null; toast("Saved. The code will follow your edit."); } else S.editing=k; render(); return; }
+  if (t.dataset.edit){ const k=t.dataset.edit; if (S.editing===k){ S.editing=null; toast("Saved. The code will follow your change."); } else S.editing=k; render(); return; }
   if (t.dataset.note){ const n=S.notes[S.user].find(n=>String(n.id)===t.dataset.note); if(n){ n.read=true; S.open=null; save(); if(n.go){ openBuild(n.go==="build"?null:+n.go); } else render(); } return; }
   const a = t.dataset.act;
-  if (a==="toggleBell"){ set({open:S.open==="bell"?null:"bell"}); if (S.open==="bell"){ /* mark seen after open */ } }
+  if (a==="toggleBell"){ set({open:S.open==="bell"?null:"bell"}); }
   else if (a==="toggleAcct"){ set({open:S.open==="acct"?null:"acct"}); }
-  else if (a==="toggleAppMenu"){ set({open:S.open==="appmenu"?null:"appmenu"}); }
   else if (a==="switch"){ switchUser(); }
-  else if (a==="goIntegrations"){ set({screen:"integrations", viewStep:null}); }
+  else if (a==="goIntegrations"){ set({screen:S.user==="ravi"?"assigned":"integrations", viewStep:null, modal:null, query: S.screen==="integrations"?S.query:""}); }
   else if (a==="goAssigned"){ set({screen:"assigned", viewStep:null}); }
-  else if (a==="openRequest"){ S.draft={app:S.query.trim()||"Calendly", docsUrl:S.query.trim().toLowerCase()==="calendly"?"https://developer.calendly.com/api-docs/4b402d5ab3edd-calendly-developer":"", data:["Users","Usage","Licenses / roles"], builder:"dev", email:"ravi.menon@acme.com"}; set({modal:"request"}); }
+  else if (a==="resetDemo"){ try{ localStorage.removeItem(KEY); }catch(e){} S=fresh(); save(); lastKey=""; render(); toast("Demo reset. Start by searching for Calendly."); }
+  else if (a==="addBlank"){ S.addDraft={app:"", docsUrl:""}; set({modal:"add"}); setTimeout(()=>document.getElementById("aApp")?.focus(),50); }
+  else if (a==="addSelf"||a==="addAsk"){
+    const name=document.getElementById("aApp").value.trim(), docs=document.getElementById("aDocs").value.trim();
+    if (!name){ toast("Type the app's name first."); return; }
+    if (appList().some(n=>n.toLowerCase()===name.toLowerCase())){ set({modal:null, screen:"app", appName:appList().find(n=>n.toLowerCase()===name.toLowerCase()), tab:"overview"}); toast(`${name} is already available.`); return; }
+    if (a==="addSelf"){ newIntegration(name, docs, "self"); S.modal=null; save(); openBuild(); }
+    else { S.draft={app:name, docsUrl:docs || (name.toLowerCase()==="calendly"?"https://developer.calendly.com/api-docs/4b402d5ab3edd-calendly-developer":""), data:["Users","Usage","Licences and roles"], builder:"dev", email:"ravi.menon@acme.com"}; set({modal:"request"}); }
+  }
+  else if (a==="selfStart"){ newIntegration(S.query.trim(), "", "self"); save(); openBuild(); }
+  else if (a==="openRequest"){ S.draft={app:S.query.trim()||"Calendly", docsUrl:S.query.trim().toLowerCase()==="calendly"?"https://developer.calendly.com/api-docs/4b402d5ab3edd-calendly-developer":"", data:["Users","Usage","Licences and roles"], builder:"dev", email:"ravi.menon@acme.com"}; set({modal:"request"}); }
   else if (a==="closeModal"){ set({modal:null}); }
   else if (a==="sendRequest"){
     const d=S.draft; d.app=document.getElementById("rApp").value.trim()||"Calendly"; d.docsUrl=document.getElementById("rDocs").value.trim();
     const em=document.getElementById("rEmail"); if (em) d.email=em.value.trim();
-    S.I = {app:d.app, docsUrl:d.docsUrl, docsMode:d.docsUrl||d.app.toLowerCase()==="calendly"?"link":"paste", docsText:"", data:d.data.slice(), builder:d.builder, language:"python", step:1, version:S.liveVersion+1||1, status:d.builder==="ce"?"Requested":"In progress", updated:"Just now", ...resetBelow(), understanding:null};
-    S.live = false; S.dismissLive=false; S.modal=null; S.query=d.app;
-    if (d.builder==="dev"){ notify("ravi", `Priya Sharma assigned you the ${d.app} integration`, "build"); save(); render(); toast(`Request sent. Ravi Menon has been invited as an Integration developer.`, {label:"Switch to Ravi", run:switchUser}); }
-    else if (d.builder==="self"){ save(); openBuild(); toast("Let's generate the integration."); }
-    else { save(); render(); toast("Request sent to the CloudEagle team."); }
+    newIntegration(d.app, d.docsUrl, d.builder); S.I.data=d.data.slice(); S.modal=null;
+    if (d.builder==="dev"){ notify("ravi", `Priya Sharma asked you to build the ${d.app} integration`, "build"); save(); render(); toast(`Sent. Ravi Menon has been invited.`, {label:"Switch to Ravi", run:switchUser}); }
+    else { save(); render(); toast("Sent to the CloudEagle team. We'll let you know when it's ready."); }
   }
   else if (a==="openBuild"){ openBuild(); }
   else if (a==="openBuild3"){ openBuild(3); }
-  else if (a==="rowOpen"){ if (I().builder==="dev" && S.user==="priya") { if (I().status==="Waiting for approval") openBuild(3); else toast("Ravi is working on it. You'll be notified when it's ready."); } else openBuild(); }
-  else if (a==="follow"){ toast("You'll be notified about updates to this request."); }
+  else if (a==="hideIntro"){ set({hideIntro:true}); }
+  else if (a==="rowOpen"){ if (I().builder==="dev" && S.user==="priya") { if (I().status==="Waiting for approval") openBuild(3); else toast("Ravi is working on it. We'll let you know when it's ready."); } else openBuild(); }
+  else if (a==="follow"){ toast("We'll email you when this changes."); }
   else if (a==="readDocs"){ readDocs(); }
   else if (a==="genCode"){ genCode(); }
   else if (a==="stop"){ ctl?.abort(); }
   else if (a==="runSim"){ runSim(); }
   else if (a==="skipSim"){ setI({sim:{passed:true, skipped:true, reqs:[], summary:null}}); }
   else if (a==="toStep2"){ setI({step:Math.max(I().step,2)}); S.viewStep=null; render(); }
-  else if (a==="toStep3"){ setI({step:Math.max(I().step,3)}); S.viewStep=null; render(); }
+  else if (a==="toStep3"){ const x=I(); const p={step:Math.max(x.step,3)}; if (x.testMode==="live" && x.builder==="self"){ p.prodConnected=true; } setI(p); S.viewStep=null; render(); }
+  else if (a==="pickMode"){ setI({testMode:t.dataset.mode}); }
   else if (a==="connectTest"){ set({modal:"oauthTest"}); }
-  else if (a==="allowTest"){ S.modal=null; setI({testConnected:true}); toast("Test account connected."); }
+  else if (a==="allowTest"){ S.modal=null; setI({testConnected:true}); toast("Connected. Now run the test."); }
   else if (a==="runTest"){ runTest(); }
   else if (a==="downloadReport"){ downloadReport(); }
   else if (a==="download"){ downloadCode(); }
-  else if (a==="submit"){ setI({status:"Waiting for approval", updated:"Just now"}); notify("priya", `Ravi Menon submitted ${app()} for approval`, "3"); save(); render(); toast("Submitted. Priya Sharma has been notified.", {label:"Switch to Priya", run:switchUser}); }
+  else if (a==="submit"){ setI({status:"Waiting for approval", updated:"Just now"}); notify("priya", `Ravi Menon finished ${app()}. It needs your approval.`, "3"); save(); render(); toast("Sent. Priya Sharma has been told.", {label:"Switch to Priya", run:switchUser}); }
   else if (a==="connectProd"){ set({modal:"oauthProd"}); }
   else if (a==="allowProd"){ S.modal=null; setI({prodConnected:true}); toast(`${app()} connected.`); }
   else if (a==="preview"){ busy="preview"; render(); const r = await runIntegration(DATA, {maxPages:1, delay:120}); busy=null; setI({preview:{users:r.summary.users}}); }
   else if (a==="approve"){
     const v = I().version; S.liveVersion = v; S.live = true; S.dismissLive=false;
-    setI({status:"Live", step:3}); if (I().builder==="dev") notify("ravi", `Priya approved ${app()} v${v}. It's live.`, null);
-    save(); set({screen:"integrations", viewStep:null, query:app()}); toast(`${app()} sync complete: 214 users imported.`, {label:"View usage", run:()=>set({screen:"app"})});
+    S.apps[I().app] = {status:"Synced", lastSync:"Just now"};
+    setI({status:"Live", step:3}); if (I().builder==="dev") notify("ravi", `Priya turned on ${app()} version ${v}.`, null);
+    save(); render(); toast(`${app()} is on. 214 people imported.`, {label:"See unused licences", run:()=>set({screen:"app", appName:app(), tab:"licences"})});
   }
   else if (a==="changesAsk"){ set({changes:true}); }
   else if (a==="cancelChanges"){ set({changes:false}); }
-  else if (a==="sendChanges"){ const note=document.getElementById("chNote").value; setI({status:"Changes requested", step:2, testSigned:false, test:null, changeNote:note, prodConnected:false, preview:null, confirmed:false}); notify("ravi", `Priya requested changes on ${app()}`, "2"); S.changes=false; save(); set({screen:"integrations", viewStep:null}); toast("Sent to Ravi.", {label:"Switch to Ravi", run:switchUser}); }
-  else if (a==="openApp"){ set({screen:"app", open:null}); }
+  else if (a==="sendChanges"){ const note=document.getElementById("chNote").value; setI({status:"Changes requested", step:2, testSigned:false, test:null, changeNote:note, prodConnected:false, preview:null, confirmed:false}); notify("ravi", `Priya asked for changes on ${app()}`, "2"); S.changes=false; save(); set({screen:"integrations", viewStep:null}); toast("Sent to Ravi.", {label:"Switch to Ravi", run:switchUser}); }
+  else if (a==="openApp"){ set({screen:"app", appName:t.dataset.app||app(), tab:t.dataset.tab||"overview", open:null, sel:[], usageFilter:"all"}); }
+  else if (a==="tab"){ set({tab:t.dataset.tab, sel:[]}); }
+  else if (a==="ufilter"){ set({usageFilter:t.dataset.f}); }
+  else if (a==="markSave"){ const name=S.appName; const cur=appInfo(name).marked; patchApp(name, {marked:[...new Set([...cur, ...(S.sel||[])])]}); S.sel=[]; save(); render(); toast("Added to your renewal plan."); }
+  else if (a==="clearMarks"){ patchApp(S.appName, {marked:[]}); toast("Removed from your renewal plan."); }
+  else if (a==="saveSettings"){ patchApp(t.dataset.app, {freq:document.getElementById("freq").value, alerts:document.getElementById("alerts").checked}); toast("Settings saved."); }
+  else if (a==="connectApp"){ set({modal:"oauthApp", connectName:t.dataset.app}); }
+  else if (a==="allowApp"){ const n=S.connectName; S.modal=null; patchApp(n, {status:"Synced", lastSync:"Just now"}); toast(`${n} connected and synced.`); }
+  else if (a==="disconnectAsk"){ set({modal:"disconnect", connectName:t.dataset.app}); }
+  else if (a==="disconnect"){ const n=S.connectName; S.modal=null; patchApp(n, {status:"Not connected"}); toast(`${n} disconnected.`); }
+  else if (a==="viewCode"){ set({modal:"code"}); }
   else if (a==="dismissLive"){ set({dismissLive:true}); }
   else if (a==="regenAsk"){ set({modal:"regen", open:null}); }
   else if (a==="regen"){
     const x = I(); S.I = {...x, step:1, version:S.liveVersion+1, status:"In progress", updated:"Just now", ...resetBelow()};
     S.modal=null; save();
-    if (x.builder==="dev"){ notify("ravi", `Priya asked for a new version of ${x.app} (v${S.liveVersion+1})`, "build"); render(); toast(`v${S.liveVersion+1} started. ${x.app} stays live on v${S.liveVersion}.`, {label:"Switch to Ravi", run:switchUser}); }
+    if (x.builder==="dev"){ notify("ravi", `Priya asked for a new version of ${x.app} (version ${S.liveVersion+1})`, "build"); set({screen:"integrations"}); toast(`Version ${S.liveVersion+1} started. ${x.app} keeps running on version ${S.liveVersion}.`, {label:"Switch to Ravi", run:switchUser}); }
     else openBuild();
   }
-  else if (a==="syncnow"){ toast(`${t.dataset.app} synced.`); }
-  else if (a==="connectOther"){ toast("This one has a ready-made integration: Connect works as usual."); }
-  else if (a==="versions"){ toast(`v${S.liveVersion} live · generated, tested and approved.`); }
-  else if (a==="disconnect"){ toast("Disconnect is turned off in this prototype."); }
-  else if (a==="toCE"){ toast("Sent to the CloudEagle integrations team."); }
+  else if (a==="syncnow"){ patchApp(t.dataset.app, {lastSync:"Just now"}); toast(`${t.dataset.app} synced.`); }
+  else if (a==="toCE"){ toast("Sent to the CloudEagle team."); }
   else if (a==="copylink"){ try{ await navigator.clipboard.writeText(location.href); toast("Link copied."); }catch(e){ toast("Copy the link from the address bar."); } }
-  else if (a==="resetDemo"){ try{ localStorage.removeItem(KEY); }catch(e){} S=fresh(); save(); lastKey=""; render(); toast("Demo reset."); }
-  else if (a==="noop"){ toast("Licence review isn't part of this prototype."); }
+});
+document.addEventListener("keydown", e => {
+  if (e.key==="Escape"){ if (S.modal) set({modal:null}); else if (S.open) set({open:null}); }
+  if ((e.key==="Enter"||e.key===" ") && e.target.classList?.contains("appcard")){ e.preventDefault(); e.target.click(); }
 });
 document.addEventListener("input", (ev) => {
   const t = ev.target;
@@ -884,13 +1072,12 @@ document.addEventListener("change", (ev) => {
   const t = ev.target;
   if (t.name==="builder"){ S.draft.app=document.getElementById("rApp").value; S.draft.docsUrl=document.getElementById("rDocs").value; S.draft.builder=t.value; render(); }
   else if (t.dataset.need){ const d=S.draft.data; t.checked?d.push(t.dataset.need):d.splice(d.indexOf(t.dataset.need),1); }
-  else if (t.id==="lang"){ setI({language:t.value}); if (I().files) toast("Language changed. Regenerate to get code in "+LANGS[t.value]+"."); }
-  else if (t.id==="signoff" && t.checked){ setI({testSigned:true}); toast("Test signed off."); }
+  else if (t.id==="lang"){ setI({language:t.value}); if (I().files) toast("Language changed. Click Regenerate to get the code in "+LANGS[t.value]+"."); }
+  else if (t.id==="signoff" && t.checked){ setI({testSigned:true}); toast("Test approved."); }
   else if (t.id==="confirmProd"){ setI({confirmed:t.checked}); }
+  else if (t.dataset.sel){ const s=new Set(S.sel||[]); t.checked?s.add(t.dataset.sel):s.delete(t.dataset.sel); S.sel=[...s]; render(); }
+  else if (t.id==="markAll"){ const inactive=appUsers(S.appName).filter(u=>!u.use).map(u=>u.email); const marked=new Set(appInfo(S.appName).marked); S.sel = t.checked ? inactive.filter(e=>!marked.has(e)) : []; render(); }
 });
-document.addEventListener("focusout", (ev) => { const b = ev.target.closest?.("[data-editbody]"); if (b) { /* edits are kept visually */ } });
-document.addEventListener("keydown", e => { if (e.key==="Escape"){ if (S.modal) set({modal:null}); else if (S.open) set({open:null}); } });
-window.__reset = () => { localStorage.removeItem(KEY); location.reload(); };
 render();
 </script>
 </body>
