@@ -49,3 +49,9 @@ OAUTH SCOPES (Personal access tokens and OAuth apps request scopes; a new token 
 - activity_log:read — GET /activity_log_entries (Enterprise plan only)
 - Write scopes (organizations:write, scheduled_events:write, ...) include the matching read scope. Read-only integrations must not request them.
 Source: https://developer.calendly.com/docs/authentication/scopes
+
+OTHER READ ENDPOINTS
+- GET /organization_invitations?organization={uri} — pending and accepted invitations (email, status, created_at). Scope organizations:read.
+- GET /event_types?organization={uri} or ?user={uri} — event types (booking pages) per user, with active flag. Scope event_types:read.
+- GET /groups?organization={uri} — groups (teams) in the organization. Scope groups:read.
+- GET /scheduled_events/{uuid}/invitees — names and emails of the people who booked a meeting (external personal data). Scope scheduled_events:read.

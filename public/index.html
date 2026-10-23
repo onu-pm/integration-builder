@@ -694,7 +694,7 @@ const CAL_APIS = [
 ];
 function apisFor(){
   const x = I(); const u = x.understanding;
-  if (x.uMode==="live" && u?.more_apis?.length) return u.more_apis.slice(0,6).map((a,i)=>({id:String(a.id||"api"+i).replace(/[^\w-]/g,"").slice(0,30)||"api"+i, api:a.api||"", label:a.label||a.api||"API", gives:a.gives||"", why:a.why||"", scope:a.scope||"UNKNOWN", block:!!a.block, rec:!a.block}));
+  if (x.uMode==="live" && u?.more_apis?.length && !(isCal() && u.more_apis.length<3)) return u.more_apis.slice(0,6).map((a,i)=>({id:String(a.id||"api"+i).replace(/[^\w-]/g,"").slice(0,30)||"api"+i, api:a.api||"", label:a.label||a.api||"API", gives:a.gives||"", why:a.why||"", scope:a.scope||"UNKNOWN", block:!!a.block, rec:!a.block}));
   return isCal() ? CAL_APIS : [];
 }
 function moreApis(ro){
