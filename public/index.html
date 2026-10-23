@@ -833,7 +833,12 @@ function safetyChecks(files, appName, docsText){
 
 /* ---------------- AI ---------------- */
 async function api(path, body, signal){
-  const r = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body), signal});
+  const timer = setTimeout(()=>{ if (ctl){ ctl.timedOut = true; ctl.abort(); } }, 58000);
+  let r;
+  try { r = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body), signal}); }
+  catch(e){ if (ctl?.timedOut) throw {message:"The AI took too long to answer."}; throw e; }
+  finally { clearTimeout(timer); }
+  if (r.status===504) throw {status:504, message:"The AI took too long to answer."};
   const data = await r.json().catch(()=>({error:"The server returned an unreadable answer."}));
   if (!r.ok) throw {status:r.status, message:data.error || "Request failed"};
   return data;
@@ -874,7 +879,7 @@ async function genCode(){
     if (I().safety.every(r=>r.pass) && isCal()) runSim();
   }catch(e){
     busy=null;
-    if (e?.name==="AbortError"){ render(); return; }
+    if (e?.name==="AbortError" && !ctl?.timedOut){ render(); return; }
     if (isCal() && x.language==="python"){ setI({files:{...FILES}, fMode:"replay", activeFile:"pagination.py", safety:safetyChecks(FILES,"Calendly",CALENDLY_DOCS), version: regen?x.version+1:x.version}); toast((e.message||"Generation failed.")+" Showing the reference Calendly integration."); runSim(); }
     else { render(); toast(e.message||"Generation failed."); }
   }

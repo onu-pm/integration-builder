@@ -99,7 +99,7 @@ function parseJson(text, who) {
 
 async function callNvidia(prompt, { maxOutputTokens, temperature }) {
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 55000);
+  const timer = setTimeout(() => ctl.abort(), 50000);
   try {
     const r = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
       method: "POST",
@@ -115,16 +115,19 @@ async function callNvidia(prompt, { maxOutputTokens, temperature }) {
         temperature,
         top_p: 0.95,
         stream: false,
+        response_format: { type: "json_object" },
       }),
     });
-    const data = await r.json().catch(() => ({}));
+    let data = await r.json().catch(() => ({}));
     if (!r.ok) {
       const msg = data?.detail || data?.error?.message || data?.title || `NVIDIA returned ${r.status}`;
       throw Object.assign(new Error(r.status === 404 ? `Model "${MODEL}" not found on NVIDIA. Set NVIDIA_MODEL to a model from build.nvidia.com.` : r.status === 401 || r.status === 403 ? "NVIDIA rejected the API key. Check NVIDIA_API_KEY in Vercel." : msg), { status: r.status === 429 ? 429 : 502 });
     }
-    const text = data?.choices?.[0]?.message?.content || "";
-    if (!text) throw Object.assign(new Error("NVIDIA returned an empty answer"), { status: 502 });
-    return parseJson(text, "NVIDIA");
+    const msg = data?.choices?.[0]?.message || {};
+    const text = msg.content || "";
+    if (!text) throw Object.assign(new Error(`NVIDIA returned an empty answer${data?.choices?.[0]?.finish_reason==="length"?" (it ran out of space while thinking)":""}. Try a faster model.`), { status: 502 });
+    try { return parseJson(text, "NVIDIA"); }
+    catch (e) { console.error("NVIDIA raw answer:", text.slice(0, 1500)); e.message += ` It started with: ${JSON.stringify(text.slice(0, 160))}`; throw e; }
   } catch (e) {
     if (e.name === "AbortError") throw Object.assign(new Error("The AI took too long to answer. Try again, or paste a shorter part of the docs."), { status: 504 });
     throw e;
