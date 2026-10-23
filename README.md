@@ -38,7 +38,7 @@ Many docs portals (Calendly's included) render their content with JavaScript, so
 1. Import this repo at vercel.com/new (Framework preset: **Other**; no build command).
 2. **Settings → Environment Variables** — add one AI key:
    - `NVIDIA_API_KEY` (from build.nvidia.com). Optional `NVIDIA_MODEL` (default `minimaxai/minimax-m3.1-flash`), or
-   - `GEMINI_API_KEY` (from Google AI Studio). Optional `GEMINI_MODEL` (default `gemini-2.5-flash`).
+   - `GEMINI_API_KEY` (from Google AI Studio). Optional `GEMINI_MODEL` (default `gemini-3.8-flash`).
    If both are set, NVIDIA is used.
 3. Redeploy. `GET /api/status` shows which provider and model are on.
 
