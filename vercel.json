@@ -7,10 +7,6 @@
     },
     "api/generate.js": {
       "maxDuration": 60
-    },
-    "api/bench.js": {
-      "maxDuration": 60,
-      "includeFiles": "api/_lib/calendly_reference.txt"
     }
   }
 }

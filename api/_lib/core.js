@@ -7,7 +7,7 @@ import { join } from "node:path";
 export const PROVIDER = process.env.NVIDIA_API_KEY ? "NVIDIA" : process.env.GEMINI_API_KEY ? "Gemini" : null;
 export const MODEL = PROVIDER === "NVIDIA"
   ? (process.env.NVIDIA_MODEL || "minimaxai/minimax-m3.1-flash")
-  : (process.env.GEMINI_MODEL || "gemini-3.8-flash");
+  : (process.env.GEMINI_MODEL || "gemini-3.6-flash");
 export const hasKey = () => Boolean(PROVIDER);
 
 let calendlyRef = null;
