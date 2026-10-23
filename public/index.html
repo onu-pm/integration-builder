@@ -106,7 +106,23 @@ textarea.input{min-height:130px;resize:vertical;font-family:var(--f-mono);font-s
 .list{display:flex;flex-direction:column;gap:8px}
 .app-row{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;position:relative}
 .app-row.hl{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
-.logo{width:30px;height:30px;border-radius:8px;background:var(--primary-soft);display:grid;place-items:center;font-weight:800;color:var(--primary-dark);flex:none}
+.logo{position:relative;overflow:hidden;width:30px;height:30px;border-radius:8px;background:var(--primary-soft);display:grid;place-items:center;font-weight:800;color:var(--primary-dark);flex:none}
+.logo img{position:absolute;inset:0;margin:auto;width:70%;height:70%;object-fit:contain;background:var(--card);border-radius:4px}
+.logo:has(img){background:var(--card);border:1px solid var(--line)}
+.ac{position:relative}
+.sugg{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 28px rgba(15,27,61,.16);padding:4px;z-index:5;max-height:264px;overflow:auto;animation:pop .14s var(--ease)}
+.sugg button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;text-align:left;padding:7px 8px;border-radius:7px}
+.sugg button:hover,.sugg button.kb{background:var(--bg)}
+.sugg .logo{width:24px;height:24px;font-size:11px;border-radius:6px}
+.sugg .d{margin-left:auto;font-size:11.5px;color:var(--faint)}
+.err{color:var(--red);font-size:12px;font-weight:600}
+.reqd{color:var(--red)}
+.tiers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tier{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;font-size:12.5px}
+.tier.now{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.tier.done{border-color:#BFE6CC}
+.tier .h{display:flex;justify-content:space-between;gap:6px;align-items:center}
+@media (max-width:860px){.tiers{grid-template-columns:minmax(0,1fr)}}
 .app-row .nm{font-weight:700;flex:1;min-width:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .muted{color:var(--muted)}.faint{color:var(--faint)}.ok{color:var(--green);font-weight:600}.small{font-size:12px}
 table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
@@ -457,10 +473,10 @@ function crumbs(items){
   return `<nav class="crumb" aria-label="Breadcrumb">${items.map((it,i)=> i===items.length-1 ? `<b>${esc(it[0])}</b>` : `<button class="crumblink" data-act="${it[1]}">${esc(it[0])}</button> <span class="faint">/</span> `).join("")}</nav>`;
 }
 const adminCrumbs = (...rest) => crumbs([["Admin Settings","goIntegrations"],["Integrations","goIntegrations"],["Direct Integrations","goIntegrations"],...rest]);
-const STEP_NAMES = ["Data and access","Create the code","Test it","Turn it on"];
+const STEP_NAMES = ["Data and access","Generate the code","Test it","Turn it on"];
 function stepper(cur){
   const x = I();
-  const done = n => (n===1 && x.accessApproved) || (n===2 && x.files && x.sim?.passed) || (n===3 && x.testSigned) || (n===4 && x.status==="Live");
+  const done = n => (n===1 && x.accessApproved) || (n===2 && x.files && x.safety?.every(r=>r.pass)) || (n===3 && x.sim?.passed && x.testSigned) || (n===4 && x.status==="Live");
   const can = n => n===1 || done(n-1);
   const st = (n) => {
     const cls = n===cur ? "cur" : done(n) ? "done" : can(n) ? "" : "locked";
@@ -479,6 +495,27 @@ function statusPill(s){ const m={"Draft":"grey","Building":"blue","In progress":
 const stepLabel = () => { const x = I(); if (!x) return "—"; if (x.status==="Live") return "Live"; return `Step ${x.step} of 4`; };
 const buildStatus = (x=I()) => x.status==="Waiting for approval" ? (S.user==="priya"?"Needs your approval":"Waiting for approval") : x.status==="In progress" ? (x.builder==="dev"?"Building":"In progress") : x.status;
 /* ---------------- apps (catalogue) ---------------- */
+const SUGGEST = [
+  ["Calendly","calendly.com","https://developer.calendly.com/api-docs"],["Asana","asana.com","https://developers.asana.com/reference/rest-api-reference"],
+  ["Notion","notion.so","https://developers.notion.com/reference/intro"],["Figma","figma.com","https://www.figma.com/developers/api"],
+  ["Miro","miro.com","https://developers.miro.com/reference/api-reference"],["Dropbox","dropbox.com","https://www.dropbox.com/developers/documentation/http/documentation"],
+  ["Box","box.com","https://developer.box.com/reference/"],["GitHub","github.com","https://docs.github.com/en/rest"],
+  ["GitLab","gitlab.com","https://docs.gitlab.com/ee/api/rest/"],["Zendesk","zendesk.com","https://developer.zendesk.com/api-reference/"],
+  ["HubSpot","hubspot.com","https://developers.hubspot.com/docs/api/overview"],["Intercom","intercom.com","https://developers.intercom.com/docs/references/rest-api/api.intercom.io"],
+  ["monday.com","monday.com","https://developer.monday.com/api-reference/"],["ClickUp","clickup.com","https://clickup.com/api/"],
+  ["Airtable","airtable.com","https://airtable.com/developers/web/api/introduction"],["DocuSign","docusign.com","https://developers.docusign.com/docs/esign-rest-api/reference/"],
+  ["Webex","webex.com","https://developer.webex.com/docs/api/getting-started"],["Freshdesk","freshdesk.com","https://developers.freshdesk.com/api/"],
+  ["Trello","trello.com","https://developer.atlassian.com/cloud/trello/rest/"],["Confluence","atlassian.com","https://developer.atlassian.com/cloud/confluence/rest/v2/intro/"],
+  ["Mailchimp","mailchimp.com","https://mailchimp.com/developer/marketing/api/"],["Typeform","typeform.com","https://www.typeform.com/developers/"],
+  ["SurveyMonkey","surveymonkey.com","https://api.surveymonkey.com/v3/docs"],["Twilio","twilio.com","https://www.twilio.com/docs/usage/api"]
+];
+const DOMAINS = {"Google Workspace":"workspace.google.com", Slack:"slack.com", Zoom:"zoom.us", Salesforce:"salesforce.com", Okta:"okta.com", PagerDuty:"pagerduty.com", Jira:"atlassian.com", Miro:"miro.com", Calendly:"calendly.com"};
+SUGGEST.forEach(s=>{ if (!DOMAINS[s[0]]) DOMAINS[s[0]]=s[1]; });
+function logo(name, size){
+  const d = DOMAINS[name] || (DOMAINS[Object.keys(DOMAINS).find(k=>k.toLowerCase()===String(name).toLowerCase())]);
+  const st = size?` style="width:${size}px;height:${size}px;font-size:${Math.round(size*.45)}px"`:"";
+  return `<span class="logo"${st}>${esc(String(name)[0]||"?")}${d?`<img src="https://www.google.com/s2/favicons?domain=${d}&sz=64" alt="" loading="lazy" onerror="this.remove()">`:""}</span>`;
+}
 const CATALOGUE = {
   "Google Workspace":{cat:"Email and documents", desc:"Brings in everyone with a Google Workspace account, their licence type, and when they last signed in.", reads:["People and their status","Licence type","Last sign-in"], metric:"Days active (90 days)", lic:240, price:14, n:214, seed:17},
   Slack:{cat:"Team chat", desc:"Brings in your Slack members, how many days each was active, and who is a paid member or a guest.", reads:["Members and guests","Days active in the last 90 days","Plan for each member"], metric:"Days active (90 days)", lic:240, price:8.75, n:214, seed:5},
@@ -548,7 +585,7 @@ function scrIntegrations(){
 function appCard(name){
   const a = appInfo(name);
   return `<div class="appcard ${a.custom?"hl":""}" role="button" tabindex="0" data-act="openApp" data-app="${esc(name)}">
-    <div class="row"><span class="logo">${esc(name[0])}</span><div style="flex:1;min-width:0"><b>${esc(name)}</b><div class="small muted">${esc(a.cat)}</div></div>${statusPill(a.status)}</div>
+    <div class="row">${logo(name)}<div style="flex:1;min-width:0"><b>${esc(name)}</b><div class="small muted">${esc(a.cat)}</div></div>${statusPill(a.status)}</div>
     <p class="small">${esc(a.desc)}</p>
     <div class="row small muted">${a.custom?`<span class="pill purple">Made with AI · v${S.liveVersion}</span>`:""}${a.status==="Connected"?`Last synced ${esc(a.lastSync)}`:"Not connected yet"}</div>
     <div class="row" style="margin-top:auto">${a.status==="Connected"?`<button class="btn sm" data-act="syncnow" data-app="${esc(name)}">Sync now</button>`:`<button class="btn sm primary" data-act="connectApp" data-app="${esc(name)}">Connect</button>`}<span class="small faint" style="margin-left:auto">Open →</span></div>
@@ -561,14 +598,14 @@ function buildCard(x){
     : x.builder==="self" || x.status==="Draft" ? `<button class="btn sm primary" data-act="openBuild">Continue</button>`
     : `<button class="btn sm" data-act="openBuild">View progress</button>`;
   return `<div class="appcard hl" role="button" tabindex="0" data-act="openBuild">
-    <div class="row"><span class="logo">${esc(x.app[0])}</span><div style="flex:1;min-width:0"><b>${esc(x.app)}</b><div class="small muted">New · made with AI</div></div>${statusPill(st)}</div>
+    <div class="row">${logo(x.app)}<div style="flex:1;min-width:0"><b>${esc(x.app)}</b><div class="small muted">New · made with AI</div></div>${statusPill(st)}</div>
     <p class="small">${esc(who)}. Step ${x.step} of 4: ${esc(STEP_NAMES[x.step-1])}.</p>
     <div class="bar"><i style="width:${Math.round((x.step-(x.status==="Waiting for approval"?0:1))/4*100)}%"></i></div>
     <div class="row" style="margin-top:auto">${btn}<span class="small faint" style="margin-left:auto">v${x.version}</span></div></div>`;
 }
 function seedCard(s){
   return `<div class="appcard" role="button" tabindex="0" data-act="follow" data-app="${esc(s.app)}">
-    <div class="row"><span class="logo">${esc(s.app[0])}</span><div style="flex:1;min-width:0"><b>${esc(s.app)}</b><div class="small muted">New · made with AI</div></div>${statusPill("Building")}</div>
+    <div class="row">${logo(s.app)}<div style="flex:1;min-width:0"><b>${esc(s.app)}</b><div class="small muted">New · made with AI</div></div>${statusPill("Building")}</div>
     <p class="small">${esc(s.who)} is building it. Step ${s.step} of 4: ${esc(STEP_NAMES[s.step-1])}.</p>
     <div class="bar"><i style="width:${(s.step-1)/4*100}%"></i></div>
     <div class="row" style="margin-top:auto"><button class="btn sm" data-act="follow" data-app="${esc(s.app)}">Get updates</button></div></div>`;
@@ -578,14 +615,14 @@ function scrAssigned(){
   const x = I();
   const active = x && x.builder==="dev" && x.status!=="Draft";
   let banner = "";
-  if (active && x.status==="In progress" && !x.files) banner = nudge("info", `Priya Sharma asked you to build the ${esc(x.app)} integration`, "She already picked the data and approved the access. You create the code, test it, then send it back to her to turn on.", `<button class="btn primary" data-act="openBuild">Start</button>`);
+  if (active && x.status==="In progress" && !x.files) banner = nudge("info", `Priya Sharma asked you to build the ${esc(x.app)} integration`, "She already picked the data and approved the access. You generate the code, test it, then send it back to her to turn on.", `<button class="btn primary" data-act="openBuild">Start</button>`);
   else if (active && x.status==="Changes requested") banner = nudge("warn", `Priya asked for changes on ${esc(x.app)}`, esc(x.changeNote||"Test it again and resend."), `<button class="btn primary" data-act="openBuild">Open</button>`);
   else if (active && x.status==="Waiting for approval") banner = nudge("info", "Sent to Priya", "We'll let you know when she turns it on.");
   else if (active && x.status==="Live") banner = nudge("good", `${esc(x.app)} is live`, `Priya approved version ${S.liveVersion}.`);
   return `${crumbs([["Integrations","goAssigned"],["Assigned to me"]])}
   <div><h1>Assigned to me</h1><p class="lede">Integrations you've been asked to build. You only see these, not the company's spend or contracts.</p></div>
   ${banner}
-  ${active?`<div class="card"><div class="spread"><div class="row"><span class="logo">${esc(x.app[0])}</span><div><b>${esc(x.app)}</b><div class="small muted">Asked by Priya Sharma · ${onFields(x).length} fields approved · read-only</div></div></div>
+  ${active?`<div class="card"><div class="spread"><div class="row">${logo(x.app)}<div><b>${esc(x.app)}</b><div class="small muted">Asked by Priya Sharma · ${onFields(x).length} fields approved · read-only</div></div></div>
     <div class="row">${statusPill(buildStatus(x))}<span class="small muted">${stepLabel()}</span><button class="btn ${x.status==="In progress"||x.status==="Changes requested"?"primary":""}" data-act="openBuild">${x.files?"Continue":"Start"}</button></div></div></div>`
   : `<div class="dashed muted" style="text-align:center">Nothing assigned to you right now.</div>`}`;
 }
@@ -596,11 +633,11 @@ function scrBuild(){
   const tail = STEP_NAMES[step-1];
   const cr = S.user==="ravi" ? crumbs([["Integrations","goAssigned"],["Assigned to me","goAssigned"],[x.app,"openBuild"],[tail]])
     : adminCrumbs([x.app, "openBuild"],[tail]);
-  const title = `<div class="spread"><div class="row"><span class="logo">${esc(x.app[0])}</span><h1>New integration: ${esc(x.app)}</h1>${statusPill(buildStatus(x))}<span class="pill purple">Version ${x.version}</span></div>
+  const title = `<div class="spread"><div class="row">${logo(x.app)}<h1>New integration: ${esc(x.app)}</h1>${statusPill(buildStatus(x))}<span class="pill purple">Version ${x.version}</span></div>
     <span class="small muted">${x.builder==="dev"?(S.user==="priya"?"Built by Ravi Menon · you approve":"Asked by Priya Sharma"):"Built by you with AI"}</span></div>`;
   const intro = self && step===1 && !x.accessApproved && !S.hideIntro ? `<div class="howit reveal"><div class="spread"><b>How this works</b><button class="btn ghost sm" data-act="hideIntro">Got it</button></div>
     <ol><li><b>Data and access.</b> Pick what CloudEagle should bring in from ${esc(x.app)}. CloudEagle can only read what you approve.</li>
-    <li><b>Create the code.</b> AI reads ${esc(x.app)}'s API documentation and writes the code. You check what it found first.</li>
+    <li><b>Generate the code.</b> AI reads ${esc(x.app)}'s API documentation and writes the code. You check what it found first.</li>
     <li><b>Test it.</b> Run it on a test account and check what it brings in.</li>
     <li><b>Turn it on.</b> Review the permissions, connect your company's account, and it syncs every day.</li></ol>
     <span class="small muted">About 10 minutes. Your progress is saved, so you can stop and come back.</span></div>` : "";
@@ -632,11 +669,11 @@ function stepData(){
     const dev = x.builder==="dev";
     foot = `<div class="card"><label class="signoff"><input type="checkbox" id="accessOk" ${x.accessOk?"checked":""}> <span>I approve CloudEagle reading these <b>${n} fields</b> from ${esc(x.app)}. It can't change anything.</span></label>
       ${dev?`<div class="row small muted">Ravi Menon (${esc(x.devEmail||"ravi.menon@acme.com")}) gets access to this integration only. He can't see your spend or contracts, and he can't turn it on.</div>`:""}
-      <div class="row" style="justify-content:flex-end">${dev?`<button class="btn primary" data-act="sendDev" ${x.accessOk?"":"disabled"}>Send to Ravi Menon</button>`:`<button class="btn primary" data-act="toCode" ${x.accessOk?"":"disabled"}>Next: Create the code →</button>`}</div></div>`;
+      <div class="row" style="justify-content:flex-end">${dev?`<button class="btn primary" data-act="sendDev" ${x.accessOk?"":"disabled"}>Send to Ravi Menon</button>`:`<button class="btn primary" data-act="toCode" ${x.accessOk?"":"disabled"}>Next: Generate the code →</button>`}</div></div>`;
   } else if (isAdmin && x.builder==="dev"){
     foot = nudge("good","You approved this access",`Ravi Menon is building it. ${x.status==="Waiting for approval"?"It's ready for you to turn on.":"We'll let you know when it's ready."}`, x.status==="Waiting for approval"?`<button class="btn primary" data-act="openBuild4">Review and approve</button>`:"");
   } else {
-    foot = `<div class="row" style="justify-content:space-between"><span class="small muted">✓ Access approved by Priya Sharma</span>${x.step===1||!x.files?`<button class="btn primary" data-act="toCode">Next: Create the code →</button>`:""}</div>`;
+    foot = `<div class="row" style="justify-content:space-between"><span class="small muted">✓ Access approved by Priya Sharma</span>${x.step===1||!x.files?`<button class="btn primary" data-act="toCode">Next: Generate the code →</button>`:""}</div>`;
   }
   return `<div class="datagrid">${fieldsCard}${accessCard}</div>${foot}`;
 }
@@ -661,14 +698,14 @@ function stepCode(){
     ${busy==="read"?`<div class="reveal">${progList(READ_STEPS)}</div>`:""}
   </div>`;
   if (u){
-    h += `<div class="spread reveal"><div><h2>Here's what we found</h2><p class="lede">${x.uMode==="live"?`Read by AI${x.uSource==="captured"?" from Calendly's API reference":x.uSource==="pasted"?" from the text you pasted":" from the link"}`:"Read from Calendly's API reference"}. Each card is one part of the code: API client, auth setup, users, usage, pagination, error handling and logging. If something is wrong, click Edit.</p></div>${!ro?`<button class="btn sm" data-act="readDocs" ${busy?"disabled":""}>Read again</button>`:""}</div>`;
+    h += `<div class="spread reveal"><div><h2>Here's what we found</h2><p class="lede">${x.uMode==="live"?`Read by AI ${x.uSource==="captured"?"from Calendly's API reference":x.uSource==="pasted"?"from the text you pasted":x.uSource==="openapi"?"from the OpenAPI file":`from ${x.uPages||1} page${(x.uPages||1)>1?"s":""} of the docs${x.uSource==="rendered"?" (rendered, because the site builds its pages with JavaScript)":""}`}`:"Read from Calendly's API reference"}. Each card is one part of the code: API client, auth setup, users, usage, pagination, error handling and logging. If something is wrong, click Edit.</p></div>${!ro?`<button class="btn sm" data-act="readDocs" ${busy?"disabled":""}>Read again</button>`:""}</div>`;
     h += understandingCards(u, ro);
     if (u.missing_users) h += nudge("bad","We couldn't find how to list people in this documentation","Try another link, paste more of the documentation, or ask the CloudEagle team.",`<button class="btn sm" data-act="toCE">Send to CloudEagle team</button>`);
     if (!x.files && !ro) h += `<div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="genCode" ${busy||u.missing_users?"disabled":""}>Write the ${esc(LANGS[x.language])} code</button></div>`;
     if (busy==="gen") h += `<div class="card reveal"><div class="spread"><h3>Writing the ${esc(LANGS[x.language])} code</h3><button class="btn sm" data-act="stop">Stop</button></div>${progList(GEN_STEPS)}</div>`;
   }
-  if (x.files) h += codeSection(ro) + simSection();
-  if (x.files && x.sim?.passed && !ro && x.step===2) h += nudge("good","The code passed all checks",`Next: try it on a test ${esc(x.app)} account before turning it on.`,`<button class="btn primary" data-act="toTest">Next: Test it →</button>`);
+  if (x.files) h += codeSection(ro);
+  if (x.files && x.safety.every(r=>r.pass) && !ro && x.step===2) h += nudge("good","The code passed all safety checks",`Next: test it, first in a sandbox and then on a test ${esc(x.app)} account.`,`<button class="btn primary" data-act="toTest">Next: Test it →</button>`);
   return h;
 }
 function understandingCards(u, ro){
@@ -728,8 +765,9 @@ function tabsFor(files){
 function codeSection(ro){
   const x = I(); const files = x.files; const f = files[x.activeFile]!==undefined ? x.activeFile : Object.keys(files)[0];
   const allPass = x.safety.every(r=>r.pass);
-  return `<div class="spread reveal"><div class="row"><h2>Your code</h2><span class="pill grey">${esc(LANGS[x.language])}</span>${x.fMode==="live"?`<span class="pill purple">AI · ${esc(AI?.model||"AI")}</span>`:""}</div>
-    <div class="row"><button class="btn sm" data-act="download">Download code</button>${!ro&&x.step===2?`<button class="btn sm" data-act="genCode" ${busy?"disabled":""}>Regenerate</button>`:""}</div></div>
+  return `<div class="spread reveal" style="position:relative;z-index:12"><div class="row"><h2>Your code</h2><span class="pill grey">${esc(LANGS[x.language])}</span>${x.fMode==="live"?`<span class="pill purple">AI · ${esc(AI?.model||"AI")}</span>`:""}</div>
+    <div class="row"><div class="menuwrap"><button class="btn sm" data-act="dlMenu" aria-expanded="${S.open==="dl"}">${busy==="alt"?"Generating…":"Download code ▾"}</button>
+      ${S.open==="dl"?`<div class="pop" role="menu" style="min-width:250px">${Object.entries(LANGS).map(([k,v])=>`<button data-act="dlLang" data-lang="${k}" ${busy?"disabled":""}><b>${v}</b><span class="small muted"> · ${k===x.language?"ready":x.alt?.[k]?"ready":AI&&x.uMode==="live"?"generate now (~30 s)":"needs the AI"}</span></button>`).join("")}</div>`:""}</div>${!ro&&x.step===2?`<button class="btn sm" data-act="genCode" ${busy?"disabled":""}>Regenerate</button>`:""}</div></div>
   <div class="codewrap reveal">
     <div class="tree"><div class="t">${esc(app().toUpperCase())}-INTEGRATION/</div>${Object.keys(files).map(n=>`<button data-file="${esc(n)}" aria-current="${n===f}">${esc(n)}</button>`).join("")}</div>
     <div class="editor"><div class="tabs">${tabsFor(files).map(t=>`<button data-file="${esc(t[1])}" aria-current="${t[1]===f}">${t[0]}</button>`).join("")}</div>
@@ -749,10 +787,10 @@ function reqLog(reqs, which){
 }
 function simSection(){
   const x = I(); const s = x.sim; const live = runLog?.which==="sim" ? runLog : null;
-  if (!isCal()) return `<div class="card reveal"><h2>Automatic checks</h2>${nudge("info","Automatic checks for this app are built from its documentation","This prototype only has Calendly's. You can still test it on a real account next.",`<button class="btn" data-act="skipSim">Continue</button>`)}</div>`;
+  if (!isCal()) return `<div class="card reveal"><h2>Test 1 · Sandbox test</h2>${s?.passed?nudge("good","Skipped for this app","Go on to the test account."):nudge("info",`The sandbox is built from each app's docs`,`This prototype only has Calendly's sandbox. Skip to the test account to try ${esc(app())}.`,`<button class="btn" data-act="skipSim">Skip to the test account</button>`)}</div>`;
   const reqs = live ? live.reqs : s?.reqs;
-  return `<div class="card reveal"><div class="spread"><div><h2>Automatic checks</h2><div class="small muted">Every time the code is written, we run it against a practice copy of Calendly with 214 made-up people. We also make it hit the request limit and a plan restriction on purpose.</div></div>
-      ${live?`<span class="pill blue">Running…</span>`:s?.passed?`<span class="pill green">Passed ✓</span>`:`<button class="btn" data-act="runSim">Run tests</button>`}</div>
+  return `<div class="card reveal"><div class="spread"><div><h2>Test 1 · Sandbox test</h2><div class="small muted">We run the code against a practice copy of Calendly with 214 made-up people. We make it hit the request limit and a plan restriction on purpose, to see that it recovers. No account needed.</div></div>
+      ${live?`<span class="pill blue">Running…</span>`:s?.passed?`<span class="pill green">Passed ✓</span>`:`<button class="btn primary" data-act="runSim">Run the sandbox test</button>`}</div>
     ${reqLog(reqs,"sim")}
     ${s?.passed && !live ? `<div class="grid3">${[
       `Found all ${s.summary.users} people across ${s.summary.pages.length} pages (${s.summary.pages.join(" + ")})`,
@@ -768,7 +806,15 @@ function simSection(){
 function stepTest(){
   const x = I(); const ro = S.user!==builderUser(); const t = x.test; const live = runLog?.which==="test" ? runLog : null;
   const mode = x.testMode || "test";
-  let h = `<div class="datagrid"><div class="card"><div><h2>Test it before it touches real data</h2><div class="small muted">We run the code against a ${esc(x.app)} account and show you exactly what it brings in. Nothing is saved to CloudEagle yet.</div></div>`;
+  const simOk = x.sim?.passed;
+  const tier = (n,title,where,what,checks,state) => `<div class="tier ${state}"><div class="h"><b>${n}. ${title}</b>${state==="done"?`<span class="pill green">Passed</span>`:state==="now"?`<span class="pill blue">Now</span>`:`<span class="pill grey">${n===3?"In step 4":"Next"}</span>`}</div><span class="muted">${where}</span><span>${what}</span><span class="small muted">${checks}</span></div>`;
+  let h = `<div class="howit"><b>Why we test before turning it on</b><span class="small">AI wrote this code, so we prove it works in three places, from safest to most real. Each test catches problems the one before can't, and real company data is only read at the very end.</span>
+    <div class="tiers">${tier(1,"Sandbox test","Automatic · no account needed",`A practice copy of ${esc(x.app)} with made-up people.`,"Catches: missed pages, no retry on limits, crashes on plan-only data.",simOk?"done":"now")}
+    ${tier(2,"Test account","A trial or sandbox account you control",`The real ${esc(x.app)} API, with harmless test data.`,"Catches: wrong sign-in, real answers that differ from the docs.",x.testSigned?"done":simOk?"now":"next")}
+    ${tier(3,"First sync check","Your company's account, read-only","The first 100 real people. Nothing is saved.","Catches: anything specific to your company, before it goes live.","next")}</div></div>
+  ${simSection()}`;
+  if (!simOk) return h + `<div class="card" style="opacity:.6"><h2>Test 2 · Test account</h2><div class="small muted">Unlocks when the sandbox test passes.</div></div>`;
+  h += `<div class="datagrid"><div class="card"><div><h2>Test 2 · Test account</h2><div class="small muted">We run the code against a ${esc(x.app)} account and show you exactly what it brings in. Nothing is saved to CloudEagle yet.</div></div>`;
   if (!x.testConnected && !ro){
     h += `<div class="choice">
       <button class="ch ${mode==="test"?"rec on":""}" data-act="pickMode" data-mode="test"><span class="row"><b>Use a test account</b><span class="pill green">Recommended</span></span><span class="small muted">A trial or sandbox ${esc(x.app)} account. Safest choice.</span></button>
@@ -843,7 +889,7 @@ function stepOn(){
       <tr><td class="muted" style="width:170px">Brings in</td><td>${avail.map(r=>esc(r.f.label)+(r.s==="plan"?` <span class="faint">(${esc(r.note||"some plans")})</span>`:"")).join(", ")}</td></tr>
       ${rows.length>avail.length?`<tr><td class="muted">Not in ${esc(x.app)}'s API</td><td>${rows.filter(r=>r.s==="no").map(r=>esc(r.f.label)).join(", ")} <span class="faint">· CloudEagle fills these from Okta or your HR system</span></td></tr>`:""}
       <tr><td class="muted">Code</td><td>Version ${x.version} · ${esc(LANGS[x.language])} · safety checks ${x.safety.filter(r=>r.pass).length} of ${x.safety.length} passed</td></tr>
-      <tr><td class="muted">Tests</td><td>${x.sim?.passed&&!x.sim.skipped?"Automatic checks passed":"Automatic checks: not available for this app"} · Account test approved${x.testSigned?` by ${esc(PEOPLE[builderUser()].name)}`:""}</td></tr>
+      <tr><td class="muted">Tests</td><td>${x.sim?.passed&&!x.sim.skipped?"Sandbox test passed":"Sandbox: not available for this app"} · Test account approved${x.testSigned?` by ${esc(PEOPLE[builderUser()].name)}`:""}</td></tr>
       <tr><td class="muted">Sync</td><td>Every day, once it's on</td></tr></tbody></table></div></div>`;
   if (S.user==="ravi"){
     if (x.status==="Waiting for approval") return summary + nudge("info","Sent to Priya","We'll let you know when she turns it on.");
@@ -879,7 +925,7 @@ function scrApp(){
   else if (tab==="licences") body = appLicences(a, users, inactive);
   else body = appSettings(a);
   return `${adminCrumbs([name])}
-  <div class="spread"><div class="row"><span class="logo" style="width:40px;height:40px;font-size:18px">${esc(name[0])}</span><div><h1>${esc(name)}</h1><div class="small muted">${esc(a.cat)}</div></div>${statusPill(a.status)}${a.custom?`<span class="pill purple">Made with AI · v${S.liveVersion}</span>`:""}</div>
+  <div class="spread"><div class="row">${logo(name,40)}<div><h1>${esc(name)}</h1><div class="small muted">${esc(a.cat)}</div></div>${statusPill(a.status)}${a.custom?`<span class="pill purple">Made with AI · v${S.liveVersion}</span>`:""}</div>
     ${a.status==="Connected"?`<div class="row"><span class="small muted">Last synced ${esc(a.lastSync)}</span><button class="btn sm" data-act="syncnow" data-app="${esc(name)}">Sync now</button></div>`:`<button class="btn primary" data-act="connectApp" data-app="${esc(name)}">Connect</button>`}</div>
   <div class="apptabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" aria-selected="${k===tab}" class="${k===tab?"on":""}" data-act="tab" data-tab="${k}">${l}</button>`).join("")}</div>
   <div class="tabbody">${body}</div>`;
@@ -889,7 +935,7 @@ function appOverview(a, users, inactive){
   const built = a.custom ? `<div class="card"><h2>How this integration was made</h2><div class="tablebox"><table><tbody>
     <tr><td class="muted" style="width:170px">Made by</td><td>AI, from ${esc(a.name)}'s API documentation${x.fMode==="live"?` (${esc(AI?.model||"AI")})`:""}</td></tr>
     <tr><td class="muted">Code</td><td>Version ${S.liveVersion} · ${esc(LANGS[x.language])} · <button class="linkbtn" data-act="viewCode">View the code</button></td></tr>
-    <tr><td class="muted">Tested</td><td>Automatic checks passed · account test approved by ${esc(PEOPLE[builderUser()].name)}</td></tr>
+    <tr><td class="muted">Tested</td><td>Safety checks, sandbox test and test account passed · approved by ${esc(PEOPLE[builderUser()].name)}</td></tr>
     <tr><td class="muted">Turned on by</td><td>Priya Sharma</td></tr></tbody></table></div></div>` : "";
   return `<div class="card"><h2>What this integration does</h2><p style="margin:0">${esc(a.desc)}</p>
       <div class="grid3">${a.reads.map(r=>`<div class="chk"><span class="m pass">✓</span><span>${esc(r)}</span></div>`).join("")}</div>
@@ -956,7 +1002,7 @@ function oauthModal(kind){
   const who = kind==="test" && (I()?.testMode||"test")==="test" ? "acme-test (trial)" : "Acme Corp";
   const user = S.user==="ravi" ? "ravi.menon" : "priya.sharma";
   return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="oat"><div class="modal" style="width:min(520px,100%)"><div class="oauth">
-    <div class="brandline"><span class="logo" style="width:40px;height:40px">${esc(name[0])}</span><div><b id="oat">${kind==="app"?`Connect ${esc(name)}`:`Sign in to ${esc(name)}`}</b><div class="small muted">${who} · ${user}@acme.com</div></div></div>
+    <div class="brandline">${logo(name,40)}<div><b id="oat">${kind==="app"?`Connect ${esc(name)}`:`Sign in to ${esc(name)}`}</b><div class="small muted">${who} · ${user}@acme.com</div></div></div>
     <div><b>CloudEagle</b> is asking for read-only access.</div>
     ${permsBlock(name)}
     <div class="small muted">${kind==="test"?"This is a test. Nothing is saved to CloudEagle.":"You can disconnect any time in the app's Settings tab."}</div>
@@ -979,17 +1025,34 @@ function addModal(){
   return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="adt"><div class="modal" style="width:min(560px,100%)">
     <div class="spread"><h2 id="adt">New integration</h2><button class="btn sm" data-act="closeModal" aria-label="Close">✕</button></div>
     <div class="small muted">Add any app that has an API. CloudEagle reads its API documentation and writes the integration with AI.</div>
-    <div class="field"><label for="aApp">App name</label><input class="input" id="aApp" placeholder="For example: Calendly" value="${esc(d.app)}"></div>
-    <div class="field"><label for="aDocs">Link to its API documentation <span class="hint">optional, you can add it later</span></label><input class="input" id="aDocs" placeholder="https://developer.example.com/api" value="${esc(d.docsUrl)}"></div>
+    <div class="field ac"><label for="aApp">App name <span class="reqd">*</span></label><input class="input" id="aApp" placeholder="Start typing, for example: Calendly" value="${esc(d.app)}" autocomplete="off" aria-autocomplete="list" aria-controls="sugg"><div id="suggBox"></div>${S.addErr?.app?`<span class="err">${esc(S.addErr.app)}</span>`:""}</div>
+    <div class="field"><label for="aDocs">Link to its API documentation <span class="reqd">*</span></label><input class="input" id="aDocs" placeholder="https://developer.example.com/api" value="${esc(d.docsUrl)}">${S.addErr?.docs?`<span class="err">${esc(S.addErr.docs)}</span>`:`<span class="small muted">The AI reads this page and the related pages it links to (users, sign-in, pages, limits).</span>`}</div>
     <div class="field"><span class="lab">Who will build it?</span>
     <div class="choice">
       <button class="ch ${d.builder==="self"?"on":""}" data-act="pickBuilder" data-b="self" aria-pressed="${d.builder==="self"}"><b>I'll build it with AI</b><span class="small muted">You pick the data, AI writes the code, you test it and turn it on.</span></button>
       <button class="ch ${d.builder==="dev"?"on":""}" data-act="pickBuilder" data-b="dev" aria-pressed="${d.builder==="dev"}"><b>Assign a developer</b><span class="small muted">You pick the data and approve access. They create and test it. You turn it on.</span></button>
     </div></div>
     ${d.builder==="dev"?`<div class="field reveal"><label for="aEmail">Developer's email</label><input class="input" id="aEmail" value="${esc(d.email)}"><span class="small muted">They get access to this integration only, not your spend or contracts, and they can't turn it on.</span></div>`:""}
-    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="addGo">Continue</button></div>
+    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="addGo" id="addGoBtn" ${addReady(d)?"":"disabled"}>Continue</button></div>
   </div></div>`;
 }
+const validUrl = s => { try { const u = new URL(String(s).trim()); return /^https?:$/.test(u.protocol) && u.hostname.includes("."); } catch(e){ return false; } };
+const addReady = d => d.app.trim().length>1 && validUrl(d.docsUrl);
+function suggestions(q){
+  q = q.trim().toLowerCase(); if (!q) return [];
+  const conn = appList().map(n=>({name:n, connected:true}));
+  const all = [...conn, ...SUGGEST.filter(s=>!appList().some(n=>n.toLowerCase()===s[0].toLowerCase())).map(s=>({name:s[0], docs:s[2]}))];
+  const hit = all.filter(a=>a.name.toLowerCase().startsWith(q)).concat(all.filter(a=>!a.name.toLowerCase().startsWith(q) && a.name.toLowerCase().includes(q)));
+  const out = hit.slice(0,6);
+  if (!all.some(a=>a.name.toLowerCase()===q)) out.push({name:q.replace(/\b\w/g,c=>c.toUpperCase()), custom:true});
+  return out;
+}
+function drawSugg(){
+  const box = document.getElementById("suggBox"); const inp = document.getElementById("aApp"); if (!box||!inp) return;
+  const list = S.suggOpen ? suggestions(inp.value) : [];
+  box.innerHTML = list.length ? `<div class="sugg" id="sugg" role="listbox">${list.map(a=>`<button type="button" role="option" data-act="pickApp" data-name="${esc(a.name)}" data-durl="${esc(a.docs||"")}" data-conn="${a.connected?1:""}">${logo(a.name)}<span><b>${esc(a.name)}</b></span><span class="d">${a.connected?"Already in CloudEagle":a.custom?"Add as a new app":"API docs found"}</span></button>`).join("")}</div>` : "";
+}
+function refreshAddBtn(){ const b=document.getElementById("addGoBtn"); if (b && S.addDraft) b.disabled = !addReady(S.addDraft); }
 function codeModal(){
   const x = I(); const files = x.files || {}; const f = files[x.activeFile]!==undefined ? x.activeFile : Object.keys(files)[0];
   return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="cdt"><div class="modal" style="width:min(980px,100%)">
@@ -1058,7 +1121,7 @@ async function readDocs(){
   const job = AI ? api("/api/understand", {app:x.app, docsUrl:x.docsMode==="link"?x.docsUrl:"", docsText:x.docsMode==="paste"?x.docsText:"", fields:onFields().map(f=>({key:f.key,label:f.label}))}, ctl.signal) : (isCal() ? replay() : Promise.reject({message:"AI isn't configured on this deployment, so only Calendly can be read."}));
   try{
     const out = await animateWhile(READ_STEPS, job);
-    busy=null; setI({understanding:out.understanding, uMode:out.replay?"replay":"live", uSource:out.source, ...resetBelow()});
+    busy=null; setI({understanding:out.understanding, uMode:out.replay?"replay":"live", uSource:out.source, uPages:out.pages||0, ...resetBelow()});
   }catch(e){
     busy=null;
     if (isCal() && x.docsMode==="link"){ setI({understanding:CAL_UNDERSTANDING, uMode:"replay", uSource:"captured", ...resetBelow()}); toast((e.message||"The AI couldn't read the docs.")+" Using Calendly's API reference instead."); }
@@ -1076,11 +1139,10 @@ async function genCode(){
     busy=null;
     const first = Object.keys(out.files).find(n=>/paginat/i.test(n)) || Object.keys(out.files)[0];
     setI({files:out.files, fMode:out.mode, activeFile:first, safety:safetyChecks(out.files, x.app, x.docsText||CALENDLY_DOCS), sim:null, test:null, testConnected:false, testSigned:false, preview:null, prodConnected:false, confirmed:false, version: regen ? x.version+1 : x.version});
-    if (I().safety.every(r=>r.pass) && isCal()) runSim();
   }catch(e){
     busy=null;
     if (e?.name==="AbortError" && !ctl?.timedOut){ render(); return; }
-    if (isCal() && x.language==="python"){ setI({files:{...FILES}, fMode:"replay", activeFile:"pagination.py", safety:safetyChecks(FILES,"Calendly",CALENDLY_DOCS), version: regen?x.version+1:x.version}); toast((e.message||"Generation failed.")+" Showing the reference Calendly integration."); runSim(); }
+    if (isCal() && x.language==="python"){ setI({files:{...FILES}, fMode:"replay", activeFile:"pagination.py", safety:safetyChecks(FILES,"Calendly",CALENDLY_DOCS), version: regen?x.version+1:x.version}); toast((e.message||"Generation failed.")+" Showing the reference Calendly integration."); }
     else { render(); toast(e.message||"Generation failed."); }
   }
 }
@@ -1136,7 +1198,7 @@ async function runSim(){
   const r = await runIntegration(DATA, {rateLimitOnce:"/scheduled_events", onReq:q=>{ runLog.reqs=q.slice(); render(); }});
   runLog = null; selReq.sim = r.reqs.findIndex(q=>q.status===429);
   setI({sim:{passed: r.summary.users===214 && r.summary.pages.join()==="100,100,14", reqs:r.reqs, summary:r.summary}});
-  toast("Automatic checks passed: found all 214 people.");
+  toast("Sandbox test passed: found all 214 people. Next: the test account.");
 }
 async function runTest(){
   runLog = {which:"test", reqs:[]}; selReq.test = null; render();
@@ -1149,11 +1211,24 @@ async function runTest(){
 
 /* ---------------- downloads ---------------- */
 function saveBlob(blob, name){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
-async function downloadCode(){
+async function downloadCode(files=I().files, lang=I().language){
   if (!window.JSZip) return toast("Download isn't available right now.");
   const zip = new JSZip(); const dir = zip.folder(app().toLowerCase()+"-integration");
-  Object.entries(I().files).forEach(([n,c])=>dir.file(n,c));
-  saveBlob(await zip.generateAsync({type:"blob"}), `${app().toLowerCase()}-integration-v${I().version}.zip`);
+  Object.entries(files).forEach(([n,c])=>dir.file(n,c));
+  saveBlob(await zip.generateAsync({type:"blob"}), `${app().toLowerCase()}-integration-${lang}-v${I().version}.zip`);
+}
+async function downloadLang(lang){
+  const x = I(); S.open=null;
+  if (lang===x.language) return downloadCode();
+  if (x.alt?.[lang]) return downloadCode(x.alt[lang], lang);
+  if (!(AI && x.uMode==="live")) { render(); return toast(`Other languages need the AI. ${LANGS[x.language]} is ready to download.`); }
+  busy="alt"; ctl=new AbortController(); render(); toast(`Generating the ${LANGS[lang]} code from the same API reading…`);
+  try{
+    const o = await api("/api/generate", {app:x.app, language:lang, understanding:x.understanding, fields:onFields().map(f=>({key:f.key,label:f.label}))}, ctl.signal);
+    const checks = safetyChecks(o.files, x.app, x.docsText||CALENDLY_DOCS); busy=null;
+    if (!checks.every(r=>r.pass)){ render(); return toast(`The ${LANGS[lang]} code failed a safety check, so we didn't download it. Try again.`); }
+    S.I.alt = {...(x.alt||{}), [lang]:o.files}; save(); render(); downloadCode(o.files, lang); toast(`${LANGS[lang]} code downloaded. It passed all ${checks.length} safety checks.`);
+  }catch(e){ busy=null; render(); toast(e.message||"Couldn't generate that language."); }
 }
 function downloadReport(){
   const t = I().test; const rep = {app:app(), account:t.mode==="live"?"Acme Corp (read-only check)":"acme-test (trial)", version:I().version, language:LANGS[I().language], ran_at:t.at, passed:t.passed, summary:t.summary, requests:t.reqs.map(r=>({path:r.path, status:r.status})), sample:t.records.slice(0,5)};
@@ -1197,11 +1272,17 @@ document.addEventListener("click", async (ev) => {
   else if (a==="filt"){ set({filter:t.dataset.f}); }
   else if (a==="addBlank"){
     if (I() && I().status!=="Live"){ toast(`Finish or approve ${I().app} first. This prototype builds one new integration at a time.`, {label:"Open it", run:()=>openBuild()}); return; }
-    S.addDraft={app:S.query.trim(), docsUrl:"", builder:"self", email:"ravi.menon@acme.com"}; set({modal:"add"}); setTimeout(()=>document.getElementById("aApp")?.focus(),50); }
+    S.addDraft={app:S.query.trim(), docsUrl:(SUGGEST.find(s=>s[0].toLowerCase()===S.query.trim().toLowerCase())||[])[2]||"", builder:"self", email:"ravi.menon@acme.com"}; S.addErr={}; S.suggOpen=false; set({modal:"add"}); setTimeout(()=>document.getElementById("aApp")?.focus(),50); }
   else if (a==="pickBuilder"){ readAddDraft().builder=t.dataset.b; render(); }
+  else if (a==="pickApp"){
+    const name=t.dataset.name; S.suggOpen=false;
+    if (t.dataset.conn){ set({modal:null, screen:"app", appName:name, tab:"overview"}); toast(`${name} is already in CloudEagle. Connect it here.`); return; }
+    readAddDraft(); S.addDraft.app=name; if (t.dataset.durl) S.addDraft.docsUrl=t.dataset.durl; S.addErr={}; render(); refreshAddBtn(); document.getElementById("aDocs")?.focus();
+  }
   else if (a==="addGo"){
     const d = readAddDraft(); const name = d.app.trim();
-    if (!name){ toast("Type the app's name first."); document.getElementById("aApp")?.focus(); return; }
+    S.addErr = {}; if (name.length<2) S.addErr.app="Type the app's name."; if (!validUrl(d.docsUrl)) S.addErr.docs = d.docsUrl.trim() ? "That isn't a valid link. It should start with https://" : "Add the link to the app's API documentation.";
+    if (S.addErr.app||S.addErr.docs){ render(); return; }
     const hit = appList().find(n=>n.toLowerCase()===name.toLowerCase());
     if (hit){ set({modal:null, screen:"app", appName:hit, tab:"overview"}); toast(`${hit} is already available. Connect it here.`); return; }
     if (d.builder==="dev" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email.trim())){ toast("Add the developer's email."); return; }
@@ -1243,6 +1324,8 @@ document.addEventListener("click", async (ev) => {
   else if (a==="runTest"){ runTest(); }
   else if (a==="downloadReport"){ downloadReport(); }
   else if (a==="download"){ downloadCode(); }
+  else if (a==="dlMenu"){ set({open:S.open==="dl"?null:"dl"}); }
+  else if (a==="dlLang"){ downloadLang(t.dataset.lang); }
   else if (a==="submit"){ setI({status:"Waiting for approval", updated:"Just now"}); notify("priya", `Ravi Menon finished ${app()}. It needs your approval.`, "4"); save(); render(); toast("Sent. Priya Sharma has been told.", {label:"Switch to Priya", run:switchUser}); }
   else if (a==="connectProd"){ set({modal:"oauthProd"}); }
   else if (a==="allowProd"){ S.modal=null; setI({prodConnected:true}); toast(`${app()} connected.`); }
@@ -1277,12 +1360,20 @@ document.addEventListener("click", async (ev) => {
   else if (a==="syncnow"){ patchApp(t.dataset.app, {lastSync:"Just now"}); toast(`${t.dataset.app} synced.`); }
   else if (a==="toCE"){ toast("Sent to the CloudEagle team."); }
 });
+document.addEventListener("focusin", e => { if (e.target.id==="aApp" && e.target.value){ S.suggOpen=true; drawSugg(); } else if (!e.target.closest?.(".ac")){ S.suggOpen=false; drawSugg(); } });
 document.addEventListener("keydown", e => {
+  if (e.target.id==="aApp" && ["ArrowDown","ArrowUp","Enter"].includes(e.key)){
+    const items=[...document.querySelectorAll(".sugg button")]; if (!items.length) return; let k=items.findIndex(b=>b.classList.contains("kb"));
+    if (e.key==="Enter"){ e.preventDefault(); (items[k]||items[0]).click(); return; }
+    e.preventDefault(); items.forEach(b=>b.classList.remove("kb")); k = e.key==="ArrowDown" ? Math.min(k+1,items.length-1) : Math.max(k-1,0); items[k].classList.add("kb"); return;
+  }
   if (e.key==="Escape"){ if (S.modal) set({modal:null}); else if (S.open) set({open:null}); }
   if ((e.key==="Enter"||e.key===" ") && e.target.classList?.contains("appcard")){ e.preventDefault(); e.target.click(); }
 });
 document.addEventListener("input", (ev) => {
   const t = ev.target;
+  if (t.id==="aApp"){ S.addDraft.app=t.value; S.suggOpen=true; S.addErr={}; drawSugg(); refreshAddBtn(); return; }
+  if (t.id==="aDocs"||t.id==="aEmail"){ readAddDraft(); refreshAddBtn(); return; }
   if (t.id==="q"){ S.query=t.value; save(); const pos=t.selectionStart; render(); const q=document.getElementById("q"); q.focus(); q.setSelectionRange(pos,pos); }
   else if (t.id==="docsText"){ S.I.docsText=t.value; save(); }
   else if (t.id==="docsUrl"){ S.I.docsUrl=t.value; save(); }

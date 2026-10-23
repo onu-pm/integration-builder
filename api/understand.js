@@ -14,15 +14,15 @@ export default async function handler(req, res) {
     const appName = String(app).slice(0, 80) || "the app";
     const isCalendly = appName.trim().toLowerCase() === "calendly";
 
-    let docs = "", source = "";
+    let docs = "", source = "", pages = 0;
     if (docsText && docsText.trim().length >= 200) {
       docs = String(docsText).slice(0, 200_000); source = "pasted";
     } else if (docsUrl) {
-      try { docs = await fetchDocs(docsUrl); source = "fetched"; } catch (e) { docs = ""; source = "fetch_failed:" + e.message; }
+      try { const d = await fetchDocs(docsUrl); docs = d.text; pages = d.pages; source = d.via === "rendered" ? "rendered" : d.via === "openapi" ? "openapi" : "fetched"; } catch (e) { docs = ""; source = "fetch_failed:" + e.message; }
       if (docs.length < 1500) {
         if (isCalendly) { docs = calendlyReference(); source = "captured"; }
         else if (source.startsWith("fetch_failed:")) return send(res, 422, { error: `Couldn't read the docs link (${source.slice(13)}). Paste the API reference text instead.` });
-        else return send(res, 422, { error: "That docs page loads its content with JavaScript, so the server got almost no text. Paste the API reference text instead." });
+        else return send(res, 422, { error: "We opened the docs but found almost no text (it may need a login). Paste the API reference text instead." });
       }
     } else if (isCalendly) {
       docs = calendlyReference(); source = "captured";
@@ -30,6 +30,8 @@ export default async function handler(req, res) {
       return send(res, 400, { error: "Add a docs link or paste the documentation text." });
     }
 
+    // For Calendly, also add the checked reference (scopes, extra endpoints) so the demo is always complete.
+    if (isCalendly && source !== "captured") docs += "\n\n=== CHECKED CALENDLY REFERENCE ===\n" + calendlyReference();
     const hitsFound = injectionHits(docs);
     if (hitsFound.length) return send(res, 422, { error: "Stopped: the documentation contains text aimed at the AI (possible prompt injection).", injection: hitsFound });
 
@@ -58,7 +60,7 @@ Set missing_users to true only if the documentation has no way to list users.`, 
     u.field_map = Array.isArray(u.field_map) ? u.field_map.filter((f) => f && f.field) : [];
     u.more_apis = Array.isArray(u.more_apis) ? u.more_apis.filter((x) => x && x.api).slice(0, 6) : [];
     u.scopes = Array.isArray(u.scopes) ? u.scopes.filter((x) => x && x.name) : [];
-    return send(res, 200, { understanding: u, source, docsChars: docs.length, model: lastModelUsed });
+    return send(res, 200, { understanding: u, source, pages, docsChars: docs.length, model: lastModelUsed });
   } catch (e) {
     return send(res, e.status || 500, { error: e.message || "Something went wrong" });
   }

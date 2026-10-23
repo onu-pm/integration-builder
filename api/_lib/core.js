@@ -67,21 +67,64 @@ export function htmlToText(html) {
     .trim();
 }
 
+async function get(url, ms, headers = {}) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctl.signal, redirect: "follow", headers: { "User-Agent": "AI-Integration-Builder-Prototype/1.0", Accept: "text/html,text/plain,application/json,application/yaml", ...headers } });
+    if (!r.ok) throw new Error(`returned ${r.status}`);
+    return { raw: (await r.text()).slice(0, 3_000_000), type: r.headers.get("content-type") || "" };
+  } finally { clearTimeout(timer); }
+}
+// Pages built with JavaScript come back almost empty from a plain fetch. A reader service renders them first.
+// JINA_API_KEY is optional (raises the free rate limit).
+async function rendered(url, ms) {
+  const h = { Accept: "text/plain", "X-Return-Format": "markdown", "X-With-Links-Summary": "true" };
+  if (process.env.JINA_API_KEY) h.Authorization = `Bearer ${process.env.JINA_API_KEY}`;
+  const r = await get("https://r.jina.ai/" + url, ms, h);
+  return r.raw;
+}
+const isSpec = (t) => /^\s*[{]?\s*["']?(openapi|swagger)["']?\s*:/m.test(t.slice(0, 2000));
+const RELATED = /user|member|people|account|auth|oauth|token|scope|permission|paginat|rate.?limit|limit|error|admin|organi[sz]ation|licen[sc]e|seat|audit|activity|usage|report|log/i;
+function links(text, base) {
+  const out = new Set(); const b = new URL(base);
+  const re = /\]\((https?:\/\/[^)\s]+)\)|href="([^"#]+)"/g; let m;
+  while ((m = re.exec(text))) {
+    try {
+      const u = new URL(m[1] || m[2], base); u.hash = "";
+      if (u.hostname !== b.hostname || u.href === b.href) continue;
+      if (!/^https?:$/.test(u.protocol) || /\.(png|jpe?g|svg|gif|css|js|ico|woff2?)$/i.test(u.pathname)) continue;
+      if (RELATED.test(u.pathname)) out.add(u.href);
+    } catch {}
+  }
+  return [...out];
+}
+// Reads the docs link, renders it if needed, then follows up to 6 related pages on the same site.
 export async function fetchDocs(url) {
   const u = new URL(url);
   if (!["http:", "https:"].includes(u.protocol)) throw new Error("Only http(s) links are supported");
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 15000);
+  const started = Date.now();
+  let via = "direct", main = "", rawForLinks = "";
   try {
-    const r = await fetch(u, { signal: ctl.signal, redirect: "follow", headers: { "User-Agent": "AI-Integration-Builder-Prototype/1.0", Accept: "text/html,text/plain,application/json" } });
-    if (!r.ok) throw new Error(`The docs link returned ${r.status}`);
-    const type = r.headers.get("content-type") || "";
-    const body = (await r.text()).slice(0, 2_000_000);
-    const text = type.includes("html") ? htmlToText(body) : body;
-    return text.slice(0, 200_000);
-  } finally {
-    clearTimeout(timer);
+    const r = await get(u.href, 10000);
+    if (isSpec(r.raw)) return { text: r.raw.slice(0, 200_000), pages: 1, via: "openapi" };
+    rawForLinks = r.raw;
+    main = r.type.includes("html") ? htmlToText(r.raw) : r.raw;
+  } catch (e) { main = ""; via = "direct_failed:" + e.message; }
+  if (main.length < 3000) {
+    try { const md = await rendered(u.href, 15000); if (md.length > main.length) { main = md; rawForLinks = md; via = "rendered"; } } catch (e) { if (!main) throw new Error(`couldn't open the page (${e.message})`); }
   }
+  let pages = 1; let text = main.slice(0, 80_000);
+  const more = links(rawForLinks, u.href).slice(0, 6);
+  const left = 24000 - (Date.now() - started);
+  if (more.length && left > 4000) {
+    const got = await Promise.allSettled(more.map(async (l) => {
+      if (via === "rendered") return [l, (await rendered(l, left)).slice(0, 25_000)];
+      const r = await get(l, left); return [l, (r.type.includes("html") ? htmlToText(r.raw) : r.raw).slice(0, 25_000)];
+    }));
+    for (const g of got) if (g.status === "fulfilled" && g.value[1].length > 300) { text += `\n\n=== PAGE ${g.value[0]} ===\n${g.value[1]}`; pages++; }
+  }
+  return { text: text.slice(0, 200_000), pages, via };
 }
 
 function parseJson(text, who) {

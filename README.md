@@ -11,8 +11,8 @@ Concept by **Anupam Kalita** for the CloudEagle Senior Product Manager assignmen
 Two people use it: **Priya** (IT admin) and **Ravi** (the developer she assigns). To add an app that isn't in the grid, click **+ New integration** (or search for it, try *Calendly*), then choose **I'll build it with AI** or **Assign a developer**. Both follow the same four steps:
 
 1. **Data and access** — the admin picks the fields CloudEagle needs (name, email and status are always on; role, last active, usage and date added are recommended; department, manager and job title are optional). Each field says what it's used for. The developer adds technical fields the code needs (app user ID, account ID, last changed, or a custom one). The admin approves read-only access to exactly these fields; anything the developer adds later is flagged for her before go-live.
-2. **Create the code** — paste the API docs link or text, pick a language (Python, Node.js, Java, Go). The AI shows where each requested field comes from in the API (available, plan-limited, or not in the API) and the exact read-only permissions (scopes) the code needs. Safety and automatic checks run on their own.
-3. **Test it** — connect a test account (or do a read-only check on the company account), read the test report and approve it.
+2. **Generate the code** — paste the API docs link or text, pick a language (Python, Node.js, Java, Go). The AI shows where each requested field comes from in the API (available, plan-limited, or not in the API) and the exact read-only permissions (scopes) the code needs. Safety and automatic checks run on their own.
+3. **Test it** — three tests from safest to most real: (1) a sandbox test against a simulated app with 214 made-up people and forced errors, (2) a test account the user controls (with a how-to guide per app), (3) a read-only first-sync check on the company account in step 4.
 4. **Turn it on** — the admin reviews the permissions page (what CloudEagle can read, what it will never do, the app scopes), connects the company account, checks the first sync and turns it on.
 
 Every **Connect** button (for built-in apps too) opens the same permissions screen before the app's sign-in. Switch between Priya and Ravi from the account menu (top right) or the buttons in the pop-up messages. The bell shows what each person needs to do.
@@ -61,3 +61,7 @@ engine/                    the Python engine behind the prototype document
 ```
 
 Run the engine tests: `pip install requests pyyaml pytest flask && python -m pytest engine/calendly_integration/tests -v`
+
+## Reading any API docs
+
+`fetchDocs` reads the link directly. If the page is built with JavaScript (little text comes back), it renders it through the r.jina.ai reader (optional `JINA_API_KEY` raises its free limit). It then follows up to 6 related pages on the same site (users, auth, pagination, limits, errors). OpenAPI/Swagger files are read as they are. Docs behind a login can't be read: paste the text instead.
