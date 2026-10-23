@@ -97,7 +97,7 @@ function parseJson(text, who) {
   }
 }
 
-async function callNvidia(prompt, { maxOutputTokens, temperature }) {
+export async function callNvidia(prompt, { maxOutputTokens, temperature }, model = MODEL) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 50000);
   try {
@@ -106,7 +106,7 @@ async function callNvidia(prompt, { maxOutputTokens, temperature }) {
       signal: ctl.signal,
       headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${process.env.NVIDIA_API_KEY}` },
       body: JSON.stringify({
-        model: MODEL,
+        model,
         messages: [
           { role: "system", content: "You reply with one valid JSON value only. No markdown, no explanations." },
           { role: "user", content: prompt },
