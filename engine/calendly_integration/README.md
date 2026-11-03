@@ -1,6 +1,6 @@
-# Calendly integration for CloudEagle (AI-generated, read-only)
+# Calendly integration for Fetch (AI-generated, read-only)
 
-Retrieves Calendly users and usage and maps them to CloudEagle's standard user record.
+Retrieves Calendly users and usage and maps them to Fetch's standard user record.
 
 ## What it needs
 - A Calendly **Owner or Admin** token (Calendly only lists all organization members for these roles).
@@ -8,7 +8,7 @@ Retrieves Calendly users and usage and maps them to CloudEagle's standard user r
 - Python 3.10+, `pip install requests pyyaml`.
 
 ## Run order (enforced by the code)
-1. **Simulated sandbox** (CloudEagle): `python -m pytest tests` (no account needed)
+1. **Simulated sandbox** (Fetch): `python -m pytest tests` (no account needed)
 2. **Trial account**: point `config/sandbox.yaml` at `https://api.calendly.com`, then
    `python -m calendly_integration.sync --stage sandbox`. Check the user count against Calendly's admin panel.
 3. **Limited production run**: `python -m calendly_integration.sync --stage production --limited`

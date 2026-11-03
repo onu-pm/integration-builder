@@ -1,6 +1,6 @@
-"""CloudEagle simulated sandbox for Calendly.
+"""Fetch simulated sandbox for Calendly.
 
-Calendly has no developer sandbox, so CloudEagle builds a simulated API from
+Calendly has no developer sandbox, so Fetch builds a simulated API from
 the documentation: same paths, parameters, response shapes, cursor pagination,
 rate-limit headers and error codes. Generated code is tested here before it
 touches any real account. Test data is fictional.

@@ -85,10 +85,10 @@ def run(stage, limited=False, client=None):
     with open(os.path.join(REPORTS, name), "w") as f:
         json.dump(summary, f, indent=2)
 
-    if not limited and config.get("deliver_to_cloudeagle"):
+    if not limited and config.get("deliver_to_fetch"):
         out = os.path.join(REPORTS, f"{stage}_records.json")
         with open(out, "w") as f:
-            json.dump(records, f, indent=2)  # hand-off point to CloudEagle ingestion (assumed)
+            json.dump(records, f, indent=2)  # hand-off point to Fetch ingestion (assumed)
     return summary, records
 
 

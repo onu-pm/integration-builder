@@ -1,13 +1,13 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Direct Integrations · CloudEagle</title>
+<title>Direct Integrations · Fetch</title>
 <meta name="description" content="Prototype: request a missing SaaS integration, generate it with AI from API docs, test it, and go live with approval.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
 
 <style>
-/* CloudEagle-style admin shell: navy sidebar, light workspace, white cards. Matches the Figma frames. */
+/* Fetch-style admin shell: navy sidebar, light workspace, white cards. Matches the Figma frames. */
 :root{
   --navy:#0F1B3D; --side-text:#C9D1E8; --side-muted:#7F8BB0;
   --primary:#3B5BDB; --primary-dark:#2A45B0; --primary-soft:#E3EBFF;
@@ -303,7 +303,7 @@ button.nav:hover{background:rgba(255,255,255,.08)}
 </style>
 <style>*{animation:none!important;transition:none!important}.side{position:static!important;height:auto!important;min-height:100vh}.top{position:static!important}.scrim{position:absolute!important}</style></head>
 <body>
-<div class="app" id="root"><nav class="side" aria-label="Main"><div class="brand">CloudEagle</div>
+<div class="app" id="root"><nav class="side" aria-label="Main"><div class="brand">Fetch</div>
     <div class="nav dim" title="Not part of this prototype"><span class="box"></span>Dashboard</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Applications</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Users</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Contracts</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Renewals</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Spend</div>
     <div class="nav head"><span class="box"></span>Admin Settings</div>
     <div class="nav sub">Integrations</div>
@@ -313,7 +313,7 @@ button.nav:hover{background:rgba(255,255,255,.08)}
       </div>
     <div class="menuwrap"><button class="acct" data-act="toggleAcct" aria-expanded="false"><span class="avatar ">PS</span><span class="who"><b>Priya Sharma</b><span>IT Admin</span></span> ▾</button>
       </div></header><main class="content "><nav class="crumb" aria-label="Breadcrumb"><button class="crumblink" data-act="goIntegrations">Admin Settings</button> <span class="faint">/</span> <button class="crumblink" data-act="goIntegrations">Integrations</button> <span class="faint">/</span> <b>Direct Integrations</b></nav>
-  <div class="spread"><div><h1>Direct Integrations</h1><p class="lede">Connect your apps so CloudEagle can see who uses them and which licences go unused.</p></div>
+  <div class="spread"><div><h1>Direct Integrations</h1><p class="lede">Connect your apps so Fetch can see who uses them and which licences go unused.</p></div>
     <button class="btn primary" data-act="addBlank">+ New integration</button></div>
   
   <div class="spread"><div class="searchbox"><span class="muted">⌕</span><input id="q" aria-label="Search apps" value="" placeholder="Search apps" style=""></div>
@@ -345,7 +345,7 @@ button.nav:hover{background:rgba(255,255,255,.08)}
     <div class="row" style="margin-top:auto"><button class="btn sm" data-act="syncnow" data-app="Salesforce">Sync now</button><span class="small faint" style="margin-left:auto">Open →</span></div>
   </div><div class="appcard " role="button" tabindex="0" data-act="openApp" data-app="Okta">
     <div class="row"><span class="logo">O<img src="https://www.google.com/s2/favicons?domain=okta.com&amp;sz=64" alt="" loading="lazy" onerror="this.remove()"></span><div style="flex:1;min-width:0"><b>Okta</b><div class="small muted">Sign-in (SSO)</div></div><span class="pill green">Connected</span></div>
-    <p class="small">Brings in everyone who signs in through Okta and which apps they open, so CloudEagle can spot apps nobody uses.</p>
+    <p class="small">Brings in everyone who signs in through Okta and which apps they open, so Fetch can spot apps nobody uses.</p>
     <div class="row small muted">Last synced Today, 6:00 AM</div>
     <div class="row" style="margin-top:auto"><button class="btn sm" data-act="syncnow" data-app="Okta">Sync now</button><span class="small faint" style="margin-left:auto">Open →</span></div>
   </div><div class="appcard " role="button" tabindex="0" data-act="openApp" data-app="PagerDuty">
@@ -359,7 +359,7 @@ button.nav:hover{background:rgba(255,255,255,.08)}
     <div class="row small muted">Not connected yet</div>
     <div class="row" style="margin-top:auto"><button class="btn sm primary" data-act="connectApp" data-app="Jira">Connect</button><span class="small faint" style="margin-left:auto">Open →</span></div>
   </div></div>
-  <div class="small faint">Can't find an app? Use <b>New integration</b>. CloudEagle reads the app's API documentation and writes the integration with AI.</div></main></div></div>
+  <div class="small faint">Can't find an app? Use <b>New integration</b>. Fetch reads the app's API documentation and writes the integration with AI.</div></main></div></div>
 <div id="overlay"></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 

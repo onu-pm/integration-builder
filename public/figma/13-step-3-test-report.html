@@ -1,13 +1,13 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Direct Integrations · CloudEagle</title>
+<title>Direct Integrations · Fetch</title>
 <meta name="description" content="Prototype: request a missing SaaS integration, generate it with AI from API docs, test it, and go live with approval.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
 
 <style>
-/* CloudEagle-style admin shell: navy sidebar, light workspace, white cards. Matches the Figma frames. */
+/* Fetch-style admin shell: navy sidebar, light workspace, white cards. Matches the Figma frames. */
 :root{
   --navy:#0F1B3D; --side-text:#C9D1E8; --side-muted:#7F8BB0;
   --primary:#3B5BDB; --primary-dark:#2A45B0; --primary-soft:#E3EBFF;
@@ -303,7 +303,7 @@ button.nav:hover{background:rgba(255,255,255,.08)}
 </style>
 <style>*{animation:none!important;transition:none!important}.side{position:static!important;height:auto!important;min-height:100vh}.top{position:static!important}.scrim{position:absolute!important}</style></head>
 <body>
-<div class="app" id="root"><nav class="side" aria-label="Main"><div class="brand">CloudEagle</div>
+<div class="app" id="root"><nav class="side" aria-label="Main"><div class="brand">Fetch</div>
     <div class="nav dim" title="Not part of this prototype"><span class="box"></span>Dashboard</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Applications</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Users</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Contracts</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Renewals</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Spend</div>
     <div class="nav head"><span class="box"></span>Admin Settings</div>
     <div class="nav sub">Integrations</div>
@@ -333,15 +333,15 @@ X-RateLimit-Reset: 2</div>
   "title": "Too Many Requests",
   "message": "Rate limit exceeded"
 }</div></div></div>
-    <div class="grid3"><div class="chk"><span class="m pass">✓</span><span>Found all 214 people across 3 pages (100 + 100 + 14)</span></div><div class="chk"><span class="m pass">✓</span><span>375 meetings counted (last 90 days)</span></div><div class="chk"><span class="m pass">✓</span><span>Hit the request limit, waited 2 seconds and tried again</span></div><div class="chk"><span class="m pass">✓</span><span>Activity log is Enterprise-only: left empty, kept going</span></div><div class="chk"><span class="m pass">✓</span><span>Every person matched to CloudEagle's fields</span></div><div class="chk"><span class="m pass">✓</span><span>Only read data, only from Calendly</span></div></div>
-  </div><div class="datagrid"><div class="card"><div><h2>Test 2 · Test account</h2><div class="small muted">We run the code against a Calendly account and show you exactly what it brings in. Nothing is saved to CloudEagle yet.</div></div><div class="row"><span class="pill green">● Connected: acme-test (trial)</span>
+    <div class="grid3"><div class="chk"><span class="m pass">✓</span><span>Found all 214 people across 3 pages (100 + 100 + 14)</span></div><div class="chk"><span class="m pass">✓</span><span>375 meetings counted (last 90 days)</span></div><div class="chk"><span class="m pass">✓</span><span>Hit the request limit, waited 2 seconds and tried again</span></div><div class="chk"><span class="m pass">✓</span><span>Activity log is Enterprise-only: left empty, kept going</span></div><div class="chk"><span class="m pass">✓</span><span>Every person matched to Fetch's fields</span></div><div class="chk"><span class="m pass">✓</span><span>Only read data, only from Calendly</span></div></div>
+  </div><div class="datagrid"><div class="card"><div><h2>Test 2 · Test account</h2><div class="small muted">We run the code against a Calendly account and show you exactly what it brings in. Nothing is saved to Fetch yet.</div></div><div class="row"><span class="pill green">● Connected: acme-test (trial)</span>
       </div></div><div class="card"><h2>How to test Calendly</h2>
     <ol class="guide"><li>Calendly has no developer sandbox. Start a free trial of a Teams plan with a separate email, for example it+calendly-test@acme.com.</li><li>Invite 3 to 5 teammates: one admin and a few users.</li><li>Book 2 or 3 test meetings, so there is usage to count.</li><li>Click <b>Connect a test account</b>, sign in to the trial and click Allow.</li><li>Run the test. Check the number of people matches Calendly's Admin → Users page.</li></ol>
     <div class="dashed small"><b>Demo test account</b> <span class="pill grey">Prototype</span>
       <div class="kv" style="margin-top:6px">Account: acme-test (trial)
 Email: test.admin@acme-demo.com
 Password: Demo@2026</div>
-      <div class="muted" style="margin-top:6px">Made up for this prototype. In the real product CloudEagle never asks for or shows Calendly passwords: you sign in on Calendly's own page and CloudEagle only keeps a read-only token.</div></div>
+      <div class="muted" style="margin-top:6px">Made up for this prototype. In the real product Fetch never asks for or shows Calendly passwords: you sign in on Calendly's own page and Fetch only keeps a read-only token.</div></div>
     <div class="small muted">Why a test account first? New code should never read your company's real data before you've seen what it does.</div></div></div><div class="report reveal"><div class="rh"><div><b>Test report</b> <span class="small muted">· Calendly trial account “acme-test” · version 1 · Python · 09:16 PM</span></div>
       <div class="row"><span class="pill green">Passed</span><button class="btn sm" data-act="downloadReport">Download report</button></div></div>
     <div class="rb">
@@ -353,7 +353,7 @@ Password: Demo@2026</div>
         <div class="tile"><div class="k">Time taken</div><div class="v">1.1s</div></div>
       </div>
       <div class="grid2"><div class="chk"><span class="m pass">✓</span><span>Signed in with an admin account<span class="n">Found the company account through /users/me</span></span></div><div class="chk"><span class="m pass">✓</span><span>Found all 12 people<span class="n">1 page of results</span></span></div><div class="chk"><span class="m pass">✓</span><span>Read meetings for each person<span class="n">23 meetings in the last 90 days</span></span></div><div class="chk"><span class="m warn">!</span><span>“Last active” isn't available on this plan<span class="n">Only Calendly Enterprise shares it. We leave it empty instead of guessing.</span></span></div><div class="chk"><span class="m pass">✓</span><span>Every person matched to your 11 fields<span class="n">No missing names or emails. Fields not in the API are left empty.</span></span></div><div class="chk"><span class="m pass">✓</span><span>Only read data<span class="n">Nothing was created, changed or deleted</span></span></div></div>
-      <div><h3 style="margin-bottom:8px">What CloudEagle will bring in (sample)</h3><div class="tablebox"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Meetings (90 days)</th><th>Date added</th><th>Last active</th><th>Account</th></tr></thead><tbody>
+      <div><h3 style="margin-bottom:8px">What Fetch will bring in (sample)</h3><div class="tablebox"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Meetings (90 days)</th><th>Date added</th><th>Last active</th><th>Account</th></tr></thead><tbody>
         <tr><td><b>Aarav Mehta</b></td><td><span class="muted">aarav.mehta@acme.com</span></td><td>Owner</td><td>4</td><td>2025-10-27</td><td><span class="faint">Enterprise only</span></td><td><span class="pill green">Active</span></td></tr><tr><td><b>Sneha Iyer</b></td><td><span class="muted">sneha.iyer@acme.com</span></td><td>Admin</td><td>1</td><td>2025-08-15</td><td><span class="faint">Enterprise only</span></td><td><span class="pill green">Active</span></td></tr><tr><td><b>Karan Bose</b></td><td><span class="muted">karan.bose@acme.com</span></td><td>Admin</td><td><span class="pill amber">0</span></td><td>2026-08-05</td><td><span class="faint">Enterprise only</span></td><td><span class="pill green">Active</span></td></tr><tr><td><b>Meera Nair</b></td><td><span class="muted">meera.nair@acme.com</span></td><td>Admin</td><td>1</td><td>2024-06-05</td><td><span class="faint">Enterprise only</span></td><td><span class="pill green">Active</span></td></tr><tr><td><b>Dev Patel</b></td><td><span class="muted">dev.patel@acme.com</span></td><td>User</td><td>4</td><td>2026-06-19</td><td><span class="faint">Enterprise only</span></td><td><span class="pill green">Active</span></td></tr>
       </tbody></table></div></div>
       <details><summary>Every request we sent (4)</summary><div style="margin-top:10px"><div class="pm"><div class="reqs"><div class="t">REQUESTS (4)</div><button class="req s200" data-req="test:0" aria-current="false"><span class="mth">GET</span><span class="p">/users/me</span><span class="st g">200</span></button><button class="req s200" data-req="test:1" aria-current="false"><span class="mth">GET</span><span class="p">/organization_memberships?organization={org}&amp;count=100</span><span class="st g">200</span></button><button class="req s200" data-req="test:2" aria-current="false"><span class="mth">GET</span><span class="p">/scheduled_events?organization={org}&amp;min_start_time={min}&amp;max_start_time={max}&amp;status=active&amp;count=100</span><span class="st g">200</span></button><button class="req s403" data-req="test:3" aria-current="true"><span class="mth">GET</span><span class="p">/activity_log_entries?organization={org}&amp;count=100</span><span class="st a">403 handled</span></button></div>

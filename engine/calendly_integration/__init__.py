@@ -1,1 +1,1 @@
-"""Calendly integration for CloudEagle, generated from Calendly's API documentation."""
+"""Calendly integration for Fetch, generated from Calendly's API documentation."""

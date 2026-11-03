@@ -1,9 +1,9 @@
 """Field mapping: translate Calendly's data structure into one standard
-CloudEagle user record, so Usage and License Management work the same for
-every app. (The CloudEagle record shape is an assumption to confirm with the
-CloudEagle team.)
+Fetch user record, so Usage and License Management work the same for
+every app. (The Fetch record shape is an assumption to confirm with the
+Fetch team.)
 
-Calendly field                              -> CloudEagle field
+Calendly field                              -> Fetch field
 organization_membership.user.uri            -> external_id
 organization_membership.user.name           -> name
 organization_membership.user.email          -> email
@@ -17,7 +17,7 @@ latest activity log entry (Enterprise only) -> last_active
 APPLICATION = "Calendly"
 
 
-def to_cloudeagle_record(membership, meetings, last_active, activity_available):
+def to_fetch_record(membership, meetings, last_active, activity_available):
     user = membership["user"]
     usage = meetings.get(user["uri"], 0)
     active_signal = usage > 0 or bool(last_active)
@@ -37,5 +37,5 @@ def to_cloudeagle_record(membership, meetings, last_active, activity_available):
 
 
 def map_all(memberships, meetings, activity, activity_available):
-    return [to_cloudeagle_record(m, meetings, activity.get(m["user"]["uri"]), activity_available)
+    return [to_fetch_record(m, meetings, activity.get(m["user"]["uri"]), activity_available)
             for m in memberships]

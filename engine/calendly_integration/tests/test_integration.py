@@ -1,4 +1,4 @@
-"""Validation suite: runs the generated integration against CloudEagle's
+"""Validation suite: runs the generated integration against Fetch's
 simulated Calendly. One test per requirement in the brief, plus safeguards."""
 import io
 import json
@@ -193,8 +193,8 @@ def test_client_is_read_only_and_host_restricted(log_stream):
         sim.stop()
 
 
-# Data structures: Calendly -> CloudEagle standard record
-def test_mapping_to_cloudeagle_format(log_stream):
+# Data structures: Calendly -> Fetch standard record
+def test_mapping_to_fetch_format(log_stream):
     logger, _ = log_stream
     sim = Sim()
     try:

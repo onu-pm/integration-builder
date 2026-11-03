@@ -1,13 +1,13 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Direct Integrations · CloudEagle</title>
+<title>Direct Integrations · Fetch</title>
 <meta name="description" content="Prototype: request a missing SaaS integration, generate it with AI from API docs, test it, and go live with approval.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
 
 <style>
-/* CloudEagle-style admin shell: navy sidebar, light workspace, white cards. Matches the Figma frames. */
+/* Fetch-style admin shell: navy sidebar, light workspace, white cards. Matches the Figma frames. */
 :root{
   --navy:#0F1B3D; --side-text:#C9D1E8; --side-muted:#7F8BB0;
   --primary:#3B5BDB; --primary-dark:#2A45B0; --primary-soft:#E3EBFF;
@@ -303,7 +303,7 @@ button.nav:hover{background:rgba(255,255,255,.08)}
 </style>
 <style>*{animation:none!important;transition:none!important}.side{position:static!important;height:auto!important;min-height:100vh}.top{position:static!important}.scrim{position:absolute!important}</style></head>
 <body>
-<div class="app" id="root"><nav class="side" aria-label="Main"><div class="brand">CloudEagle</div>
+<div class="app" id="root"><nav class="side" aria-label="Main"><div class="brand">Fetch</div>
     <div class="nav dim" title="Not part of this prototype"><span class="box"></span>Dashboard</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Applications</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Users</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Contracts</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Renewals</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Spend</div>
     <div class="nav head"><span class="box"></span>Admin Settings</div>
     <div class="nav sub">Integrations</div>
@@ -333,8 +333,8 @@ X-RateLimit-Reset: 2</div>
   "title": "Too Many Requests",
   "message": "Rate limit exceeded"
 }</div></div></div>
-    <div class="grid3"><div class="chk"><span class="m pass">✓</span><span>Found all 214 people across 3 pages (100 + 100 + 14)</span></div><div class="chk"><span class="m pass">✓</span><span>375 meetings counted (last 90 days)</span></div><div class="chk"><span class="m pass">✓</span><span>Hit the request limit, waited 2 seconds and tried again</span></div><div class="chk"><span class="m pass">✓</span><span>Activity log is Enterprise-only: left empty, kept going</span></div><div class="chk"><span class="m pass">✓</span><span>Every person matched to CloudEagle's fields</span></div><div class="chk"><span class="m pass">✓</span><span>Only read data, only from Calendly</span></div></div>
-  </div><div class="datagrid"><div class="card"><div><h2>Test 2 · Test account</h2><div class="small muted">We run the code against a Calendly account and show you exactly what it brings in. Nothing is saved to CloudEagle yet.</div></div><div class="choice">
+    <div class="grid3"><div class="chk"><span class="m pass">✓</span><span>Found all 214 people across 3 pages (100 + 100 + 14)</span></div><div class="chk"><span class="m pass">✓</span><span>375 meetings counted (last 90 days)</span></div><div class="chk"><span class="m pass">✓</span><span>Hit the request limit, waited 2 seconds and tried again</span></div><div class="chk"><span class="m pass">✓</span><span>Activity log is Enterprise-only: left empty, kept going</span></div><div class="chk"><span class="m pass">✓</span><span>Every person matched to Fetch's fields</span></div><div class="chk"><span class="m pass">✓</span><span>Only read data, only from Calendly</span></div></div>
+  </div><div class="datagrid"><div class="card"><div><h2>Test 2 · Test account</h2><div class="small muted">We run the code against a Calendly account and show you exactly what it brings in. Nothing is saved to Fetch yet.</div></div><div class="choice">
       <button class="ch rec on" data-act="pickMode" data-mode="test"><span class="row"><b>Use a test account</b><span class="pill green">Recommended</span></span><span class="small muted">A trial or sandbox Calendly account. Safest choice.</span></button>
       <button class="ch " data-act="pickMode" data-mode="live"><b>Check my company's account (read-only)</b><span class="small muted">No test account? We read only the first 100 people and save nothing.</span></button>
     </div>
@@ -344,14 +344,14 @@ X-RateLimit-Reset: 2</div>
       <div class="kv" style="margin-top:6px">Account: acme-test (trial)
 Email: test.admin@acme-demo.com
 Password: Demo@2026</div>
-      <div class="muted" style="margin-top:6px">Made up for this prototype. In the real product CloudEagle never asks for or shows Calendly passwords: you sign in on Calendly's own page and CloudEagle only keeps a read-only token.</div></div>
+      <div class="muted" style="margin-top:6px">Made up for this prototype. In the real product Fetch never asks for or shows Calendly passwords: you sign in on Calendly's own page and Fetch only keeps a read-only token.</div></div>
     <div class="small muted">Why a test account first? New code should never read your company's real data before you've seen what it does.</div></div></div></main></div></div>
-<div id="overlay"><div class="scrim" role="dialog" aria-modal="true" aria-labelledby="oat"><div class="modal" style="width:min(520px,100%)"><div class="oauth"><div class="spread"><div class="brandline"><span class="logo" style="width:36px;height:36px;font-size:16px">C<img src="https://www.google.com/s2/favicons?domain=calendly.com&amp;sz=64" alt="" loading="lazy" onerror="this.remove()"></span><div><b id="oat">Allow CloudEagle to read Calendly?</b><div class="small muted">Step 2 of 2 · acme-test (trial) · test.admin@acme-demo.com</div></div></div></div>
-    <div><b>CloudEagle</b> is asking for read-only access.</div>
-    <div class="perm"><div><div class="lab2">CloudEagle can read</div><div class="chk"><span class="m pass">✓</span><span>Name</span></div><div class="chk"><span class="m pass">✓</span><span>Work email</span></div><div class="chk"><span class="m pass">✓</span><span>Account status</span></div><div class="chk"><span class="m pass">✓</span><span>Role or licence type</span></div><div class="chk"><span class="m pass">✓</span><span>Last active</span></div><div class="chk"><span class="m pass">✓</span><span>Usage in the last 90 days</span></div><div class="chk"><span class="m pass">✓</span><span>Date added</span></div><div class="chk"><span class="m pass">✓</span><span>App user ID</span></div><div class="chk"><span class="m pass">✓</span><span>Company account ID</span></div><div class="chk"><span class="m pass">✓</span><span>Pending invitations</span></div></div>
-    <div><div class="lab2">CloudEagle will never</div><div class="chk"><span class="m fail">✕</span><span>Create, change or delete anything in Calendly</span></div><div class="chk"><span class="m fail">✕</span><span>Keep details of people outside your company who booked meetings (only the count is kept)</span></div><div class="chk"><span class="m fail">✕</span><span>See passwords or payment details</span></div><div class="chk"><span class="m fail">✕</span><span>Read fields that weren't approved</span></div></div></div>
+<div id="overlay"><div class="scrim" role="dialog" aria-modal="true" aria-labelledby="oat"><div class="modal" style="width:min(520px,100%)"><div class="oauth"><div class="spread"><div class="brandline"><span class="logo" style="width:36px;height:36px;font-size:16px">C<img src="https://www.google.com/s2/favicons?domain=calendly.com&amp;sz=64" alt="" loading="lazy" onerror="this.remove()"></span><div><b id="oat">Allow Fetch to read Calendly?</b><div class="small muted">Step 2 of 2 · acme-test (trial) · test.admin@acme-demo.com</div></div></div></div>
+    <div><b>Fetch</b> is asking for read-only access.</div>
+    <div class="perm"><div><div class="lab2">Fetch can read</div><div class="chk"><span class="m pass">✓</span><span>Name</span></div><div class="chk"><span class="m pass">✓</span><span>Work email</span></div><div class="chk"><span class="m pass">✓</span><span>Account status</span></div><div class="chk"><span class="m pass">✓</span><span>Role or licence type</span></div><div class="chk"><span class="m pass">✓</span><span>Last active</span></div><div class="chk"><span class="m pass">✓</span><span>Usage in the last 90 days</span></div><div class="chk"><span class="m pass">✓</span><span>Date added</span></div><div class="chk"><span class="m pass">✓</span><span>App user ID</span></div><div class="chk"><span class="m pass">✓</span><span>Company account ID</span></div><div class="chk"><span class="m pass">✓</span><span>Pending invitations</span></div></div>
+    <div><div class="lab2">Fetch will never</div><div class="chk"><span class="m fail">✕</span><span>Create, change or delete anything in Calendly</span></div><div class="chk"><span class="m fail">✕</span><span>Keep details of people outside your company who booked meetings (only the count is kept)</span></div><div class="chk"><span class="m fail">✕</span><span>See passwords or payment details</span></div><div class="chk"><span class="m fail">✕</span><span>Read fields that weren't approved</span></div></div></div>
     <div><div class="lab2">Calendly permissions it asks for</div><div class="scopes"><div class="scope-row"><span class="scopename">users:read</span><span class="small muted">Find your company's Calendly account</span></div><div class="scope-row"><span class="scopename">organizations:read</span><span class="small muted">List everyone in the company, with role and date added</span></div><div class="scope-row"><span class="scopename">scheduled_events:read</span><span class="small muted">Count the meetings each person hosted</span></div><div class="scope-row"><span class="scopename">activity_log:read</span><span class="small muted">Last active (Enterprise plan only)</span></div></div><div class="small muted" style="margin-top:6px">All read-only. No write permissions are requested.</div></div>
-    <div class="small muted">This is a test. Nothing is saved to CloudEagle.</div>
+    <div class="small muted">This is a test. Nothing is saved to Fetch.</div>
     <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Deny</button><button class="btn primary" data-act="authAllow">Allow</button></div></div></div></div></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 

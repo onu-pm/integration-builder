@@ -1,13 +1,13 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Direct Integrations · CloudEagle</title>
+<title>Direct Integrations · Fetch</title>
 <meta name="description" content="Prototype: request a missing SaaS integration, generate it with AI from API docs, test it, and go live with approval.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
 
 <style>
-/* CloudEagle-style admin shell: navy sidebar, light workspace, white cards. Matches the Figma frames. */
+/* Fetch-style admin shell: navy sidebar, light workspace, white cards. Matches the Figma frames. */
 :root{
   --navy:#0F1B3D; --side-text:#C9D1E8; --side-muted:#7F8BB0;
   --primary:#3B5BDB; --primary-dark:#2A45B0; --primary-soft:#E3EBFF;
@@ -303,7 +303,7 @@ button.nav:hover{background:rgba(255,255,255,.08)}
 </style>
 <style>*{animation:none!important;transition:none!important}.side{position:static!important;height:auto!important;min-height:100vh}.top{position:static!important}.scrim{position:absolute!important}</style></head>
 <body>
-<div class="app" id="root"><nav class="side" aria-label="Main"><div class="brand">CloudEagle</div>
+<div class="app" id="root"><nav class="side" aria-label="Main"><div class="brand">Fetch</div>
     <div class="nav dim" title="Not part of this prototype"><span class="box"></span>Dashboard</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Applications</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Users</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Contracts</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Renewals</div><div class="nav dim" title="Not part of this prototype"><span class="box"></span>Spend</div>
     <div class="nav head"><span class="box"></span>Admin Settings</div>
     <div class="nav sub">Integrations</div>
@@ -322,13 +322,13 @@ button.nav:hover{background:rgba(255,255,255,.08)}
       <div><button class="btn primary" data-act="saveSettings" data-app="Calendly">Save</button></div></div>
     <div class="card"><h2>Connected account</h2>
       <div class="row"><span class="pill green">● Acme Corp</span><span class="small muted">Connected by Priya Sharma</span><button class="btn sm" data-act="connectApp" data-app="Calendly">Reconnect</button></div></div>
-    <div class="card"><div class="spread"><h2>Permissions</h2><span class="lockchip">🔒 Read-only</span></div><div class="perm"><div><div class="lab2">CloudEagle can read</div><div class="chk"><span class="m pass">✓</span><span>Name</span></div><div class="chk"><span class="m pass">✓</span><span>Work email</span></div><div class="chk"><span class="m pass">✓</span><span>Account status</span></div><div class="chk"><span class="m pass">✓</span><span>Role or licence type</span></div><div class="chk"><span class="m pass">✓</span><span>Last active</span></div><div class="chk"><span class="m pass">✓</span><span>Usage in the last 90 days</span></div><div class="chk"><span class="m pass">✓</span><span>Date added</span></div><div class="chk"><span class="m pass">✓</span><span>App user ID</span></div><div class="chk"><span class="m pass">✓</span><span>Company account ID</span></div><div class="chk"><span class="m pass">✓</span><span>Pending invitations</span></div></div>
-    <div><div class="lab2">CloudEagle will never</div><div class="chk"><span class="m fail">✕</span><span>Create, change or delete anything in Calendly</span></div><div class="chk"><span class="m fail">✕</span><span>Keep details of people outside your company who booked meetings (only the count is kept)</span></div><div class="chk"><span class="m fail">✕</span><span>See passwords or payment details</span></div><div class="chk"><span class="m fail">✕</span><span>Read fields that weren't approved</span></div></div></div>
+    <div class="card"><div class="spread"><h2>Permissions</h2><span class="lockchip">🔒 Read-only</span></div><div class="perm"><div><div class="lab2">Fetch can read</div><div class="chk"><span class="m pass">✓</span><span>Name</span></div><div class="chk"><span class="m pass">✓</span><span>Work email</span></div><div class="chk"><span class="m pass">✓</span><span>Account status</span></div><div class="chk"><span class="m pass">✓</span><span>Role or licence type</span></div><div class="chk"><span class="m pass">✓</span><span>Last active</span></div><div class="chk"><span class="m pass">✓</span><span>Usage in the last 90 days</span></div><div class="chk"><span class="m pass">✓</span><span>Date added</span></div><div class="chk"><span class="m pass">✓</span><span>App user ID</span></div><div class="chk"><span class="m pass">✓</span><span>Company account ID</span></div><div class="chk"><span class="m pass">✓</span><span>Pending invitations</span></div></div>
+    <div><div class="lab2">Fetch will never</div><div class="chk"><span class="m fail">✕</span><span>Create, change or delete anything in Calendly</span></div><div class="chk"><span class="m fail">✕</span><span>Keep details of people outside your company who booked meetings (only the count is kept)</span></div><div class="chk"><span class="m fail">✕</span><span>See passwords or payment details</span></div><div class="chk"><span class="m fail">✕</span><span>Read fields that weren't approved</span></div></div></div>
     <div><div class="lab2">Calendly permissions it asks for</div><div class="scopes"><div class="scope-row"><span class="scopename">users:read</span><span class="small muted">Find your company's Calendly account</span></div><div class="scope-row"><span class="scopename">organizations:read</span><span class="small muted">List everyone in the company, with role and date added</span></div><div class="scope-row"><span class="scopename">scheduled_events:read</span><span class="small muted">Count the meetings each person hosted</span></div><div class="scope-row"><span class="scopename">activity_log:read</span><span class="small muted">Last active (Enterprise plan only)</span></div></div><div class="small muted" style="margin-top:6px">All read-only. No write permissions are requested.</div></div><div class="small muted">To change the fields, make a new version below. Each new version is approved again.</div></div>
     <div class="card"><h2>Versions</h2><div class="tablebox"><table><thead><tr><th>Version</th><th>Status</th><th>Language</th><th>Approved by</th><th></th></tr></thead><tbody>
       <tr><td><b>v1</b></td><td><span class="pill green">Live</span></td><td>Python</td><td>Priya Sharma</td><td><button class="linkbtn" data-act="viewCode">View code</button></td></tr></tbody></table></div>
       <div class="row"><button class="btn" data-act="regenAsk">Make a new version</button><span class="small muted">Use this when Calendly changes its API. The current version keeps running until the new one is approved.</span></div></div>
-    <div class="card danger"><h2>Disconnect</h2><div class="row"><span class="small muted">CloudEagle stops syncing Calendly. Data you already have stays.</span><button class="btn" data-act="disconnectAsk" data-app="Calendly">Disconnect Calendly</button></div></div></div></main></div></div>
+    <div class="card danger"><h2>Disconnect</h2><div class="row"><span class="small muted">Fetch stops syncing Calendly. Data you already have stays.</span><button class="btn" data-act="disconnectAsk" data-app="Calendly">Disconnect Calendly</button></div></div></div></main></div></div>
 <div id="overlay"></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 

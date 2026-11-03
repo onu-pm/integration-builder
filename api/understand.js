@@ -3,7 +3,7 @@
 import { RULES, calendlyReference, fetchDocs, gemini, injectionHits, rateLimited, readBody, send } from "./_lib/core.js";
 import { lastModelUsed } from "./_lib/core.js";
 
-const SHAPE = `{"base_url": "...", "auth": "methods in one line", "auth_warning": "required role, or null", "users_steps": ["METHOD /path → what it gives", "..."], "usage": ["signal — METHOD /path (plan restriction if any)", "..."], "usage_note": "one line, or null", "pagination": "one line", "rate_limits": ["...", "..."], "mapping": [["app field", "CloudEagle field"], ...], "field_map": [{"field": "<key from the requested list>", "source": "where it comes from, e.g. METHOD /path → json.path", "status": "yes | plan | no", "note": "plan restriction or why it's missing, or null"}], "scopes": [{"name": "exact permission/scope name from the docs, or UNKNOWN", "why": "which field needs it"}], "more_apis": [{"id": "short-id", "api": "GET /path", "label": "short name", "gives": "what it returns", "why": "how it helps track licences or usage", "scope": "exact permission name, or UNKNOWN", "block": false}], "unknowns": ["things the docs don't state"], "missing_users": false}`;
+const SHAPE = `{"base_url": "...", "auth": "methods in one line", "auth_warning": "required role, or null", "users_steps": ["METHOD /path → what it gives", "..."], "usage": ["signal — METHOD /path (plan restriction if any)", "..."], "usage_note": "one line, or null", "pagination": "one line", "rate_limits": ["...", "..."], "mapping": [["app field", "Fetch field"], ...], "field_map": [{"field": "<key from the requested list>", "source": "where it comes from, e.g. METHOD /path → json.path", "status": "yes | plan | no", "note": "plan restriction or why it's missing, or null"}], "scopes": [{"name": "exact permission/scope name from the docs, or UNKNOWN", "why": "which field needs it"}], "more_apis": [{"id": "short-id", "api": "GET /path", "label": "short name", "gives": "what it returns", "why": "how it helps track licences or usage", "scope": "exact permission name, or UNKNOWN", "block": false}], "unknowns": ["things the docs don't state"], "missing_users": false}`;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return send(res, 405, { error: "Use POST" });
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 ${docs.slice(0, 150_000)}
 </documentation>
 
-Extract how to retrieve users and usage data for ${appName} so CloudEagle can track licences. For users_steps, use the core endpoint that lists ALL users/members of the workspace or organization (not a niche or beta feature). Keep every string short.
+Extract how to retrieve users and usage data for ${appName} so Fetch can track licences. For users_steps, use the core endpoint that lists ALL users/members of the workspace or organization (not a niche or beta feature). Keep every string short.
 Reply with ONLY a JSON object of exactly this shape (short strings, no markdown):
 ${SHAPE}
 The company asked for these fields (key: label): ${JSON.stringify(wanted)}
