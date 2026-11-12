@@ -33,6 +33,17 @@ async function inspect(url) {
     return { ok: false, url, why: e.message, score: -1, docsLinks: [], postmanLinks: [] };
   }
 }
+// Google results via Serper (needs SERPER_API_KEY). Returns [{title, link}].
+async function serper(q) {
+  try {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 6000);
+    const r = await fetch("https://google.serper.dev/search", { method: "POST", signal: ctl.signal, headers: { "X-API-KEY": process.env.SERPER_API_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ q, num: 8 }) });
+    clearTimeout(t);
+    if (!r.ok) { console.error("serper status", r.status); return []; }
+    const d = await r.json();
+    return (d.organic || []).filter((x) => /^https:\/\//.test(x.link || "")).map((x) => ({ title: String(x.title || "").slice(0, 120), link: x.link }));
+  } catch { return []; }
+}
 const ASSET = /\.(png|ico|svg|jpe?g|gif|webp|css|js|woff2?)(\?|#|$)/i;
 const postmanFrom = (checks) => checks.flatMap((c) => c.postmanLinks || [])[0] || null;
 const rootOf = (h) => h.replace(/^www\./, "").split(".").slice(-2).join(".");
@@ -66,12 +77,20 @@ If the vendor publishes its API documentation on Postman (a documenter.getpostma
 If "${name}" is not a real software product with a public API, set found to false.
 Reply with ONLY a JSON object, no markdown:
 {"found": true, "app": "official product name", "domain": "vendor's main website domain, e.g. example.com", "candidates": ["best API reference URL", "second-best URL", "third"], "api_base_url": "https://... or UNKNOWN"}`;
-    let out;
-    try {
-      out = await llm(ask(`Use Google Search. First search: site:documenter.getpostman.com ${name}. Then search for the official API reference.`), { search: true, maxOutputTokens: 1024, temperature: 0, budgetMs: 12000 });
-    } catch (e) {
-      // Search grounding has its own quota. Fall back to the model's own knowledge, then check the usual places ourselves.
-      out = await llm(ask("Use what you know about this product's developer site."), { maxOutputTokens: 1024, temperature: 0, budgetMs: 15000 }).catch(() => ({}));
+    let out, results = { pm: [], web: [] };
+    if (process.env.SERPER_API_KEY) {
+      // Real web search (Serper's Google Search API): Postman docs first, then the official reference.
+      const [pm, web] = await Promise.all([serper(`site:documenter.getpostman.com ${name}`), serper(`${name} API reference documentation`)]);
+      results = { pm, web };
+      const list = [...pm, ...web].map((r) => `- ${r.title} — ${r.link}`).join("\n");
+      out = await llm(ask(list ? `These are Google search results; choose from them:\n${list}` : "Use what you know about this product's developer site."), { maxOutputTokens: 1024, temperature: 0, budgetMs: 15000 }).catch(() => ({}));
+    } else {
+      try {
+        out = await llm(ask(`Use Google Search. First search: site:documenter.getpostman.com ${name}. Then search for the official API reference.`), { search: true, maxOutputTokens: 1024, temperature: 0, budgetMs: 12000 });
+      } catch (e) {
+        // Search grounding has its own quota. Fall back to the model's own knowledge, then check the usual places ourselves.
+        out = await llm(ask("Use what you know about this product's developer site."), { maxOutputTokens: 1024, temperature: 0, budgetMs: 15000 }).catch(() => ({}));
+      }
     }
 
     // Even when the model doesn't know the product, still check the usual docs places on likely domains.
@@ -84,7 +103,9 @@ Reply with ONLY a JSON object, no markdown:
     if (!domain && aiCands[0]) domain = rootOf(new URL(aiCands[0]).hostname);
     const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "");
     const guesses = domain ? [domain] : [`${slug}.com`, `${slug}.io`, `${slug}.ai`];
-    const first = [...new Set([...aiCands, ...guesses.flatMap((d) => probes(d).slice(0, domain ? 10 : 5))])];
+    const slugRe0 = new RegExp(slug.split("").join("[^a-z0-9]?"), "i");
+    const pmHits = results.pm.filter((r) => isPm(r.link) && (slugRe0.test(r.link) || slugRe0.test(r.title))).map((r) => r.link.split("#")[0]).slice(0, 2);
+    const first = [...new Set([...pmHits, ...aiCands, ...guesses.flatMap((d) => probes(d).slice(0, domain ? 10 : 5))])];
     let checks = await Promise.all(first.map(inspect));
     // Follow links to a dedicated docs site found on the pages we opened.
     const seen = new Set(checks.map((c) => c.url).concat(first));
@@ -93,7 +114,7 @@ Reply with ONLY a JSON object, no markdown:
     // Postman docs come first: linked from the vendor's own pages (trusted), or found by search with the app's name in it.
     const vendorPm = postmanFrom(checks.filter((c) => c.ok && !isPm(c.url) && (!domain || rootOf(new URL(c.url).hostname) === rootOf(domain))));
     const slugRe = new RegExp(slug.split("").join("[^a-z0-9]?"), "i");
-    const searchPm = checks.find((c) => c.ok && !c.blockedBots && isPm(c.url) && (slugRe.test(c.url) || slugRe.test(c.title)));
+    const searchPm = checks.find((c) => c.ok && !c.blockedBots && isPm(c.url) && (pmHits.some((h) => c.url.startsWith(h) || h.startsWith(c.url)) || slugRe.test(c.url) || slugRe.test(c.title)));
     const pmUrl = vendorPm || searchPm?.url;
     if (pmUrl) {
       const official = checks.filter((c) => c.ok && !c.blockedBots && !isPm(c.url) && c.score >= 14 && !ASSET.test(c.url)).sort((a, b) => b.score - a.score).map((c) => c.url);

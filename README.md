@@ -26,6 +26,7 @@ Framework preset **Other**, no build command. Environment variables:
 |---|---|---|
 | `GEMINI_API_KEY` | yes | Google AI Studio key. Never put it in code. |
 | `GEMINI_MODEL` | no | Defaults to `gemini-3.6-flash`; falls back to lighter models when busy. |
+| `SERPER_API_KEY` | no | Google search via serper.dev for finding docs (Postman docs first). Without it, Gemini search or guesses are used. |
 | `JINA_API_KEY` | no | Raises the rate limit of the reader used for JavaScript-rendered docs pages. |
 
 ## Layout
