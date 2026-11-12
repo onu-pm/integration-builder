@@ -321,8 +321,9 @@ footer.f{max-width:1180px;margin:0 auto;padding:0 20px 40px;color:var(--muted);f
 .erow .chev{color:var(--muted2);transition:transform .25s var(--ease);flex:none}
 .erow.open .chev{transform:rotate(90deg)}
 .erow .bd{padding:4px 14px 16px 42px;animation:fade .3s both}
-.erow .bd .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:10px}
-pre.ex{margin:6px 0 0;background:var(--bg);border:1px solid var(--line2);padding:10px 12px;font-family:var(--mono);font-size:12px;line-height:1.55;max-height:260px;overflow:auto;white-space:pre}
+.erow .bd .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;margin-top:10px}
+.erow .bd .grid2 > div{min-width:0}
+pre.ex{max-width:100%;margin:6px 0 0;background:var(--bg);border:1px solid var(--line2);padding:10px 12px;font-family:var(--mono);font-size:12px;line-height:1.55;max-height:260px;overflow:auto;white-space:pre}
 .side2{border-left:1px solid var(--line);background:var(--bg)}
 .side2 .in2{position:sticky;top:64px;max-height:calc(100vh - 80px);overflow:auto;padding:16px}
 .side2 .grp2{margin-top:12px}
@@ -344,7 +345,7 @@ textarea.body:focus{border-color:var(--blue)}
 .confirm{margin:0 14px 14px;padding:12px 14px;border:1px solid #F0DCA0;background:var(--warn-soft);font-size:13px;color:#5c3d00;display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
 .credit{margin-left:auto;color:var(--muted2)} .credit b{color:var(--ink2);font-weight:500}
 @media (max-width:1100px){ .ref{grid-template-columns:200px minmax(0,1fr)} .side2{grid-column:1/-1;border-left:0;border-top:1px solid var(--line)} .side2 .in2{position:static;max-height:none} }
-@media (max-width:760px){ .ref{grid-template-columns:minmax(0,1fr)} .ref .nav{border-right:0;border-bottom:1px solid var(--line)} .ref .nav .in2{position:static;max-height:none;display:flex;overflow-x:auto;padding:8px} .ref .nav .srch{display:none} .ref .nav button.navm{width:auto;white-space:nowrap;border-left:0;border-bottom:2px solid transparent} .ref .nav button.navm.on{border-bottom-color:var(--blue)} .ref .center{padding:4px 12px 20px} .erow .nm{display:none} .erow .bd{padding-left:14px} .erow .bd .grid2{grid-template-columns:1fr} .credit{margin-left:0} }
+@media (max-width:760px){ .ref{grid-template-columns:minmax(0,1fr)} .ref .nav{border-right:0;border-bottom:1px solid var(--line)} .ref .nav .in2{position:static;max-height:none;display:flex;overflow-x:auto;padding:8px} .ref .nav .srch{display:none} .ref .nav button.navm{width:auto;white-space:nowrap;border-left:0;border-bottom:2px solid transparent} .ref .nav button.navm.on{border-bottom-color:var(--blue)} .ref .center{padding:4px 12px 20px} .erow .nm{display:none} .erow .bd{padding-left:14px} .erow .bd .grid2{grid-template-columns:minmax(0,1fr)} .credit{margin-left:0} }
 
 </style>
 </head>
@@ -436,7 +437,7 @@ function vApp(){
     const opts = S.options;
     docs = `<div class="fade" style="margin-top:20px">
       ${S.findNote?`<div class="note warn" style="margin-bottom:12px">${esc(S.findNote)}</div>`:""}
-      ${opts.length?`<span class="label">Pick the API docs page</span><div class="opts" role="radiogroup">${opts.map(o=>`<button class="opt ${S.docsMode==="link"&&S.chosen===o.url?"on":""}" role="radio" aria-checked="${S.chosen===o.url}" data-act="choose" data-u="${esc(o.url)}"><span class="rad"></span><span class="t"><span class="tt">${esc(o.title||short(o.url).split("/")[0])}</span><span class="u">${esc(short(o.url))}</span></span>${kindTag(o)}<a class="open" href="${esc(o.url)}" target="_blank" rel="noopener" data-noact>Open ↗</a></button>`).join("")}</div>`:""}
+      ${opts.length?`<span class="label">Pick the API docs page</span><div class="opts" role="radiogroup">${opts.map(o=>`<button class="opt ${S.docsMode==="link"&&S.chosen===o.url?"on":""}" role="radio" aria-checked="${S.chosen===o.url}" data-act="choose" data-u="${esc(o.url)}"><span class="rad"></span><span class="t"><span class="tt">${esc(o.title||(o.kind==="postman"?`${S.app} API · Postman documentation`:short(o.url).split("/")[0]))}</span><span class="u">${esc(short(o.url))}</span></span>${kindTag(o)}<a class="open" href="${esc(o.url)}" target="_blank" rel="noopener" data-noact>Open ↗</a></button>`).join("")}</div>`:""}
       <div class="row small" style="margin-top:12px;gap:18px;flex-wrap:wrap"><span class="muted">Not listed?</span>
         <button class="link small" data-act="customMode">Use another link</button><button class="link small" data-act="pasteMode">Paste the docs text</button></div>
       ${S.docsMode==="custom"?`<div class="row" style="margin-top:10px"><input class="in mono" id="customUrl" data-in="customUrl" placeholder="https://developer.example.com/api" value="${esc(S.customUrl)}" inputmode="url"><button class="btn line sm" data-act="addCustom" style="height:48px">Add</button></div>`:""}
