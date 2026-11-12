@@ -80,16 +80,16 @@ Reply with ONLY a JSON object, no markdown:
       out = await llm(ask(results.length ? `These are web search results; pick from them or use what you know:\n${results.map((r) => `- ${r.title} — ${r.url}`).join("\n")}` : "Use what you know about this product's developer site."), { maxOutputTokens: 1024, temperature: 0, budgetMs: 15000 });
     }
 
-    if (!out || out.found === false || !Array.isArray(out.candidates) || !out.candidates.length) {
-      const body = { app: name, docsUrl: "", source: "ai", verified: false, notFound: true };
-      cache.set(key, body);
-      return send(res, 200, body);
-    }
+    // Even when the model doesn't know the product, still check the usual docs places on likely domains.
+    out = out && typeof out === "object" ? out : {};
+    if (!Array.isArray(out.candidates)) out.candidates = [];
     const ok = (u) => /^https:\/\/[^\s]+$/.test(u) && !/postman\.com|rapidapi|stackoverflow|medium\.com|github\.com\/[^/]+\/[^/]+\/wiki|vertexaisearch/i.test(u);
     const aiCands = [...new Set(out.candidates.map(String).filter(ok))].slice(0, 3);
     let domain = String(out.domain || "").replace(/[^a-z0-9.-]/gi, "").slice(0, 80);
     if (!domain && aiCands[0]) domain = rootOf(new URL(aiCands[0]).hostname);
-    const first = [...new Set([...aiCands, ...probes(domain)])];
+    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const guesses = domain ? [domain] : [`${slug}.com`, `${slug}.io`, `${slug}.ai`];
+    const first = [...new Set([...aiCands, ...guesses.flatMap((d) => probes(d).slice(0, domain ? 7 : 4))])];
     let checks = await Promise.all(first.map(inspect));
     // Follow links to a dedicated docs site found on the pages we opened.
     const seen = new Set(checks.map((c) => c.url).concat(first));
@@ -97,9 +97,9 @@ Reply with ONLY a JSON object, no markdown:
     if (next.length) checks = checks.concat(await Promise.all(next.map(inspect)));
     // AI's own picks get a small bonus; then the highest score wins.
     for (const c of checks) if (aiCands.includes(c.url)) c.score += 2;
-    const good = checks.filter((c) => c.ok).sort((a, b) => b.score - a.score)[0];
+    const good = checks.filter((c) => c.ok && (domain || aiCands.includes(c.url) || c.score >= 18)).sort((a, b) => b.score - a.score)[0];
     const body = good
-      ? { app: String(out.app || name).slice(0, 80), docsUrl: good.url, domain, source: "ai", verified: !good.blockedBots && good.score >= 18, title: good.title, alternatives: checks.filter((c) => c.ok && c !== good && !c.blockedBots).sort((a, b) => b.score - a.score).slice(0, 3).map((c) => c.url) }
+      ? { app: String(out.app || name).slice(0, 80), docsUrl: good.url, domain, source: "ai", verified: !good.blockedBots && good.score >= 18, title: good.title, alternatives: [...new Set(checks.filter((c) => c.ok && !c.blockedBots && c.score >= 14).sort((a, b) => b.score - a.score).map((c) => c.url.replace(/\/$/, "")))].filter((u) => u !== good.url.replace(/\/$/, "")).slice(0, 3) }
       : { app: name, docsUrl: "", source: "ai", verified: false, notFound: true, tried: first };
     cache.set(key, body);
     return send(res, 200, body);
