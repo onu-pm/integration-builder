@@ -525,7 +525,7 @@ function vApis(){
   const sel = S.selected.map(epById).filter(Boolean);
   const groups = [...new Set(sel.map(e=>e.module))];
   const side = `<aside class="side2"><div class="in2"><div class="spread"><span class="label">Selected · ${sel.length}</span>${sel.length?`<button class="link small" data-act="clearSel">Clear</button>`:""}</div>
-    ${sel.length?groups.map(g=>`<div class="grp2"><div class="gh">${esc(g)}</div>${sel.filter(e=>e.module===g).map(e=>`<div class="si">${mt(e.method)}<span class="p" title="${esc(e.path)}">${esc(e.path)}</span><button class="x" data-act="toggle" data-id="${esc(e.id)}" aria-label="Remove">×</button></div>`).join("")}</div>`).join(""):`<p class="small muted" style="margin:10px 0 0">Tick the endpoints you need. They collect here, grouped by module.</p>`}
+    ${sel.length?groups.map(g=>`<div class="grp2"><div class="gh">${esc(g)}</div>${sel.filter(e=>e.module===g).map(e=>`<div class="si">${mt(full(e).method)}<span class="p" title="${esc(full(e).path||e.summary)}">${esc(full(e).path||e.summary)}</span><button class="x" data-act="toggle" data-id="${esc(e.id)}" aria-label="Remove">×</button></div>`).join("")}</div>`).join(""):`<p class="small muted" style="margin:10px 0 0">Tick the endpoints you need. They collect here, grouped by module.</p>`}
     <div class="acts"><button class="btn blue" data-act="go" data-s="4" ${sel.length?"":"disabled"}>Test selected <span class="arr">→</span></button><button class="btn line sm" data-act="postman" ${sel.length?"":"disabled"}>Postman collection ↓</button></div>
     <hr class="sep" style="margin:18px 0 12px"><span class="label">Auth</span><div class="small" style="margin-top:4px">${esc(authName(R.auth||{}))}</div>
     <div class="small muted" style="margin-top:8px">Base URL <code>${esc(short(R.base_url))}</code>${R.sandbox_base_url?`<br>Sandbox <code>${esc(short(R.sandbox_base_url))}</code>`:""}</div></div></aside>`;
@@ -552,7 +552,7 @@ function epRow(e0, on){
         ${!e.body&&!e.response_example?`<p class="small muted">No examples in the docs.</p>`:""}</div></div>
       <div class="row" style="margin-top:12px;gap:14px"><button class="btn sm ${on?"line":""}" data-act="toggle" data-id="${esc(e.id)}">${on?"Remove from selection":"Select"}</button>${e.docs_url?`<a class="small" href="${esc(e.docs_url)}" target="_blank" rel="noopener">Docs ↗</a>`:""}</div>`;
   }
-  return `<div class="erow ${open?"open":""}"><div class="hd" data-act="openEp" data-id="${esc(e.id)}"><input type="checkbox" data-sel="${esc(e.id)}" ${on?"checked":""} aria-label="Select ${esc(e.method)} ${esc(e.path)}">${mt(e.method)}<span class="path mono">${esc(e.path)}</span><span class="nm">${esc(e.summary)}</span><span class="chev">›</span></div>${open?`<div class="bd">${bd}</div>`:""}</div>`;
+  return `<div class="erow ${open?"open":""}"><div class="hd" data-act="openEp" data-id="${esc(e.id)}"><input type="checkbox" data-sel="${esc(e.id)}" ${on?"checked":""} aria-label="Select ${esc(e.method)} ${esc(e.path)}">${mt(e.method)}<span class="path mono">${e.path?esc(e.path):`<span class="muted" style="font-family:var(--sans)">${esc(e.summary)} · path loads when opened</span>`}</span><span class="nm">${e.path?esc(e.summary):""}</span><span class="chev">›</span></div>${open?`<div class="bd">${bd}</div>`:""}</div>`;
 }
 const pretty = s => { try { return JSON.stringify(JSON.parse(s), null, 2); } catch { return String(s||""); } };
 async function detail(id){
@@ -564,6 +564,8 @@ async function detail(id){
   }catch(err){ detailBusy[id] = "err"; }
   render();
 }
+// Load details for selected endpoints the AI listed without them (3 at a time).
+async function prefetch(){ const todo = S.selected.filter(id=>{ const e=epById(id); return e && !e.detailed && !S.details[id] && !detailBusy[id]; }); const run = async()=>{ while (todo.length){ await detail(todo.shift()); } }; await Promise.all([run(), run(), run()]); }
 function authName(a){ return {bearer:`Bearer token${a.token_name?` (${a.token_name})`:""}`, oauth2:`OAuth 2.0 access token${a.token_name&&!/oauth/i.test(a.token_name)?` or ${a.token_name}`:""}`, api_key_header:`API key in the ${a.header||"X-API-Key"} header`, api_key_query:`API key in the ?${a.query_param||"api_key"} parameter`, basic:"Basic auth (username and password or key)", none:"No authentication needed"}[a.type] || "Token"; }
 
 /* ---------- step 3: tester ---------- */
@@ -614,7 +616,7 @@ function vTest(){
   const now = !g1 ? 1 : !g3 ? 3 : !g4 ? 4 : 0;
   const a = R.auth||{};
   const guide = [[1, S.auth.type==="none"?"No key needed":`Get a ${S.env==="sandbox"?"sandbox":"test"} key`, g1, "keyHelp"], [2, S.auth.type==="none"?"Nothing to add":"Add it in Auth", g1, "tabAuth"], [3, missing?`Fill ${missing} parameter${missing>1?"s":""}`:"Parameters ready", g3, "tabParams"], [4, g4?"Got a response":"Send the request", g4, "send"]];
-  const sel = S.selected.map(epById).filter(Boolean); const mods = [...new Set(sel.map(x=>x.module))];
+  const sel = S.selected.map(epById).filter(Boolean).map(full); const mods = [...new Set(sel.map(x=>x.module))];
   const nq = r.params.length, nh = r.headers.filter(h=>h.key).length + S.auth.extra.length;
   const write = WRITE(e.method);
   const tab = !write && S.reqTab==="body" ? "params" : S.reqTab;
@@ -702,7 +704,9 @@ function hlJson(s){
     str ? (colon ? `<span class="j-k">${str}</span>${colon}` : `<span class="j-s">${str}</span>`) : bool ? `<span class="j-b">${m}</span>` : m==="null" ? `<span class="j-z">${m}</span>` : `<span class="j-n">${m}</span>`);
 }
 async function send(){
-  const e = full(curEp()); const r = req(e.id);
+  const e = full(curEp());
+  if (!e.path){ toast("Still reading this endpoint's path from the docs. Try again in a moment."); detail(e.id); return; }
+  const r = req(e.id);
   const urlEl = $("#reqUrl"); if (urlEl) parseUrlInto(urlEl.value, e, r);
   const miss = r.params.filter(p=>p.req && !p.value);
   if (miss.length){ S.reqTab="params"; render(); return toast(`Fill ${miss.map(p=>p.key).join(", ")} first.`); }
@@ -862,7 +866,7 @@ document.addEventListener("click", ev => {
   const a = t.dataset.act;
   if (a==="home"){ ev.preventDefault(); set({step:1}); }
   else if (a==="reset"){ if (S.app && !confirm("Start over? This clears the current API.")) return; for (const k in RESP) delete RESP[k]; KEY.token=KEY.user=KEY.pass=""; sandboxOk=false; loadErr=null; genErr=""; S = blank(); save(); render(); setTimeout(()=>$("#app")?.focus(), 60); }
-  else if (a==="go"){ const s=+t.dataset.s; if (s===3 && !S.R && busy!=="load") return load(); set({step:s, view:"req"}); }
+  else if (a==="go"){ const s=+t.dataset.s; if (s===3 && !S.R && busy!=="load") return load(); set({step:s, view:"req"}); if (s>=4) prefetch(); }
   else if (a==="pickApp"){ S.app = t.dataset.name; findDocs(); }
   else if (a==="findDocs"){ findDocs(); }
   else if (a==="choose"){ set({chosen:t.dataset.u, docsMode:"link", ...clearBelow()}); }

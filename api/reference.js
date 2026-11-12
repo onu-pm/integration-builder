@@ -100,6 +100,7 @@ ${docs.slice(0, 150_000)}
 </documentation>
 
 List EVERY API endpoint you can find in this documentation, with all methods (GET, POST, PUT, PATCH, DELETE), grouped by module the way the docs group them (sidebar sections such as Users, Organizations, Events). Paths exactly as documented, relative to base_url, path parameters in {braces}. Do not invent endpoints. Up to 150 endpoints.
+Docs sidebars often list endpoint pages by title without showing the path: include those too, with "path": null, the method implied by the title (List/Get → GET, Create → POST, Update → PATCH or PUT, Delete/Remove → DELETE) and the page link in docs_url.
 Reply with ONLY a JSON object:
 {"base_url": "https://... or UNKNOWN", "sandbox_base_url": "https://... or null", "auth": ${AUTH_SHAPE}, "modules": [{"name": "module name", "endpoints": [{"method": "GET", "path": "/v1/things/{id}", "summary": "short name, like the docs' title", "docs_url": "https://... page for this endpoint, or null"}]}], "complete": true, "note": "if the docs you saw don't show every endpoint, say which parts are missing; else null"}`;
       let u = null; const t0 = Date.now();
@@ -112,10 +113,10 @@ Reply with ONLY a JSON object:
       let i = 0;
       const modules = u.modules.filter((m) => m && Array.isArray(m.endpoints)).map((m) => ({
         name: String(m.name || "General").slice(0, 60),
-        endpoints: m.endpoints.filter((e) => e && e.path).slice(0, 80).map((e) => ({
+        endpoints: m.endpoints.filter((e) => e && (e.path || /^https:\/\//.test(e.docs_url || ""))).slice(0, 80).map((e) => ({
           id: (String(e.summary || e.path).toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) || "ep") + "-" + i++,
           module: String(m.name || "General").slice(0, 60), method: METHODS.includes(String(e.method || "").toUpperCase()) ? String(e.method).toUpperCase() : "GET",
-          path: String(e.path).slice(0, 200), summary: String(e.summary || e.path).slice(0, 140), description: "", params: [], headers: [], body: null, response_example: "",
+          path: e.path ? String(e.path).slice(0, 200) : "", pathKnown: !!e.path, summary: String(e.summary || e.path || "Endpoint").slice(0, 140), description: "", params: [], headers: [], body: null, response_example: "",
           docs_url: /^https:\/\//.test(e.docs_url || "") ? String(e.docs_url).slice(0, 300) : null, detailed: false,
         })),
       })).filter((m) => m.endpoints.length);
