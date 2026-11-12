@@ -1,12 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/understand.js": {
-      "maxDuration": 60,
-      "includeFiles": "api/_lib/calendly_reference.txt"
-    },
-    "api/generate.js": {
-      "maxDuration": 60
-    }
-  }
+    "api/discover.js": { "maxDuration": 60, "includeFiles": "api/_lib/calendly_reference.txt" },
+    "api/generate.js": { "maxDuration": 60 },
+    "api/find-docs.js": { "maxDuration": 40 },
+    "api/proxy.js": { "maxDuration": 25 }
+  },
+  "headers": [
+    { "source": "/(.*)", "headers": [
+      { "key": "X-Content-Type-Options", "value": "nosniff" },
+      { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+      { "key": "X-Frame-Options", "value": "DENY" }
+    ] }
+  ]
 }

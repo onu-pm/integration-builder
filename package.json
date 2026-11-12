@@ -2,7 +2,7 @@
   "name": "ai-integration-builder",
   "version": "1.0.0",
   "private": true,
-  "description": "Clickable prototype: request a missing SaaS integration, generate it with AI from API docs, test in a sandbox, approve go-live.",
+  "description": "Fetch: name an app and the fields you need; find the API docs and endpoints with AI, test them live with your own trial key, export to Postman or code.",
   "type": "module",
   "engines": { "node": ">=18" },
   "scripts": {

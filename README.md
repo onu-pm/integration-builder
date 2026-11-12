@@ -1,67 +1,39 @@
-# AI Integration Builder: clickable prototype
+# Fetch: find and test any API
 
-Concept by **Anupam Kalita** for the Fetch Senior Product Manager assignment ("AI-Generated Integration Builder"). Not a Fetch product; all people and data are fictional.
+Live: https://fetch-integration-builder.vercel.app
 
-**The idea:** when an app isn't available in Direct Integrations ("No App found"), the admin requests it and assigns a developer. The developer uses AI to generate the integration code from the app's API documentation, tests it in a sandbox, and the admin approves go-live. Once live, it works like any other integration.
+A developer tool. You already know what you need to build; Fetch gets you from "app name" to a working, tested API call.
 
-## Try it
+1. **App**: type the app's name. Popular apps use a checked docs link; anything else is found with AI web search (Gemini + Google Search), and the link is opened to confirm it loads. You can change it or paste the docs text.
+2. **Fields**: type the fields from your requirement (`email`, `role`, `last_login`, ...).
+3. **APIs**: Fetch reads the docs (and related pages on the same site, or an OpenAPI spec) and returns the read-only endpoints that give those fields: path, parameters, where each field sits in the response, scopes, how auth works, how to get a key on a free/trial account, paging and rate limits.
+4. **Test**: a Postman-style tester. Add your trial key once in **Auth** (collection-level), fill the parameters, **Send**. See status, time, size, pretty JSON, headers, and a check of which of your fields came back. Copy as cURL or download a **Postman Collection (v2.1)** to import into Postman.
+5. **Code**: generate a small read-only client in Python, Node.js, Java or Go, checked by 7 safety rules, and download it as a .zip.
 
-**Direct Integrations** shows every connected app as a card. Click a card to open it: **Overview**, **Usage**, **Licence management** (select unused licences to remove at renewal) and **Settings** (sync frequency, alerts, reconnect, versions, disconnect) all work.
+## Security model
 
-Two people use it: **Priya** (IT admin) and **Ravi** (the developer she assigns). To add an app that isn't in the grid, click **+ New integration** (or search for it, try *Calendly*), then choose **I'll build it with AI** or **Assign a developer**. Both follow the same four steps:
-
-1. **Data and access** — the admin picks the fields Fetch needs (name, email and status are always on; role, last active, usage and date added are recommended; department, manager and job title are optional). Each field says what it's used for. The developer adds technical fields the code needs (app user ID, account ID, last changed, or a custom one). The admin approves read-only access to exactly these fields; anything the developer adds later is flagged for her before go-live.
-2. **Generate the code** — paste the API docs link or text, pick a language (Python, Node.js, Java, Go). The AI shows where each requested field comes from in the API (available, plan-limited, or not in the API) and the exact read-only permissions (scopes) the code needs. Safety and automatic checks run on their own.
-3. **Test it** — three tests from safest to most real: (1) a sandbox test against a simulated app with 214 made-up people and forced errors, (2) a test account the user controls (with a how-to guide per app), (3) a read-only first-sync check on the company account in step 4.
-4. **Turn it on** — the admin reviews the permissions page (what Fetch can read, what it will never do, the app scopes), connects the company account, checks the first sync and turns it on.
-
-Every **Connect** button (for built-in apps too) opens the same permissions screen before the app's sign-in. Switch between Priya and Ravi from the account menu (top right) or the buttons in the pop-up messages. The bell shows what each person needs to do.
-
-**Reset demo** is at the bottom of the left menu.
-
-## What's real and what's simulated
-
-| Real | Simulated |
-|---|---|
-| AI reads the API docs and writes the integration (NVIDIA or Gemini, server-side) when a key is set | Login, invites and roles |
-| Docs link fetched by the server; prompt-injection scan before the AI sees it | Connecting accounts (no credentials are entered) |
-| Safety checks on the generated code (read-only, allowed hosts, no secrets, no dangerous calls, log masking, rate-limit handling) | Test-account responses (a 12-user trial org) |
-| Sandbox run in the browser against a simulated Calendly: 214 users, 3 pages, a 429 retry, Enterprise-only data handled | Production preview, approval and syncing |
-
-Without a key the app runs in **replay mode**: it shows the understanding and code generated earlier from Calendly's docs and labels it as such.
-
-Many docs portals (Calendly's included) render their content with JavaScript, so a server fetch returns little text. For Calendly the server then uses a captured copy of the reference (`api/_lib/calendly_reference.txt`) and the page says so. For other apps, paste the docs text.
-
-**Model note:** the demo runs on a free model (NVIDIA or Gemini). The PRD's recommendation is to choose the model by testing candidates on ~20 integrations already built by hand; the model is one environment variable here.
+- **Keys are never stored.** The key lives only in the open tab's memory (not localStorage, not cookies). It's sent to `/api/proxy` with each request and forwarded to the API. The server doesn't log or keep it. Exports (Postman, cURL, code) use a placeholder (`{{apiKey}}`, `$APP_API_KEY`).
+- **Read-only.** The proxy only sends GET.
+- **SSRF-safe.** https only, standard ports, no credentials in URLs, and every hostname is resolved and checked at connect time: private, loopback, link-local, CGNAT and cloud-metadata ranges are refused, including after redirects. Credentials are dropped on cross-host redirects.
+- **Limits.** Per-IP rate limits (AI runs, searches and test requests), 15 s timeout and 1 MB response cap.
+- **Prompt injection.** Docs are scanned before the AI sees them and treated as data only.
 
 ## Deploy on Vercel
 
-1. Import this repo at vercel.com/new (Framework preset: **Other**; no build command).
-2. **Settings → Environment Variables** — add one AI key:
-   - `NVIDIA_API_KEY` (from build.nvidia.com). Optional `NVIDIA_MODEL` (default `minimaxai/minimax-m3.1-flash`), or
-   - `GEMINI_API_KEY` (from Google AI Studio). Optional `GEMINI_MODEL` (default `gemini-3.6-flash`, free tier).
-   If both are set, NVIDIA is used.
-3. Redeploy. `GET /api/status` shows which provider and model are on.
+Framework preset **Other**, no build command. Environment variables:
 
-Keys are only read by the server functions in `api/`. They are never sent to the browser and never stored in the repo. Each IP is limited to 20 AI calls an hour.
+| Name | Required | Notes |
+|---|---|---|
+| `GEMINI_API_KEY` | yes | Google AI Studio key. Never put it in code. |
+| `GEMINI_MODEL` | no | Defaults to `gemini-3.6-flash`; falls back to lighter models when busy. |
+| `JINA_API_KEY` | no | Raises the rate limit of the reader used for JavaScript-rendered docs pages. |
 
-## Repo layout
+## Layout
 
-```
-public/index.html          the prototype (single page)
-api/status.js              is AI configured?
-api/understand.js          fetch docs → injection scan → AI extracts the integration spec
-api/generate.js            AI writes the integration files from the reviewed spec
-api/_lib/                  shared helpers + captured Calendly reference
-engine/                    the Python engine behind the prototype document
-  calendly_integration/    generated read-only Calendly integration + 13 tests
-  sandbox/                 simulated Calendly API
-  generator/               generation pipeline and static safety checks
-  evidence/                results of the real test and sandbox runs
-```
-
-Run the engine tests: `pip install requests pyyaml pytest flask && python -m pytest engine/calendly_integration/tests -v`
-
-## Reading any API docs
-
-`fetchDocs` reads the link directly. If the page is built with JavaScript (little text comes back), it renders it through the r.jina.ai reader (optional `JINA_API_KEY` raises its free limit). It then follows up to 6 related pages on the same site (users, auth, pagination, limits, errors). OpenAPI/Swagger files are read as they are. Docs behind a login can't be read: paste the text instead.
+- `public/index.html`: the whole front end (no build step).
+- `api/find-docs.js`: app name → docs URL.
+- `api/discover.js`: docs + fields → endpoints, auth, field map.
+- `api/proxy.js`: the tester's GET relay.
+- `api/generate.js`: code generation, in two parallel halves.
+- `api/_lib/`: Gemini client, docs reader, SSRF-safe fetch, app list.
+- `engine/`: an earlier hand-checked reference integration (Python, with tests).

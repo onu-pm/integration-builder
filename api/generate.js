@@ -1,42 +1,38 @@
 // Generate the integration files from the reviewed spec, in the chosen language.
-import { RULES, gemini, rateLimited, readBody, send } from "./_lib/core.js";
-import { lastModelUsed } from "./_lib/core.js";
+import { RULES, lastModelUsed, llm, rateLimited, readBody, send } from "./_lib/core.js";
 
 const LANGS = {
-  python: { label: "Python", lib: "the requests library", ext: ".py", example: "client.py, auth.py, users.py, usage.py, pagination.py, errors.py, logging_config.py, mapping.py" },
-  typescript: { label: "Node.js (TypeScript)", lib: "the built-in fetch API (Node 18+)", ext: ".ts", example: "client.ts, auth.ts, users.ts, usage.ts, pagination.ts, errors.ts, logger.ts, mapping.ts" },
-  java: { label: "Java", lib: "java.net.http.HttpClient and Jackson", ext: ".java", example: "ApiClient.java, Auth.java, Users.java, Usage.java, Pagination.java, ApiErrors.java, Log.java, Mapping.java" },
-  go: { label: "Go", lib: "net/http and encoding/json", ext: ".go", example: "client.go, auth.go, users.go, usage.go, pagination.go, errors.go, logging.go, mapping.go" },
+  python: { label: "Python", lib: "the requests library", ext: ".py", example: "client.py, auth.py, endpoints.py, pagination.py, errors.py, logging_config.py, mapping.py, main.py" },
+  typescript: { label: "Node.js (TypeScript)", lib: "the built-in fetch API (Node 18+)", ext: ".ts", example: "client.ts, auth.ts, endpoints.ts, pagination.ts, errors.ts, logger.ts, mapping.ts, main.ts" },
+  java: { label: "Java", lib: "java.net.http.HttpClient and Jackson", ext: ".java", example: "ApiClient.java, Auth.java, Endpoints.java, Pagination.java, ApiErrors.java, Log.java, Mapping.java, Main.java" },
+  go: { label: "Go", lib: "net/http and encoding/json", ext: ".go", example: "client.go, auth.go, endpoints.go, pagination.go, errors.go, logging.go, mapping.go, main.go" },
 };
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return send(res, 405, { error: "Use POST" });
-  if (rateLimited(req)) return send(res, 429, { error: "Too many requests from this network. Try again in an hour." });
+  if (rateLimited(req, 30)) return send(res, 429, { error: "You've used this hour's AI runs from this network. Try again in an hour." });
   try {
-    const { app = "", understanding, language = "python", fields = [], part = 0 } = await readBody(req);
-    const wanted = (Array.isArray(fields) ? fields : []).slice(0, 30).map((f) => `${String(f.key || "").slice(0, 40)} (${String(f.label || "").slice(0, 60)})`).filter((s) => !s.startsWith(" "));
-    if (!understanding || typeof understanding !== "object") return send(res, 400, { error: "Missing the reviewed understanding." });
+    const { app = "", result: understanding, language = "python", fields = [], part = 0 } = await readBody(req);
+    const wanted = (Array.isArray(fields) ? fields : []).map((f) => String(typeof f === "string" ? f : f?.key || "").trim().slice(0, 60)).filter(Boolean).slice(0, 25);
+    if (!understanding || typeof understanding !== "object" || !Array.isArray(understanding.endpoints)) return send(res, 400, { error: "Find the APIs first." });
     const L = LANGS[language] || LANGS.python;
     const appName = String(app).slice(0, 80) || "the app";
 
     const all = L.example.split(", ");
     const names = part === 1 ? all.slice(0, 4) : part === 2 ? all.slice(4) : all;
-    const contract = `Shared interface (all files are written separately, so use exactly these names, adapted to ${L.label} naming style): client: ApiClient with get(path, params) returning parsed JSON; auth: getToken() reading an environment variable; users: listUsers(client); usage: usageByUser(client, users); pagination: fetchAll(client, path, params, maxPages); errors: ApiError, RateLimitError, AuthError, PlanRestrictedError; logging: getLogger(name) with redact(text); mapping: mapUser(rawUser, usage).`;
-    const out = await gemini(`${RULES}
+    const ids = understanding.endpoints.map((e) => e.id).join(", ");
+    const contract = `Shared interface (files are written separately, so use exactly these names, adapted to ${L.label} naming style): client: ApiClient with get(path, params) returning parsed JSON; auth: auth headers built from environment variables (APP_API_KEY by default); endpoints: one function per endpoint id (${ids}) taking the client and its parameters; pagination: fetchAll(client, path, params, maxPages); errors: ApiError, RateLimitError, AuthError; logging: getLogger(name) and redact(text); mapping: toRecord(raw) returning an object with exactly these keys: ${wanted.join(", ")} (null when the API doesn't return one); main: reads env vars, calls the endpoints in order, maps each item with toRecord and prints JSON.`;
+    const out = await llm(`${RULES}
 
-Write a production-quality ${L.label} integration for ${appName} from this reviewed spec:
+Write a clean, runnable ${L.label} client for ${appName} from this spec:
 ${JSON.stringify(understanding).slice(0, 20_000)}
 
-Use ${L.lib}. Write ONLY these files now (use exactly these names): ${names.join(", ")}. The other files of the project are written separately.
+Use ${L.lib}. Write ONLY these files now (exactly these names): ${names.join(", ")}. The other files of the project are written separately.
 ${contract}
-Responsibilities:
-- client: the only HTTP gateway. GET only, host allow-list, reads rate-limit headers, retries 429 and 5xx with backoff.
-- auth: token from an environment variable, or OAuth refresh if the app supports it.
-- users / usage: retrieve users and usage exactly as the spec says.
-- pagination: follow the app's paging to the last page, support a max pages limit.
-- errors: one error type per documented error code.
+- client: the only HTTP gateway. GET only, only the API's host, reads rate-limit headers, retries 429 and 5xx with backoff.
+- auth: exactly as the spec's auth says (header name, prefix, extra headers).
+- pagination: follow the API's paging to the last page, with a max pages limit.
 - logging: structured JSON logs that mask tokens and emails (write REDACTED).
-- mapping: map to the Fetch user record with exactly these fields: ${wanted.join(", ") || "the standard user record"}. Fields the spec's field_map marks "no" are always null; "plan" fields are null when the API refuses (403). Do not read any other personal data.
 Reply with ONLY a JSON object: {"files": {"<file name>": "<file content>", ...}}
 Keep each file concise (under 70 lines). No long comments.`, { maxOutputTokens: 12288 });
 
