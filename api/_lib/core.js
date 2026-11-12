@@ -96,6 +96,24 @@ function links(text, base, hint) {
   const score = (h) => { const p = new URL(h).pathname; let n = 0; for (const [re, w] of W) if (re.test(p)) n += w; if (hint && hint.test(p)) n += 8; if (/ai[-_]?studio|beta|preview|changelog|webhook/i.test(p)) n -= 8; return n - p.length / 100; };
   return [...out].sort((a, b) => score(b) - score(a));
 }
+// Long single-page docs: keep the start, then the chunks that mention the requested fields, in page order.
+export function focus(text, words, max) {
+  if (text.length <= max) return text;
+  const size = 2500, chunks = [];
+  for (let i = 0; i < text.length; i += size) chunks.push(text.slice(i, i + size));
+  const res = words.map((w) => new RegExp(w.replace(/[^a-z0-9]/g, "").split("").join("[_\\s-]?"), "gi"));
+  const score = chunks.map((c, i) => {
+    if (i < 4) return 1e9;
+    let n = 0; for (const re of res) n += (c.match(re) || []).length * 3;
+    n += (c.match(/\bGET\b|\/api\/|\{[a-z_]+\}|:id\b|endpoint|parameter|response/gi) || []).length;
+    return n;
+  });
+  const order = chunks.map((_, i) => i).sort((a, b) => score[b] - score[a]);
+  const keep = new Set(); let total = 0;
+  for (const i of order) { if (total + chunks[i].length > max) break; if (score[i] <= 0) continue; keep.add(i); total += chunks[i].length; }
+  return chunks.map((c, i) => (keep.has(i) ? c : null)).reduce((out, c, i, arr) => c ? out + c : (arr[i - 1] ? out + "\n[…]\n" : out), "");
+}
+
 // Reads the docs link, renders it if needed, then follows up to 6 related pages on the same site.
 export async function fetchDocs(url, words = []) {
   const ws = words.map((w) => String(w).toLowerCase().replace(/[^a-z0-9]/g, "")).filter((w) => w.length > 2).slice(0, 12);
@@ -113,7 +131,7 @@ export async function fetchDocs(url, words = []) {
   if (main.length < 3000) {
     try { const md = await rendered(u.href, 15000); if (md.length > main.length) { main = md; rawForLinks = md; via = "rendered"; } } catch (e) { if (!main) throw new Error(e.message); }
   }
-  let pages = 1; let text = main.slice(0, 80_000);
+  let pages = 1; let text = focus(main, ws, 90_000);
   const more = links(rawForLinks, u.href, hint).slice(0, 6);
   const left = 24000 - (Date.now() - started);
   if (more.length && left > 4000) {
