@@ -356,7 +356,7 @@ function vApp(){
   const tagFor = S.docsSource==="library" ? `<span class="tag ok">Checked link</span>` : S.docsSource==="ai" ? (S.docsVerified?`<span class="tag blue">Found by AI · opens</span>`:`<span class="tag warn">Found by AI · check it</span>`) : `<span class="tag">Your link</span>`;
   let docs = "";
   if (busy==="find") docs = `<div class="searching fade">${logo(S.app,S.domain,30)}<div style="flex:1"><div>Searching the web for the official ${esc(S.app)} API reference…</div><div class="shimmer" style="width:60%;margin-top:8px"></div></div></div>`;
-  else if (has) docs = `<div class="found fade">${logo(S.app,S.domain,34)}<div class="t"><div class="small muted">API reference</div><a class="u" href="${esc(S.docsUrl)}" target="_blank" rel="noopener">${esc(S.docsUrl.replace(/^https?:\/\//,""))}</a></div>${tagFor}<button class="link" data-act="editDocs">Change</button></div>`;
+  else if (has) docs = `<div class="found fade">${logo(S.app,S.domain,34)}<div class="t"><div class="small muted">API reference</div><a class="u" href="${esc(S.docsUrl)}" target="_blank" rel="noopener">${esc(S.docsUrl.replace(/^https?:\/\//,""))}</a></div>${tagFor}<button class="link" data-act="editDocs">Change</button></div>${(S.docsAlts||[]).length?`<div class="small muted fade" style="margin-top:8px">Not it? Also found: ${S.docsAlts.map(u=>`<button class="link small" data-act="useAlt" data-u="${esc(u)}" style="margin-left:8px;font-family:var(--mono);font-size:12px">${esc(u.replace(/^https?:\/\//,""))}</button>`).join("")}</div>`:""}`;
   else if (S.app && (S.docsEdit || S.docsSource==="none")) docs = `<div class="fade" style="margin-top:18px">
       ${findErr?`<div class="note warn" style="margin-bottom:12px">${esc(findErr)}</div>`:""}
       ${S.docsMode==="link" ? `<label class="field"><span class="label">API docs link</span><input class="in mono" id="docsUrl" placeholder="https://developer.example.com/api" value="${esc(S.docsUrl)}" data-in="docsUrl" inputmode="url"></label>
@@ -392,12 +392,12 @@ async function findDocs(){
   findErr = ""; suggHide = true; $("#suggBox") && ($("#suggBox").innerHTML="");
   const k = KNOWN.find(a=>a.name.toLowerCase()===name.toLowerCase());
   const refocus = () => setTimeout(()=>{ const el=$("#app"); if (el && S.step===1){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 30);
-  if (k){ set({app:k.name, domain:k.domain, docsUrl:k.docs, docsSource:"library", docsVerified:true, docsEdit:false, docsMode:"link", ...clearBelow()}); return refocus(); }
+  if (k){ set({app:k.name, domain:k.domain, docsUrl:k.docs, docsSource:"library", docsVerified:true, docsAlts:[], docsEdit:false, docsMode:"link", ...clearBelow()}); return refocus(); }
   busy="find"; render();
   try{
     const out = await api("/api/find-docs", {app:name}, 30000);
     busy=null; refocus();
-    if (out.docsUrl) set({app:out.app||name, domain:out.domain||"", docsUrl:out.docsUrl, docsSource:"ai", docsVerified:!!out.verified, docsEdit:false, docsMode:"link", ...clearBelow()});
+    if (out.docsUrl) set({app:out.app||name, domain:out.domain||"", docsUrl:out.docsUrl, docsSource:"ai", docsVerified:!!out.verified, docsAlts:(out.alternatives||[]).filter(u=>u!==out.docsUrl).slice(0,3), docsEdit:false, docsMode:"link", ...clearBelow()});
     else { findErr = `We couldn't find a public API reference for “${name}”. Paste the docs link or text below.`; set({docsSource:"none", docsEdit:true, docsUrl:"", ...clearBelow()}); }
   }catch(e){ busy=null; findErr = (e.message||"The search failed.")+" Paste the docs link instead."; set({docsSource:"none", docsEdit:true, ...clearBelow()}); }
 }
@@ -792,6 +792,7 @@ document.addEventListener("click", ev => {
   else if (a==="go"){ const s=+t.dataset.s; if (s===3 && !S.result && busy!=="disc") return discover(); set({step:s}); }
   else if (a==="pickApp"){ S.app = t.dataset.name; findDocs(); }
   else if (a==="findDocs"){ findDocs(); }
+  else if (a==="useAlt"){ const u=t.dataset.u; set({docsUrl:u, docsAlts:[S.docsUrl, ...(S.docsAlts||[]).filter(x=>x!==u)].slice(0,3), docsVerified:false, ...clearBelow()}); }
   else if (a==="editDocs"){ set({docsEdit:true}); setTimeout(()=>$("#docsUrl")?.select(), 60); }
   else if (a==="pasteMode"){ set({docsMode:"paste", docsEdit:true}); setTimeout(()=>$("#docsText")?.focus(),60); }
   else if (a==="linkMode"){ set({docsMode:"link"}); }
