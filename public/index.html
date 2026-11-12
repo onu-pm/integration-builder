@@ -387,11 +387,12 @@ async function findDocs(){
   const name = S.app.trim(); if (name.length<2) return toast("Type the app's name first.");
   findErr = ""; suggHide = true; $("#suggBox") && ($("#suggBox").innerHTML="");
   const k = KNOWN.find(a=>a.name.toLowerCase()===name.toLowerCase());
-  if (k){ return set({app:k.name, domain:k.domain, docsUrl:k.docs, docsSource:"library", docsVerified:true, docsEdit:false, docsMode:"link", ...clearBelow()}); }
+  const refocus = () => setTimeout(()=>{ const el=$("#app"); if (el && S.step===1){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 30);
+  if (k){ set({app:k.name, domain:k.domain, docsUrl:k.docs, docsSource:"library", docsVerified:true, docsEdit:false, docsMode:"link", ...clearBelow()}); return refocus(); }
   busy="find"; render();
   try{
     const out = await api("/api/find-docs", {app:name}, 30000);
-    busy=null;
+    busy=null; refocus();
     if (out.docsUrl) set({app:out.app||name, domain:out.domain||"", docsUrl:out.docsUrl, docsSource:"ai", docsVerified:!!out.verified, docsEdit:false, docsMode:"link", ...clearBelow()});
     else { findErr = `We couldn't find a public API reference for “${name}”. Paste the docs link or text below.`; set({docsSource:"none", docsEdit:true, docsUrl:"", ...clearBelow()}); }
   }catch(e){ busy=null; findErr = (e.message||"The search failed.")+" Paste the docs link instead."; set({docsSource:"none", docsEdit:true, ...clearBelow()}); }
