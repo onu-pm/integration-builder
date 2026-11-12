@@ -24,7 +24,7 @@ async function inspect(url) {
     score += Math.min(verbs, 20) / 2;
     if (/pricing|book a demo|start (your )?free trial|request a demo/i.test(title)) score -= 6;
     // Links from this page to a dedicated docs site (marketing pages usually link to the real reference).
-    const docsLinks = [...new Set((raw.match(/https:\/\/(?:docs|developers?|api|apidocs)\.[a-z0-9.-]+[^"'\s<>)]*/gi) || []).map((u) => u.replace(/[.,;]+$/, "")))].slice(0, 4);
+    const docsLinks = [...new Set((raw.match(/https:\/\/(?:docs|developers?|api|apidocs)\.[a-z0-9.-]+[^"'\s<>)]*/gi) || []).map((u) => u.replace(/[.,;]+$/, "")).filter((u) => !/\.(png|ico|svg|jpe?g|gif|webp|css|js|woff2?|json|xml|txt)(\?|#|$)/i.test(u)))].slice(0, 4);
     const postmanLinks = [...new Set((raw.match(/https:\/\/documenter\.getpostman\.com\/view\/[A-Za-z0-9_\-\/%.]+/gi) || []).map((u) => u.replace(/[.,;]+$/, "")))].slice(0, 3);
     return { ok: true, url: r.url, title, score, docsLinks, postmanLinks };
   } catch (e) {
@@ -33,6 +33,7 @@ async function inspect(url) {
     return { ok: false, url, why: e.message, score: -1, docsLinks: [], postmanLinks: [] };
   }
 }
+const ASSET = /\.(png|ico|svg|jpe?g|gif|webp|css|js|woff2?)(\?|#|$)/i;
 const postmanFrom = (checks) => checks.flatMap((c) => c.postmanLinks || [])[0] || null;
 const rootOf = (h) => h.replace(/^www\./, "").split(".").slice(-2).join(".");
 function probes(domain) {
@@ -95,7 +96,7 @@ Reply with ONLY a JSON object, no markdown:
     const searchPm = checks.find((c) => c.ok && !c.blockedBots && isPm(c.url) && (slugRe.test(c.url) || slugRe.test(c.title)));
     const pmUrl = vendorPm || searchPm?.url;
     if (pmUrl) {
-      const official = checks.filter((c) => c.ok && !c.blockedBots && !isPm(c.url) && c.score >= 14).sort((a, b) => b.score - a.score).map((c) => c.url);
+      const official = checks.filter((c) => c.ok && !c.blockedBots && !isPm(c.url) && c.score >= 14 && !ASSET.test(c.url)).sort((a, b) => b.score - a.score).map((c) => c.url);
       const body = { app: String(out.app || name).slice(0, 80), docsUrl: pmUrl, domain: domain || slug + ".com", source: "postman", linkedBy: vendorPm ? "vendor" : "search", verified: !!vendorPm, alternatives: [...new Set(official)].slice(0, 3) };
       cache.set(key, body);
       return send(res, 200, body);
@@ -104,7 +105,7 @@ Reply with ONLY a JSON object, no markdown:
     for (const c of checks) if (aiCands.includes(c.url)) c.score += 2;
     const good = checks.filter((c) => c.ok && (domain || aiCands.includes(c.url) || c.score >= 18)).sort((a, b) => b.score - a.score)[0];
     const body = good
-      ? { app: String(out.app || name).slice(0, 80), docsUrl: good.url, domain: domain || rootOf(new URL(good.url).hostname), source: "ai", verified: !good.blockedBots && good.score >= 18, title: good.title, alternatives: [...new Set(checks.filter((c) => c.ok && !c.blockedBots && c.score >= 14).sort((a, b) => b.score - a.score).map((c) => c.url.replace(/\/$/, "")))].filter((u) => u !== good.url.replace(/\/$/, "")).slice(0, 3) }
+      ? { app: String(out.app || name).slice(0, 80), docsUrl: good.url, domain: domain || rootOf(new URL(good.url).hostname), source: "ai", verified: !good.blockedBots && good.score >= 18, title: good.title, alternatives: [...new Set(checks.filter((c) => c.ok && !c.blockedBots && c.score >= 14 && !ASSET.test(c.url)).sort((a, b) => b.score - a.score).map((c) => c.url.replace(/\/$/, "")))].filter((u) => u !== good.url.replace(/\/$/, "")).slice(0, 3) }
       : { app: name, docsUrl: "", source: "ai", verified: false, notFound: true, tried: first };
     cache.set(key, body);
     return send(res, 200, body);
