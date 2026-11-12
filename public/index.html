@@ -309,7 +309,7 @@ let S = blank();
 try { const raw = localStorage.getItem(STORE); if (raw) S = {...blank(), ...JSON.parse(raw)}; } catch {}
 const KEY = {token:"", user:"", pass:"", show:false};   // never persisted
 const RESP = {};                                      // responses kept in memory only
-let busy = null, prog = 0, ctl = null, lastStep = 0, AI = true, suggIdx = -1, findErr = "", discErr = null, genErr = "";
+let suggHide = false, busy = null, prog = 0, ctl = null, lastStep = 0, AI = true, suggIdx = -1, findErr = "", discErr = null, genErr = "";
 function save(){ try { localStorage.setItem(STORE, JSON.stringify(S)); } catch {} }
 function set(p){ Object.assign(S, p); save(); render(); }
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -374,7 +374,7 @@ function vApp(){
 }
 function suggestions(){
   const q = S.app.trim().toLowerCase(); const box = $("#suggBox"); if (!box) return;
-  if (!q || document.activeElement?.id!=="app"){ box.innerHTML=""; return; }
+  if (!q || suggHide || document.activeElement?.id!=="app"){ box.innerHTML=""; $("#app")?.setAttribute("aria-expanded","false"); return; }
   let list = KNOWN.filter(a=>a.name.toLowerCase().includes(q)).sort((a,b)=>a.name.toLowerCase().indexOf(q)-b.name.toLowerCase().indexOf(q)).slice(0,6);
   const exact = KNOWN.some(a=>a.name.toLowerCase()===q);
   const items = list.map(a=>`<button type="button" role="option" data-act="pickApp" data-name="${esc(a.name)}">${logo(a.name,a.domain)}<b>${esc(a.name)}</b><span class="d">Docs on file</span></button>`);
@@ -385,7 +385,7 @@ function suggestions(){
 }
 async function findDocs(){
   const name = S.app.trim(); if (name.length<2) return toast("Type the app's name first.");
-  findErr = ""; $("#suggBox") && ($("#suggBox").innerHTML="");
+  findErr = ""; suggHide = true; $("#suggBox") && ($("#suggBox").innerHTML="");
   const k = KNOWN.find(a=>a.name.toLowerCase()===name.toLowerCase());
   if (k){ return set({app:k.name, domain:k.domain, docsUrl:k.docs, docsSource:"library", docsVerified:true, docsEdit:false, docsMode:"link", ...clearBelow()}); }
   busy="find"; render();
@@ -812,7 +812,7 @@ document.addEventListener("click", ev => {
 });
 document.addEventListener("input", ev => {
   const t = ev.target;
-  if (t.dataset.in==="app"){ S.app = t.value; if (S.docsSource){ Object.assign(S, {docsUrl:"", docsSource:"", docsVerified:false, docsEdit:false, docsMode:"link", ...clearBelow()}); findErr=""; save(); render(); return; } save(); suggIdx=-1; suggestions(); const go=$(".combo .go"); if (!go && S.app.trim().length>1) render(); else if (go && S.app.trim().length<2) render(); return; }
+  if (t.dataset.in==="app"){ suggHide = false; S.app = t.value; if (S.docsSource){ Object.assign(S, {docsUrl:"", docsSource:"", docsVerified:false, docsEdit:false, docsMode:"link", ...clearBelow()}); findErr=""; save(); render(); return; } save(); suggIdx=-1; suggestions(); const go=$(".combo .go"); if (!go && S.app.trim().length>1) render(); else if (go && S.app.trim().length<2) render(); return; }
   if (t.dataset.in==="docsUrl"){ S.docsUrl = t.value.trim(); S.docsSource = S.docsSource==="none"?"none":"manual"; S.docsVerified=false; Object.assign(S, clearBelow()); save(); const b=$('[data-act=go][data-s="2"]'); if (b) b.disabled = reach()<2; return; }
   if (t.dataset.in==="docsText"){ S.docsText = t.value; if (S.step===1) S.docsMode="paste"; Object.assign(S, clearBelow()); save(); const b=$('[data-act=go][data-s="2"]'); if (b) b.disabled = reach()<2; return; }
   if (t.id==="chipIn" && /[,;]/.test(t.value)){ const v=t.value; t.value=""; addFields(v); $("#chipIn")?.focus(); return; }
