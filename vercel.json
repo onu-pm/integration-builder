@@ -1,7 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/discover.js": { "maxDuration": 60, "includeFiles": "api/_lib/calendly_reference.txt" },
+    "api/reference.js": { "maxDuration": 60, "includeFiles": "api/_lib/calendly_reference.txt" },
+    "api/endpoint.js": { "maxDuration": 60 },
     "api/generate.js": { "maxDuration": 60 },
     "api/find-docs.js": { "maxDuration": 40 },
     "api/proxy.js": { "maxDuration": 25 }

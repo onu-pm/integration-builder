@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fetch · Find and test any API</title>
-<meta name="description" content="Name an app and the fields you need. Fetch finds the API docs, maps the endpoints and lets you test them live with your own trial key.">
+<meta name="description" content="Name an app. Fetch finds its API docs, lays out every endpoint like the docs do, and lets you test the ones you pick with your sandbox key.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23191B20'/%3E%3Crect x='8' y='8' width='10' height='16' fill='%230057FF'/%3E%3Crect x='18' y='8' width='6' height='6' fill='%23D8FF70'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=IBM+Plex+Mono:wght@400;500&family=PT+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -280,6 +280,72 @@ footer.f{max-width:1180px;margin:0 auto;padding:0 20px 40px;color:var(--muted);f
   .stat{margin-left:0}
   .combo .go{position:static;margin-top:8px} .combo .go .btn{width:100%}
 }
+/* ---- v6: docs chooser, reference browser, selection panel, tester extras ---- */
+.opts{display:grid;gap:8px;margin-top:14px}
+.opt{display:flex;align-items:center;gap:14px;width:100%;text-align:left;border:1px solid var(--line);background:var(--card);padding:13px 16px;transition:border-color .2s,background .2s,box-shadow .2s}
+.opt:hover{border-color:var(--ink)}
+.opt.on{border-color:var(--blue);background:var(--blue-soft);box-shadow:inset 3px 0 0 var(--blue)}
+.opt .rad{width:16px;height:16px;border:1.5px solid var(--line);border-radius:50%;flex:none;position:relative;transition:border-color .2s}
+.opt.on .rad{border-color:var(--blue)} .opt.on .rad:after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--blue);animation:pop .2s var(--ease)}
+.opt .t{min-width:0;flex:1}
+.opt .tt{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.opt .u{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.opt a.open{font-size:13px;flex:none}
+.sugg .cat{font-size:12px;color:var(--muted2);margin-left:6px}
+
+.m-GET{color:#0A7A3E;background:#E8F7EE} .m-POST{color:#0047D6;background:#E6EEFF} .m-PUT{color:#8A5A00;background:#FFF4D6}
+.m-PATCH{color:#7A4A00;background:#FFEFD9} .m-DELETE{color:#B42318;background:#FDECEA} .m-HEAD,.m-OPTIONS{color:var(--ink2);background:var(--bg2)}
+.mt{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.04em;padding:3px 0;width:54px;text-align:center;flex:none;display:inline-block}
+
+.ref{display:grid;grid-template-columns:230px minmax(0,1fr) 290px;gap:0;border:1px solid var(--line);background:var(--card);min-height:620px}
+.ref .nav{border-right:1px solid var(--line);background:var(--bg);position:relative}
+.ref .nav .in2{position:sticky;top:64px;max-height:calc(100vh - 80px);overflow:auto;padding:12px 0}
+.ref .nav .srch{margin:0 12px 10px;width:calc(100% - 24px);height:38px;font-size:13px}
+.ref .nav button.navm{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;padding:8px 14px;text-align:left;font-size:13.5px;border-left:2px solid transparent;color:var(--ink2)}
+.ref .nav button.navm:hover{color:var(--ink);background:var(--card)}
+.ref .nav button.navm.on{color:var(--ink);border-left-color:var(--blue);background:var(--card);font-weight:500}
+.ref .nav .cnt{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted2)}
+.ref .nav .sel-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);flex:none}
+.ref .center{min-width:0;padding:6px 22px 30px}
+.ref .msec{padding-top:18px;scroll-margin-top:70px}
+.ref .msec h3{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.ref .msec h3 .tiny{font-family:var(--sans)}
+.erow{border:1px solid var(--line2);background:var(--card);transition:border-color .2s}
+.erow + .erow{margin-top:-1px}
+.erow.open{border-color:var(--ink);position:relative;z-index:1}
+.erow .hd{display:flex;align-items:center;gap:12px;padding:10px 12px;cursor:pointer}
+.erow .hd:hover{background:var(--bg)}
+.erow .hd input{width:16px;height:16px;accent-color:var(--blue);flex:none;cursor:pointer}
+.erow .path{font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.erow .nm{margin-left:auto;color:var(--muted);font-size:13px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%}
+.erow .chev{color:var(--muted2);transition:transform .25s var(--ease);flex:none}
+.erow.open .chev{transform:rotate(90deg)}
+.erow .bd{padding:4px 14px 16px 42px;animation:fade .3s both}
+.erow .bd .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:10px}
+pre.ex{margin:6px 0 0;background:var(--bg);border:1px solid var(--line2);padding:10px 12px;font-family:var(--mono);font-size:12px;line-height:1.55;max-height:260px;overflow:auto;white-space:pre}
+.side2{border-left:1px solid var(--line);background:var(--bg)}
+.side2 .in2{position:sticky;top:64px;max-height:calc(100vh - 80px);overflow:auto;padding:16px}
+.side2 .grp2{margin-top:12px}
+.side2 .grp2 .gh{font-family:var(--mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.side2 .si{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;animation:rise .25s var(--ease) both}
+.side2 .si .p{font-family:var(--mono);font-size:11.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.side2 .si .mt{width:46px;font-size:9.5px}
+.side2 .acts{display:grid;gap:8px;margin-top:16px}
+.side2 .acts .btn{width:100%}
+.srcbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.envbar{display:flex;gap:8px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line2);background:var(--bg);flex-wrap:wrap}
+.envbar .seg{display:inline-flex;border:1px solid var(--line);background:var(--card)}
+.envbar .seg button{border:0;background:none;padding:0 12px;height:32px;font-size:13px;border-right:1px solid var(--line)}
+.envbar .seg button:last-child{border-right:0}
+.envbar .seg button.on{background:var(--ink);color:#fff}
+.envbar .in{height:34px;font-size:12.5px;flex:1;min-width:200px}
+textarea.body{width:100%;min-height:200px;border:1px solid var(--line);padding:12px;font-family:var(--mono);font-size:12.5px;line-height:1.5;outline:0;resize:vertical}
+textarea.body:focus{border-color:var(--blue)}
+.confirm{margin:0 14px 14px;padding:12px 14px;border:1px solid #F0DCA0;background:var(--warn-soft);font-size:13px;color:#5c3d00;display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.credit{margin-left:auto;color:var(--muted2)} .credit b{color:var(--ink2);font-weight:500}
+@media (max-width:1100px){ .ref{grid-template-columns:200px minmax(0,1fr)} .side2{grid-column:1/-1;border-left:0;border-top:1px solid var(--line)} .side2 .in2{position:static;max-height:none} }
+@media (max-width:760px){ .ref{grid-template-columns:minmax(0,1fr)} .ref .nav{border-right:0;border-bottom:1px solid var(--line)} .ref .nav .in2{position:static;max-height:none;display:flex;overflow-x:auto;padding:8px} .ref .nav .srch{display:none} .ref .nav button.navm{width:auto;white-space:nowrap;border-left:0;border-bottom:2px solid transparent} .ref .nav button.navm.on{border-bottom-color:var(--blue)} .ref .center{padding:4px 12px 20px} .erow .nm{display:none} .erow .bd{padding-left:14px} .erow .bd .grid2{grid-template-columns:1fr} .credit{margin-left:0} }
+
 </style>
 </head>
 <body>
@@ -292,55 +358,61 @@ footer.f{max-width:1180px;margin:0 auto;padding:0 20px 40px;color:var(--muted);f
 </div></header>
 <nav class="steps" id="steps" aria-label="Progress"></nav>
 <main id="main"></main>
-<footer class="f"><span>Read-only: the tester only sends GET requests.</span><span>Your API key stays in this tab's memory. It is never saved or logged.</span><a href="https://github.com/onu-pm/integration-builder" target="_blank" rel="noopener">Source</a></footer>
+<footer class="f"><span>Your API key stays in this tab's memory. It is never saved or logged.</span><span>Write requests only go to the app's own API host, after you confirm a sandbox account.</span><a href="https://github.com/onu-pm/integration-builder" target="_blank" rel="noopener">Source</a><span class="credit">Built bold with <b>Pomonu Studios</b></span></footer>
 <div id="toast"></div>
 <script>
 "use strict";
-const KNOWN = [{"name":"GitHub","domain":"github.com","docs":"https://docs.github.com/en/rest"},{"name":"GitLab","domain":"gitlab.com","docs":"https://docs.gitlab.com/api/rest/"},{"name":"Slack","domain":"slack.com","docs":"https://api.slack.com/methods"},{"name":"Zoom","domain":"zoom.us","docs":"https://developers.zoom.us/docs/api/"},{"name":"Calendly","domain":"calendly.com","docs":"https://developer.calendly.com/api-docs"},{"name":"Asana","domain":"asana.com","docs":"https://developers.asana.com/reference/rest-api-reference"},{"name":"Notion","domain":"notion.so","docs":"https://developers.notion.com/reference/intro"},{"name":"Figma","domain":"figma.com","docs":"https://www.figma.com/developers/api"},{"name":"Miro","domain":"miro.com","docs":"https://developers.miro.com/reference/api-reference"},{"name":"Dropbox","domain":"dropbox.com","docs":"https://www.dropbox.com/developers/documentation/http/documentation"},{"name":"Box","domain":"box.com","docs":"https://developer.box.com/reference/"},{"name":"Zendesk","domain":"zendesk.com","docs":"https://developer.zendesk.com/api-reference/"},{"name":"HubSpot","domain":"hubspot.com","docs":"https://developers.hubspot.com/docs/api/overview"},{"name":"Intercom","domain":"intercom.com","docs":"https://developers.intercom.com/docs/references/rest-api/api.intercom.io"},{"name":"monday.com","domain":"monday.com","docs":"https://developer.monday.com/api-reference/"},{"name":"ClickUp","domain":"clickup.com","docs":"https://developer.clickup.com/reference"},{"name":"Airtable","domain":"airtable.com","docs":"https://airtable.com/developers/web/api/introduction"},{"name":"Trello","domain":"trello.com","docs":"https://developer.atlassian.com/cloud/trello/rest/"},{"name":"Jira","domain":"atlassian.com","docs":"https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/"},{"name":"Confluence","domain":"atlassian.com","docs":"https://developer.atlassian.com/cloud/confluence/rest/v2/intro/"},{"name":"Stripe","domain":"stripe.com","docs":"https://docs.stripe.com/api"},{"name":"Shopify","domain":"shopify.com","docs":"https://shopify.dev/docs/api/admin-rest"},{"name":"Linear","domain":"linear.app","docs":"https://linear.app/developers"},{"name":"PagerDuty","domain":"pagerduty.com","docs":"https://developer.pagerduty.com/api-reference/"},{"name":"Okta","domain":"okta.com","docs":"https://developer.okta.com/docs/api/"},{"name":"Mailchimp","domain":"mailchimp.com","docs":"https://mailchimp.com/developer/marketing/api/"},{"name":"Typeform","domain":"typeform.com","docs":"https://www.typeform.com/developers/"},{"name":"Twilio","domain":"twilio.com","docs":"https://www.twilio.com/docs/usage/api"},{"name":"Freshdesk","domain":"freshdesk.com","docs":"https://developers.freshdesk.com/api/"},{"name":"DocuSign","domain":"docusign.com","docs":"https://developers.docusign.com/docs/esign-rest-api/reference/"},{"name":"Webex","domain":"webex.com","docs":"https://developer.webex.com/docs/api/getting-started"},{"name":"SurveyMonkey","domain":"surveymonkey.com","docs":"https://api.surveymonkey.com/v3/docs"},{"name":"Pipedrive","domain":"pipedrive.com","docs":"https://developers.pipedrive.com/docs/api/v1"},{"name":"Todoist","domain":"todoist.com","docs":"https://developer.todoist.com/rest/v2/"}];
-const STORE = "fetch-v5";
-const STEPS = [[1,"App"], [3,"APIs"], [4,"Test"], [5,"Code"]];   // internal step 2 (fields) is now optional, on the APIs page
+const DIR = [["greytHR","greythr.com","HR & Payroll"],["Keka","keka.com","HR & Payroll"],["Darwinbox","darwinbox.com","HR & Payroll"],["Zoho People","zoho.com","HR & Payroll"],["Zoho Payroll","zoho.com","HR & Payroll"],["Zoho Recruit","zoho.com","Recruiting"],["RazorpayX Payroll","razorpay.com","HR & Payroll"],["Razorpay","razorpay.com","Payments"],["Zimyo","zimyo.com","HR & Payroll"],["sumHR","sumhr.com","HR & Payroll"],["HROne","hrone.cloud","HR & Payroll"],["factoHR","factohr.com","HR & Payroll"],["PeopleStrong","peoplestrong.com","HR & Payroll"],["Pocket HRMS","pockethrms.com","HR & Payroll"],["Qandle","qandle.com","HR & Payroll"],["Akrivia HCM","akriviahcm.com","HR & Payroll"],["Spine HR","spinehr.in","HR & Payroll"],["Beehive HRMS","beehivehrms.com","HR & Payroll"],["Kredily","kredily.com","HR & Payroll"],["Saral PayPack","saral.com","HR & Payroll"],["Repute","repute.net","HR & Payroll"],["Springworks","springworks.in","HR & Payroll"],["SpringVerify","springverify.com","Background checks"],["AuthBridge","authbridge.com","Background checks"],["IDfy","idfy.com","Background checks"],["Leegality","leegality.com","E-signature"],["Digio","digio.in","E-signature"],["WeCP","wecreateproblems.com","Assessments"],["Testlify","testlify.com","Assessments"],["HackerEarth","hackerearth.com","Assessments"],["HackerRank","hackerrank.com","Assessments"],["Mettl","mettl.com","Assessments"],["iMocha","imocha.io","Assessments"],["Codility","codility.com","Assessments"],["TestGorilla","testgorilla.com","Assessments"],["CodeSignal","codesignal.com","Assessments"],["Karat","karat.com","Assessments"],["Greenhouse","greenhouse.com","Recruiting"],["Lever","lever.co","Recruiting"],["Workable","workable.com","Recruiting"],["Ashby","ashbyhq.com","Recruiting"],["SmartRecruiters","smartrecruiters.com","Recruiting"],["JazzHR","jazzhr.com","Recruiting"],["Recruitee","recruitee.com","Recruiting"],["Breezy HR","breezy.hr","Recruiting"],["Teamtailor","teamtailor.com","Recruiting"],["Freshteam","freshteam.com","Recruiting"],["Naukri RMS","naukri.com","Recruiting"],["iCIMS","icims.com","Recruiting"],["Jobvite","jobvite.com","Recruiting"],["Checkr","checkr.com","Background checks"],["Certn","certn.co","Background checks"],["BambooHR","bamboohr.com","HR & Payroll"],["Workday","workday.com","HR & Payroll"],["SAP SuccessFactors","sap.com","HR & Payroll"],["Oracle HCM","oracle.com","HR & Payroll"],["ADP","adp.com","HR & Payroll"],["Gusto","gusto.com","HR & Payroll"],["Rippling","rippling.com","HR & Payroll"],["Deel","deel.com","HR & Payroll"],["Remote","remote.com","HR & Payroll"],["Oyster","oysterhr.com","HR & Payroll"],["Papaya Global","papayaglobal.com","HR & Payroll"],["Personio","personio.com","HR & Payroll"],["HiBob","hibob.com","HR & Payroll"],["Namely","namely.com","HR & Payroll"],["Paylocity","paylocity.com","HR & Payroll"],["Paycom","paycom.com","HR & Payroll"],["Paychex","paychex.com","HR & Payroll"],["UKG","ukg.com","HR & Payroll"],["Ceridian Dayforce","dayforce.com","HR & Payroll"],["Justworks","justworks.com","HR & Payroll"],["TriNet","trinet.com","HR & Payroll"],["Sage HR","sage.com","HR & Payroll"],["Factorial","factorialhr.com","HR & Payroll"],["Lattice","lattice.com","Performance"],["Culture Amp","cultureamp.com","Performance"],["15Five","15five.com","Performance"],["Leapsome","leapsome.com","Performance"],["Officevibe","officevibe.com","Engagement"],["Deputy","deputy.com","Workforce"],["When I Work","wheniwork.com","Workforce"],["Homebase","joinhomebase.com","Workforce"],["Connecteam","connecteam.com","Workforce"],["Hubstaff","hubstaff.com","Time tracking"],["Harvest","getharvest.com","Time tracking"],["Toggl Track","toggl.com","Time tracking"],["Clockify","clockify.me","Time tracking"],["Expensify","expensify.com","Finance"],["Darwinbox Payroll","darwinbox.com","HR & Payroll"],["Slack","slack.com","Communication"],["Microsoft Teams","microsoft.com","Communication"],["Zoom","zoom.us","Communication"],["Google Workspace","workspace.google.com","Productivity"],["Microsoft 365","microsoft.com","Productivity"],["Microsoft Graph","microsoft.com","Productivity"],["Notion","notion.so","Productivity"],["Confluence","atlassian.com","Productivity"],["Jira","atlassian.com","Project management"],["Trello","trello.com","Project management"],["Asana","asana.com","Project management"],["monday.com","monday.com","Project management"],["ClickUp","clickup.com","Project management"],["Linear","linear.app","Project management"],["Smartsheet","smartsheet.com","Project management"],["Wrike","wrike.com","Project management"],["Basecamp","basecamp.com","Project management"],["Airtable","airtable.com","Productivity"],["Coda","coda.io","Productivity"],["Miro","miro.com","Collaboration"],["Figma","figma.com","Design"],["Canva","canva.com","Design"],["Loom","loom.com","Communication"],["Calendly","calendly.com","Scheduling"],["Cal.com","cal.com","Scheduling"],["Doodle","doodle.com","Scheduling"],["Todoist","todoist.com","Productivity"],["Evernote","evernote.com","Productivity"],["Dropbox","dropbox.com","Storage"],["Box","box.com","Storage"],["Google Drive","google.com","Storage"],["OneDrive","microsoft.com","Storage"],["Webex","webex.com","Communication"],["RingCentral","ringcentral.com","Communication"],["Zoho Cliq","zoho.com","Communication"],["Discord","discord.com","Communication"],["Telegram","telegram.org","Communication"],["WhatsApp Business","whatsapp.com","Communication"],["Gupshup","gupshup.io","Communication"],["Interakt","interakt.shop","Communication"],["Exotel","exotel.com","Communication"],["Twilio","twilio.com","Communication"],["MessageBird","messagebird.com","Communication"],["Vonage","vonage.com","Communication"],["Plivo","plivo.com","Communication"],["SendGrid","sendgrid.com","Email"],["Mailgun","mailgun.com","Email"],["Postmark","postmarkapp.com","Email"],["Mailchimp","mailchimp.com","Marketing"],["Brevo","brevo.com","Marketing"],["Klaviyo","klaviyo.com","Marketing"],["MoEngage","moengage.com","Marketing"],["CleverTap","clevertap.com","Marketing"],["WebEngage","webengage.com","Marketing"],["Typeform","typeform.com","Forms"],["Google Forms","google.com","Forms"],["Jotform","jotform.com","Forms"],["SurveyMonkey","surveymonkey.com","Forms"],["Tally Forms","tally.so","Forms"],["DocuSign","docusign.com","E-signature"],["Adobe Sign","adobe.com","E-signature"],["Dropbox Sign","hellosign.com","E-signature"],["PandaDoc","pandadoc.com","E-signature"],["Zoho Sign","zoho.com","E-signature"],["Salesforce","salesforce.com","CRM"],["HubSpot","hubspot.com","CRM"],["Zoho CRM","zoho.com","CRM"],["Pipedrive","pipedrive.com","CRM"],["Freshsales","freshworks.com","CRM"],["LeadSquared","leadsquared.com","CRM"],["Close","close.com","CRM"],["Copper","copper.com","CRM"],["Apollo","apollo.io","Sales"],["Outreach","outreach.io","Sales"],["Salesloft","salesloft.com","Sales"],["Gong","gong.io","Sales"],["Zendesk","zendesk.com","Support"],["Freshdesk","freshdesk.com","Support"],["Intercom","intercom.com","Support"],["Zoho Desk","zoho.com","Support"],["Help Scout","helpscout.com","Support"],["Front","front.com","Support"],["Gorgias","gorgias.com","Support"],["Kustomer","kustomer.com","Support"],["ServiceNow","servicenow.com","IT service"],["Jira Service Management","atlassian.com","IT service"],["Freshservice","freshservice.com","IT service"],["PagerDuty","pagerduty.com","IT service"],["Opsgenie","atlassian.com","IT service"],["Statuspage","atlassian.com","IT service"],["GitHub","github.com","Developer"],["GitLab","gitlab.com","Developer"],["Bitbucket","bitbucket.org","Developer"],["Vercel","vercel.com","Developer"],["Netlify","netlify.com","Developer"],["Heroku","heroku.com","Developer"],["DigitalOcean","digitalocean.com","Cloud"],["Cloudflare","cloudflare.com","Cloud"],["AWS","aws.amazon.com","Cloud"],["Google Cloud","cloud.google.com","Cloud"],["Microsoft Azure","azure.microsoft.com","Cloud"],["Datadog","datadoghq.com","Monitoring"],["New Relic","newrelic.com","Monitoring"],["Sentry","sentry.io","Monitoring"],["Grafana","grafana.com","Monitoring"],["Postman","postman.com","Developer"],["Supabase","supabase.com","Developer"],["Firebase","firebase.google.com","Developer"],["MongoDB Atlas","mongodb.com","Developer"],["Okta","okta.com","Identity"],["Auth0","auth0.com","Identity"],["OneLogin","onelogin.com","Identity"],["JumpCloud","jumpcloud.com","Identity"],["Microsoft Entra ID","microsoft.com","Identity"],["1Password","1password.com","Security"],["LastPass","lastpass.com","Security"],["CrowdStrike","crowdstrike.com","Security"],["Kandji","kandji.io","Device management"],["Jamf","jamf.com","Device management"],["Freshping","freshworks.com","Monitoring"],["OpenAI","openai.com","AI"],["Anthropic","anthropic.com","AI"],["Google Gemini","ai.google.dev","AI"],["Hugging Face","huggingface.co","AI"],["Stripe","stripe.com","Payments"],["PayPal","paypal.com","Payments"],["Cashfree","cashfree.com","Payments"],["PayU","payu.in","Payments"],["Juspay","juspay.in","Payments"],["Paytm","paytm.com","Payments"],["PhonePe","phonepe.com","Payments"],["Instamojo","instamojo.com","Payments"],["QuickBooks","quickbooks.intuit.com","Accounting"],["Xero","xero.com","Accounting"],["Zoho Books","zoho.com","Accounting"],["TallyPrime","tallysolutions.com","Accounting"],["FreshBooks","freshbooks.com","Accounting"],["NetSuite","netsuite.com","ERP"],["SAP","sap.com","ERP"],["Odoo","odoo.com","ERP"],["Chargebee","chargebee.com","Billing"],["Recurly","recurly.com","Billing"],["Brex","brex.com","Finance"],["Ramp","ramp.com","Finance"],["Shopify","shopify.com","E-commerce"],["WooCommerce","woocommerce.com","E-commerce"],["BigCommerce","bigcommerce.com","E-commerce"],["Magento","magento.com","E-commerce"],["Shiprocket","shiprocket.in","Logistics"],["Delhivery","delhivery.com","Logistics"],["Google Analytics","google.com","Analytics"],["Mixpanel","mixpanel.com","Analytics"],["Amplitude","amplitude.com","Analytics"],["Segment","segment.com","Analytics"],["Heap","heap.io","Analytics"],["Hotjar","hotjar.com","Analytics"],["PostHog","posthog.com","Analytics"],["Looker","looker.com","Analytics"],["Tableau","tableau.com","Analytics"],["Power BI","powerbi.microsoft.com","Analytics"],["Snowflake","snowflake.com","Data"],["BigQuery","cloud.google.com","Data"],["Fivetran","fivetran.com","Data"],["Zapier","zapier.com","Automation"],["Make","make.com","Automation"],["n8n","n8n.io","Automation"],["Contentful","contentful.com","Content"],["WordPress","wordpress.org","Content"],["Webflow","webflow.com","Content"],["Sanity","sanity.io","Content"],["Strapi","strapi.io","Content"],["YouTube","youtube.com","Social"],["LinkedIn","linkedin.com","Social"],["X (Twitter)","x.com","Social"],["Meta","meta.com","Social"],["Instagram","instagram.com","Social"],["Spotify","spotify.com","Media"],["PokeAPI","pokeapi.co","Sample APIs"],["OpenWeather","openweathermap.org","Data"],["Google Maps","google.com","Maps"],["Mapbox","mapbox.com","Maps"]];           // [name, domain, category]
+const KNOWN = [{"name":"GitHub","domain":"github.com","docs":"https://docs.github.com/en/rest"},{"name":"GitLab","domain":"gitlab.com","docs":"https://docs.gitlab.com/api/rest/"},{"name":"Slack","domain":"slack.com","docs":"https://api.slack.com/methods"},{"name":"Zoom","domain":"zoom.us","docs":"https://developers.zoom.us/docs/api/"},{"name":"Calendly","domain":"calendly.com","docs":"https://developer.calendly.com/api-docs"},{"name":"Asana","domain":"asana.com","docs":"https://developers.asana.com/reference/rest-api-reference"},{"name":"Notion","domain":"notion.so","docs":"https://developers.notion.com/reference/intro"},{"name":"Figma","domain":"figma.com","docs":"https://www.figma.com/developers/api"},{"name":"Miro","domain":"miro.com","docs":"https://developers.miro.com/reference/api-reference"},{"name":"Dropbox","domain":"dropbox.com","docs":"https://www.dropbox.com/developers/documentation/http/documentation"},{"name":"Box","domain":"box.com","docs":"https://developer.box.com/reference/"},{"name":"Zendesk","domain":"zendesk.com","docs":"https://developer.zendesk.com/api-reference/"},{"name":"HubSpot","domain":"hubspot.com","docs":"https://developers.hubspot.com/docs/api/overview"},{"name":"Intercom","domain":"intercom.com","docs":"https://developers.intercom.com/docs/references/rest-api/api.intercom.io"},{"name":"monday.com","domain":"monday.com","docs":"https://developer.monday.com/api-reference/"},{"name":"ClickUp","domain":"clickup.com","docs":"https://developer.clickup.com/reference"},{"name":"Airtable","domain":"airtable.com","docs":"https://airtable.com/developers/web/api/introduction"},{"name":"Trello","domain":"trello.com","docs":"https://developer.atlassian.com/cloud/trello/rest/"},{"name":"Jira","domain":"atlassian.com","docs":"https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/"},{"name":"Confluence","domain":"atlassian.com","docs":"https://developer.atlassian.com/cloud/confluence/rest/v2/intro/"},{"name":"Stripe","domain":"stripe.com","docs":"https://docs.stripe.com/api"},{"name":"Shopify","domain":"shopify.com","docs":"https://shopify.dev/docs/api/admin-rest"},{"name":"Linear","domain":"linear.app","docs":"https://linear.app/developers"},{"name":"PagerDuty","domain":"pagerduty.com","docs":"https://developer.pagerduty.com/api-reference/"},{"name":"Okta","domain":"okta.com","docs":"https://developer.okta.com/docs/api/"},{"name":"Mailchimp","domain":"mailchimp.com","docs":"https://mailchimp.com/developer/marketing/api/"},{"name":"Typeform","domain":"typeform.com","docs":"https://www.typeform.com/developers/"},{"name":"Twilio","domain":"twilio.com","docs":"https://www.twilio.com/docs/usage/api"},{"name":"Freshdesk","domain":"freshdesk.com","docs":"https://developers.freshdesk.com/api/"},{"name":"DocuSign","domain":"docusign.com","docs":"https://developers.docusign.com/docs/esign-rest-api/reference/"},{"name":"Webex","domain":"webex.com","docs":"https://developer.webex.com/docs/api/getting-started"},{"name":"SurveyMonkey","domain":"surveymonkey.com","docs":"https://api.surveymonkey.com/v3/docs"},{"name":"Pipedrive","domain":"pipedrive.com","docs":"https://developers.pipedrive.com/docs/api/v1"},{"name":"Todoist","domain":"todoist.com","docs":"https://developer.todoist.com/rest/v2/"}];        // checked docs links
+const STORE = "fetch-v6";
+const STEPS = [[1,"App"], [3,"APIs"], [4,"Test"], [5,"Code"]];
 const LANGS = {python:"Python", typescript:"Node.js", java:"Java", go:"Go"};
-const COMMON = ["id","email","name","role","status","created_at","last_login","team"];
-const FIND_STEPS = ["Opening the docs", "Following related pages", "Picking the endpoints", "Working out authentication"];
-const GEN_STEPS = ["Reading the endpoint spec", "Writing the client and auth", "Writing endpoints and paging", "Running safety checks"];
+const LOAD_STEPS = ["Opening the docs", "Looking for a Postman collection or OpenAPI spec", "Listing every endpoint by module", "Working out authentication"];
+const GEN_STEPS = ["Reading the selected endpoints", "Writing the client and auth", "Writing endpoints and paging", "Running safety checks"];
+const WRITE = m => !["GET","HEAD"].includes(m);
 
 /* ---------- state ---------- */
-const blank = () => ({step:1, app:"", domain:"", docsUrl:"", docsSource:"", docsVerified:false, docsEdit:false, docsMode:"link", docsText:"", fields:[], result:null, meta:null, staleFields:false,
-  ep:null, view:"req", reqTab:"params", respTab:"body", reqs:{}, auth:null, lang:"python", files:null, activeFile:null, safety:null, filesLang:null});
+const blank = () => ({step:1, app:"", domain:"", options:[], chosen:"", docsSource:"", findNote:"", docsMode:"link", docsText:"", customUrl:"",
+  R:null, grants:{}, details:{}, selected:[], open:null, q:"", mod:"", env:"sandbox", envUrls:{sandbox:"", production:""},
+  ep:null, view:"req", reqTab:"params", respTab:"body", reqs:{}, auth:null, lang:"python", files:null, filesLang:null, activeFile:null, safety:null});
 let S = blank();
 try { const raw = localStorage.getItem(STORE); if (raw) S = {...blank(), ...JSON.parse(raw)}; } catch {}
 const KEY = {token:"", user:"", pass:"", show:false};   // never persisted
-const RESP = {};                                      // responses kept in memory only
-let suggHide = false, busy = null, prog = 0, ctl = null, lastStep = 0, AI = true, suggIdx = -1, findErr = "", discErr = null, genErr = "";
-function save(){ try { localStorage.setItem(STORE, JSON.stringify(S)); } catch {} }
+let sandboxOk = false;                                 // asked once per tab, never persisted
+const RESP = {};                                      // responses: memory only
+let busy = null, prog = 0, ctl = null, lastStep = 0, suggIdx = -1, suggHide = false, loadErr = null, genErr = "", detailBusy = {};
+function save(){ try { localStorage.setItem(STORE, JSON.stringify(S)); } catch { try { const {R, ...rest} = S; localStorage.setItem(STORE, JSON.stringify(rest)); } catch {} } }
 function set(p){ Object.assign(S, p); save(); render(); }
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const $ = s => document.querySelector(s);
-const host = u => { try { return new URL(u).host; } catch { return ""; } };
 const isUrl = u => /^https?:\/\/[^\s.]+\.[^\s]+$/.test(String(u||"").trim());
-function toast(msg, action){
-  const el = $("#toast"); clearTimeout(toast.t);
-  el.innerHTML = `<div class="toast" role="status"><span>${esc(msg)}</span>${action?`<button data-act="${esc(action[1])}">${esc(action[0])}</button>`:""}</div>`;
-  toast.t = setTimeout(()=>el.innerHTML="", 6000);
-}
+const short = u => String(u||"").replace(/^https?:\/\//,"").replace(/\/$/,"");
+function toast(msg){ const el = $("#toast"); clearTimeout(toast.t); el.innerHTML = `<div class="toast" role="status"><span>${esc(msg)}</span></div>`; toast.t = setTimeout(()=>el.innerHTML="", 6000); }
+const dirFind = n => DIR.find(d=>d[0].toLowerCase()===String(n).toLowerCase());
 function logo(name, domain, size){
-  const k = KNOWN.find(a=>a.name.toLowerCase()===String(name).toLowerCase());
-  const d = domain || k?.domain || "";
+  const d = domain || dirFind(name)?.[1] || KNOWN.find(a=>a.name.toLowerCase()===String(name).toLowerCase())?.domain || "";
   const st = size ? ` style="width:${size}px;height:${size}px;font-size:${Math.round(size*.42)}px"` : "";
   return `<span class="logo"${st}>${esc(String(name||"?")[0].toUpperCase())}${d?`<img src="https://www.google.com/s2/favicons?domain=${esc(d)}&sz=64" alt="" loading="lazy" onerror="this.remove()">`:""}</span>`;
 }
-const reach = () => { let m = 1; if (S.app && (isUrl(S.docsUrl) || (S.docsMode==="paste" && S.docsText.trim().length>=200))) m = 3; if (m===3 && S.result && S.result.endpoints?.length) m = 5; return m; };
+const mt = m => `<span class="mt m-${esc(m)}">${esc(m)}</span>`;
+const allEps = () => (S.R?.modules||[]).flatMap(m=>m.endpoints);
+const epById = id => allEps().find(e=>e.id===id);
+const full = e => { const d = S.details[e.id]; return d ? {...e, ...d, detailed:true} : e; };
+const docsReady = () => S.app && (S.docsMode==="paste" ? S.docsText.trim().length>=200 : isUrl(S.chosen));
+const reach = () => !docsReady() ? 1 : !(S.R && allEps().length) ? 3 : !S.selected.length ? 3 : 5;
 
 /* ---------- render ---------- */
 function render(){
   if (S.step===2) S.step = 3;
-  const r = reach(); if (S.step > r) S.step = r === 3 && S.step > 3 ? 3 : r === 1 ? 1 : S.step;
-  if (S.step===3 && !S.result && busy!=="disc" && !discErr) S.step = 1;
+  const r = reach();
+  if (S.step > 3 && r < 5) S.step = S.R ? 3 : 1;
+  if (S.step===3 && !S.R && busy!=="load" && !loadErr) S.step = docsReady() ? 3 : 1;
+  if (S.step===3 && !docsReady()) S.step = 1;
   $("#steps").innerHTML = STEPS.map(([n,t],i)=>{ const cls = n===S.step?"cur":n<S.step?"done":"";
     return `${i?`<span class="bar ${n<=S.step?"on":""}"><i></i></span>`:""}<button class="st ${cls}" data-act="go" data-s="${n}" ${n>r?"disabled":""} aria-current="${n===S.step?"step":"false"}"><span class="n">${n<S.step?"✓":i+1}</span><span class="t">${t}</span></button>`; }).join("");
   const anim = S.step !== lastStep; lastStep = S.step;
-  const view = [vApp, vFields, vApis, vTest, vCode][S.step-1]();
+  const view = ({1:vApp, 3:vApis, 4:vTest, 5:vCode})[S.step]();
   const m = $("#main");
   const keep = document.activeElement?.id; const sel = keep && document.activeElement.selectionStart;
   m.innerHTML = `<div class="${anim?"enter":""}">${view}</div>`;
@@ -350,167 +422,174 @@ function render(){
   if (S.step===1) suggestions();
 }
 
-/* step 1: app + docs */
+/* ---------- step 1: app + docs ---------- */
+function kindTag(o){
+  if (o.kind==="postman") return o.linkedBy==="vendor" ? `<span class="tag ok">Postman docs · linked by ${esc(S.app)}</span>` : `<span class="tag warn">Postman docs · check publisher</span>`;
+  if (o.kind==="reference") return `<span class="tag blue">API reference</span>`;
+  if (o.kind==="custom") return `<span class="tag">Your link</span>`;
+  return `<span class="tag">Docs page</span>`;
+}
 function vApp(){
-  const has = S.app && isUrl(S.docsUrl) && !S.docsEdit;
-  const tagFor = S.docsSource==="postman" ? (S.docsLinkedBy==="vendor" ? `<span class="tag ok">Postman docs · linked by ${esc(S.app)}</span>` : `<span class="tag warn">Postman docs · check the publisher</span>`) : S.docsSource==="library" ? `<span class="tag ok">Checked link</span>` : S.docsSource==="ai" ? (S.docsVerified?`<span class="tag blue">Found by AI · opens</span>`:`<span class="tag warn">Found by AI · check it</span>`) : `<span class="tag">Your link</span>`;
   let docs = "";
-  if (busy==="find") docs = `<div class="searching fade">${logo(S.app,S.domain,30)}<div style="flex:1"><div>Searching the web for the official ${esc(S.app)} API reference…</div><div class="shimmer" style="width:60%;margin-top:8px"></div></div></div>`;
-  else if (has) docs = `<div class="found fade">${logo(S.app,S.domain,34)}<div class="t"><div class="small muted">API reference</div><a class="u" href="${esc(S.docsUrl)}" target="_blank" rel="noopener">${esc(S.docsUrl.replace(/^https?:\/\//,""))}</a></div>${tagFor}<button class="link" data-act="editDocs">Change</button></div>${(S.docsAlts||[]).length?`<div class="small muted fade" style="margin-top:8px">Not it? Also found: ${S.docsAlts.map(u=>`<button class="link small" data-act="useAlt" data-u="${esc(u)}" style="margin-left:8px;font-family:var(--mono);font-size:12px">${esc(u.replace(/^https?:\/\//,""))}</button>`).join("")}</div>`:""}`;
-  else if (S.app && (S.docsEdit || S.docsSource==="none")) docs = `<div class="fade" style="margin-top:18px">
-      ${findErr?`<div class="note warn" style="margin-bottom:12px">${esc(findErr)}</div>`:""}
-      ${S.docsMode==="link" ? `<label class="field"><span class="label">API docs link</span><input class="in mono" id="docsUrl" placeholder="https://developer.example.com/api" value="${esc(S.docsUrl)}" data-in="docsUrl" inputmode="url"></label>
-        <div class="row small" style="margin-top:10px;gap:16px">${S.docsSource!=="none"?`<button class="link" data-act="findDocs">Search again with AI</button>`:""}<button class="link" data-act="pasteMode">Paste the docs text instead</button></div>`
-      : `<label class="field"><span class="label">API reference text</span><textarea class="in" id="docsText" data-in="docsText" placeholder="Paste the endpoint reference: paths, parameters, auth, example responses.">${esc(S.docsText)}</textarea></label>
-        <div class="row small" style="margin-top:10px"><button class="link" data-act="linkMode">Use a link instead</button><span class="muted" style="margin-left:auto">${S.docsText.trim().length} characters${S.docsText.trim().length<200?" · at least 200 needed":""}</span></div>`}
+  if (busy==="find") docs = `<div class="searching fade">${logo(S.app,S.domain,30)}<div style="flex:1"><div>Looking for ${esc(S.app)}'s API docs (Postman docs first, then the official reference)…</div><div class="shimmer" style="width:60%;margin-top:8px"></div></div></div>`;
+  else if (S.app && S.docsSource){
+    const opts = S.options;
+    docs = `<div class="fade" style="margin-top:20px">
+      ${S.findNote?`<div class="note warn" style="margin-bottom:12px">${esc(S.findNote)}</div>`:""}
+      ${opts.length?`<span class="label">Pick the API docs page</span><div class="opts" role="radiogroup">${opts.map(o=>`<button class="opt ${S.docsMode==="link"&&S.chosen===o.url?"on":""}" role="radio" aria-checked="${S.chosen===o.url}" data-act="choose" data-u="${esc(o.url)}"><span class="rad"></span><span class="t"><span class="tt">${esc(o.title||short(o.url).split("/")[0])}</span><span class="u">${esc(short(o.url))}</span></span>${kindTag(o)}<a class="open" href="${esc(o.url)}" target="_blank" rel="noopener" data-noact>Open ↗</a></button>`).join("")}</div>`:""}
+      <div class="row small" style="margin-top:12px;gap:18px;flex-wrap:wrap"><span class="muted">Not listed?</span>
+        <button class="link small" data-act="customMode">Use another link</button><button class="link small" data-act="pasteMode">Paste the docs text</button></div>
+      ${S.docsMode==="custom"?`<div class="row" style="margin-top:10px"><input class="in mono" id="customUrl" data-in="customUrl" placeholder="https://developer.example.com/api" value="${esc(S.customUrl)}" inputmode="url"><button class="btn line sm" data-act="addCustom" style="height:48px">Add</button></div>`:""}
+      ${S.docsMode==="paste"?`<label class="field" style="margin-top:12px"><span class="label">API reference text</span><textarea class="in" id="docsText" data-in="docsText" placeholder="Paste the endpoint reference: paths, methods, parameters, auth, examples.">${esc(S.docsText)}</textarea></label><div class="small muted" style="margin-top:6px">${S.docsText.trim().length} characters${S.docsText.trim().length<200?" · at least 200 needed":""}</div>`:""}
     </div>`;
-  const canGo = reach() >= 3;
-  return `<section class="hero"><h1>Find any API.<br><em>Test it live.</em></h1><p>Name the app. Fetch finds the docs, shows the endpoints, and lets you call them with your own trial key.</p></section>
+  }
+  const searchable = S.app.trim().length>1 && !S.docsSource && busy!=="find";
+  return `<section class="hero"><h1>Find any API.<br><em>Test it live.</em></h1><p>Name the app. Fetch finds its API docs, lays out every endpoint like the docs do, and lets you test the ones you pick with your sandbox key.</p></section>
   <div class="panel narrow" style="margin:0">
     <label class="field"><span class="label">Which app?</span>
-      <div class="combo"><input class="in lg" id="app" placeholder="e.g. Calendly, GitHub, Notion" value="${esc(S.app)}" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="sugg" data-in="app">
-      ${S.app.trim().length>1 && !has && busy!=="find" && !S.docsEdit && S.docsSource!=="none" ? `<span class="go"><button class="btn blue" data-act="findDocs">Find docs <span class="arr">→</span></button></span>`:""}
+      <div class="combo"><input class="in lg" id="app" placeholder="e.g. greytHR, WeCP, Calendly" value="${esc(S.app)}" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="sugg" data-in="app">
+      ${searchable?`<span class="go"><button class="btn blue" data-act="findDocs">Find docs <span class="arr">→</span></button></span>`:""}
       <div id="suggBox"></div></div>
     </label>
     ${docs}
-    <div class="foot"><span class="small muted">${has?"Not the right page? Change it before you continue.":""}</span><div class="r"><button class="btn blue" data-act="discover" id="goApis" ${canGo?"":"disabled"}>Find the APIs <span class="arr">→</span></button></div></div>
+    <div class="foot"><span class="small muted">${S.docsSource?"Check it's the right page, then load the reference.":`${DIR.length} apps in the directory, or type any name to search.`}</span><div class="r"><button class="btn blue" data-act="load" id="goApis" ${docsReady()?"":"disabled"}>Load the API reference <span class="arr">→</span></button></div></div>
   </div>`;
 }
 function suggestions(){
   const q = S.app.trim().toLowerCase(); const box = $("#suggBox"); if (!box) return;
   if (!q || suggHide || document.activeElement?.id!=="app"){ box.innerHTML=""; $("#app")?.setAttribute("aria-expanded","false"); return; }
-  let list = KNOWN.filter(a=>a.name.toLowerCase().includes(q)).sort((a,b)=>a.name.toLowerCase().indexOf(q)-b.name.toLowerCase().indexOf(q)).slice(0,6);
-  const exact = KNOWN.some(a=>a.name.toLowerCase()===q);
-  const items = list.map(a=>`<button type="button" role="option" data-act="pickApp" data-name="${esc(a.name)}">${logo(a.name,a.domain)}<b>${esc(a.name)}</b><span class="d">Docs on file</span></button>`);
-  if (!exact && q.length>1) items.push(`<button type="button" role="option" data-act="findDocs">${logo(S.app)}<span>Search for <b>${esc(S.app.trim())}</b> API docs</span><span class="d">AI search</span></button>`);
+  const score = n => { const s = n.toLowerCase(); return s===q?0:s.startsWith(q)?1:s.split(/[\s.-]/).some(w=>w.startsWith(q))?2:s.includes(q)?3:9; };
+  const list = DIR.filter(d=>score(d[0])<9).sort((a,b)=>score(a[0])-score(b[0])||a[0].localeCompare(b[0])).slice(0,7);
+  const exact = list.some(d=>d[0].toLowerCase()===q);
+  const items = list.map(d=>`<button type="button" role="option" data-act="pickApp" data-name="${esc(d[0])}">${logo(d[0],d[1])}<b>${esc(d[0])}</b><span class="cat">${esc(d[2])}</span><span class="d">${esc(d[1])}</span></button>`);
+  if (!exact && q.length>1) items.push(`<button type="button" role="option" data-act="findDocs">${logo(S.app)}<span>Search the web for <b>${esc(S.app.trim())}</b> API docs</span><span class="d">Search</span></button>`);
   suggIdx = Math.min(suggIdx, items.length-1);
   box.innerHTML = items.length ? `<div class="sugg" id="sugg" role="listbox">${items.map((h,i)=>i===suggIdx?h.replace('<button type="button"','<button type="button" class="hi"'):h).join("")}</div>` : "";
   $("#app")?.setAttribute("aria-expanded", items.length?"true":"false");
 }
+const clearBelow = () => ({R:null, grants:{}, details:{}, selected:[], open:null, q:"", mod:"", ep:null, reqs:{}, auth:null, files:null, safety:null, envUrls:{sandbox:"",production:""}});
 async function findDocs(){
   const name = S.app.trim(); if (name.length<2) return toast("Type the app's name first.");
-  findErr = ""; suggHide = true; $("#suggBox") && ($("#suggBox").innerHTML="");
-  const k = KNOWN.find(a=>a.name.toLowerCase()===name.toLowerCase());
-  const refocus = () => setTimeout(()=>{ const el=$("#app"); if (el && S.step===1){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 30);
-  if (k){
-    set({app:k.name, domain:k.domain, docsUrl:k.docs, docsSource:"library", docsVerified:true, docsAlts:[], docsEdit:false, docsMode:"link", ...clearBelow()}); refocus();
-    // In the background, check whether the vendor links to Postman docs; if so, prefer them.
-    api("/api/find-docs", {app:k.name}, 20000).then(out=>{ if (out.source==="postman" && S.app===k.name && S.docsSource==="library" && !S.result && busy!=="disc"){ set({docsUrl:out.docsUrl, docsSource:"postman", docsLinkedBy:out.linkedBy, docsAlts:out.alternatives||[k.docs]}); refocus(); } }).catch(()=>{});
-    return;
-  }
-  busy="find"; render();
+  suggHide = true; $("#suggBox") && ($("#suggBox").innerHTML="");
+  const d = dirFind(name);
+  S.app = d ? d[0] : name; S.domain = d ? d[1] : "";
+  busy="find"; S.docsSource=""; S.findNote=""; render();
   try{
-    const out = await api("/api/find-docs", {app:name}, 30000);
-    busy=null; refocus();
-    if (out.docsUrl) set({app:out.app||name, domain:out.domain||"", docsUrl:out.docsUrl, docsSource:out.source==="postman"?"postman":"ai", docsLinkedBy:out.linkedBy||"", docsVerified:!!out.verified, docsAlts:(out.alternatives||[]).filter(u=>u!==out.docsUrl).slice(0,3), docsEdit:false, docsMode:"link", ...clearBelow()});
-    else { findErr = `We couldn't find a public API reference for “${name}”. Paste the docs link or text below.`; set({docsSource:"none", docsEdit:true, docsUrl:"", ...clearBelow()}); }
-  }catch(e){ busy=null; findErr = (e.message||"The search failed.")+" Paste the docs link instead."; set({docsSource:"none", docsEdit:true, ...clearBelow()}); }
-}
-const clearBelow = () => ({result:null, meta:null, files:null, safety:null, ep:null, reqs:{}, auth:null, staleFields:false});
-
-/* step 2: fields */
-function vFields(){
-  return `<div class="narrow"><div class="head"><div class="row" style="margin-bottom:14px">${logo(S.app,S.domain,30)}<span class="label">${esc(S.app)}</span></div><h2>Which fields do you need?</h2><p>Type the fields from your requirement, the way you'd name them. Press Enter or a comma after each one.</p></div>
-  <div class="panel">
-    <div class="chipbox" data-act="focusChip">${S.fields.map((f,i)=>`<span class="chip">${esc(f)}<button data-act="rmField" data-i="${i}" aria-label="Remove ${esc(f)}">×</button></span>`).join("")}<input id="chipIn" placeholder="${S.fields.length?"Add another":"e.g. email, role, last_login"}" autocomplete="off" aria-label="Add a field"></div>
-    <div class="quick"><span class="label" style="margin-right:4px">Common</span>${COMMON.filter(c=>!S.fields.includes(c)).map(c=>`<button class="qchip" data-act="addField" data-f="${c}">+ ${c}</button>`).join("")}</div>
-    <div class="foot"><button class="btn line" data-act="go" data-s="1">← Back</button><div class="r"><button class="btn blue" data-act="discover" ${S.fields.length?"":"disabled"}>Find the APIs <span class="arr">→</span></button></div></div>
-  </div></div>`;
-}
-function groups(eps){ const m=new Map(); for (const e of eps){ const k=e.module||""; if(!m.has(k)) m.set(k,[]); m.get(k).push(e); } return [...m.entries()]; }
-function fieldsFor(){ if (S.fields.length) return S.fields; const out=[]; for (const e of (S.result?.endpoints||[])) for (const f of e.fields) if (!out.includes(f.field) && out.length<20) out.push(f.field); return out; }
-function addFields(text){
-  const add = String(text).split(/[,\n;]+/).map(s=>s.trim().replace(/\s+/g,"_")).filter(s=>s && s.length<=60);
-  if (!add.length) return;
-  const next = [...S.fields]; for (const f of add) if (!next.some(x=>x.toLowerCase()===f.toLowerCase()) && next.length<25) next.push(f);
-  set({fields:next, staleFields: !!S.result});
-}
-
-/* step 3: APIs */
-function vApis(){
-  if (busy==="disc") return `<div class="narrow"><div class="head"><h2>Reading the ${esc(S.app)} docs…</h2><p>This usually takes 10 to 25 seconds.</p></div><div class="panel"><ul class="prog">${FIND_STEPS.map((t,i)=>`<li class="${i<prog?"done":i===prog?"cur":""}"><span class="ic">${i<prog?"✓":i===prog?'<span class="spin"></span>':"·"}</span>${t}</li>`).join("")}</ul><div class="foot"><button class="btn line sm" data-act="cancel">Cancel</button></div></div></div>`;
-  if (!S.result) return `<div class="narrow"><div class="head"><h2>Find the APIs</h2></div><div class="panel">
-      ${discErr?`<div class="note bad">${esc(discErr.message)}</div>`:`<p class="muted">${S.fields.length?`Fields: ${S.fields.map(f=>`<code>${esc(f)}</code>`).join(", ")}`:`Docs: <code>${esc(S.docsMode==="paste"?"pasted text":S.docsUrl)}</code>`}</p>`}
-      ${discErr?.needPaste ? `<label class="field" style="margin-top:16px"><span class="label">Paste the API reference text</span><textarea class="in" id="docsText" data-in="docsText" placeholder="Paste the endpoint reference: paths, parameters, auth, example responses.">${esc(S.docsText)}</textarea></label>`:""}
-      <div class="foot"><button class="btn line" data-act="go" data-s="1">← Back</button><div class="r"><button class="btn blue" data-act="discover">${discErr?"Try again":"Find the APIs"} <span class="arr">→</span></button></div></div></div></div>`;
-  const R = S.result, eps = R.endpoints, fm = R.field_map;
-  const got = fm.filter(f=>f.status==="found").length;
-  const a = R.auth||{};
-  const authLine = authPreview(a);
-  return `<div class="head spread" style="align-items:flex-end"><div><div class="row" style="margin-bottom:14px">${logo(S.app,S.domain,30)}<span class="label">${esc(S.app)} · ${esc(srcLabel())}</span></div>
-      <h2>${fm.length?`${eps.length} endpoint${eps.length===1?"":"s"} cover <em>${got} of ${fm.length}</em> fields`:`${eps.length} read endpoint${eps.length===1?"":"s"} <em>ready to test</em>`}</h2>
-      <p>Base URL <code>${esc(R.base_url)}</code>. Open an endpoint to see its parameters and where each field sits in the response.</p></div>
-      <div class="row"><button class="btn line sm" data-act="postman">Postman collection ↓</button></div></div>
-    <div class="panel"><div class="spread"><span class="label">${fm.length?"Your fields":"Need specific fields? (optional)"}</span>${S.staleFields?`<button class="btn blue sm" data-act="discover">Search again <span class="arr">→</span></button>`:""}</div>
-      <div class="chipbox" data-act="focusChip" style="margin-top:10px;min-height:50px;padding:7px 8px">${S.fields.map((f,i)=>`<span class="chip">${esc(f)}<button data-act="rmField" data-i="${i}" aria-label="Remove ${esc(f)}">×</button></span>`).join("")}<input id="chipIn" placeholder="${S.fields.length?"Add another field":"e.g. email, role, last_login, then Enter"}" autocomplete="off" aria-label="Add a field"></div>
-      ${S.staleFields?`<div class="small muted" style="margin-top:8px">Fields changed. Search again to match endpoints to them.</div>`:fm.length?"":`<div class="small muted" style="margin-top:8px">Grouped by module, like the docs. If you already know the fields you need, add them to get the exact endpoints that return them.</div>`}
-      ${fm.length?`<div style="margin-top:14px"><div class="cov" style="margin-top:10px">${fm.map(f=>{ const st = f.status==="found"?"found":f.status==="plan"?"plan":"missing"; const ep = eps.find(e=>e.id===f.endpoint);
-      return `<div class="cv c-${st==="found"?"ok":st==="plan"?"plan":"miss"}" title="${esc(f.note||"")}"><div class="spread" style="gap:6px"><b>${esc(f.field)}</b><span class="tiny ${st==="missing"?"bad-i":st==="plan"?"":"muted"}">${st==="found"?"found":st==="plan"?"some plans":"not in API"}</span></div><div class="w">${ep?`${esc(ep.path)}${f.json_path?` → ${esc(f.json_path)}`:""}`:esc(f.note||"—")}</div></div>`; }).join("")}</div></div>`:""}</div>
-    <div class="panel" style="padding:0;border:0;background:none;margin-top:14px">${groups(eps).map(([mod,list])=>`<div class="mod">${mod?`<div class="modh"><span class="label">${esc(mod)}</span><span class="tiny muted">${list.length} endpoint${list.length>1?"s":""}</span></div>`:""}${list.map((e)=>`<details class="ep" ${e===eps[0]?"open":""}><summary><span class="meth">GET</span><span class="path">${esc(e.path)}</span><span class="sum">${esc(e.summary)}</span><span class="chev">›</span></summary>
-      <div class="body"><div><span class="label">Parameters</span>${e.params.length?`<table class="kv" style="margin-top:6px">${e.params.map(p=>`<tr><td>${esc(p.name)}${p.required?' <span class="bad-i">*</span>':""}</td><td><span class="muted tiny">${esc(p.in||"query")}</span> ${esc(p.about||"")}${p.example!=null&&p.example!==""?` <span class="muted">e.g. <code>${esc(p.example)}</code></span>`:""}</td></tr>`).join("")}</table>`:`<p class="small muted">None</p>`}
-        ${e.scopes.length&&!e.scopes.every(s=>s==="UNKNOWN")?`<div style="margin-top:12px"><span class="label">Scopes</span><div class="small mono" style="margin-top:4px">${e.scopes.map(esc).join(", ")}</div></div>`:""}</div>
-        <div><span class="label">Fields it returns</span>${e.fields.length?`<table class="kv" style="margin-top:6px">${e.fields.map(f=>`<tr><td>${esc(f.field)}</td><td class="mono small">${esc(f.json_path||"")}</td></tr>`).join("")}</table>`:`<p class="small muted">Needed to get IDs for the next call.</p>`}
-        <div class="row" style="margin-top:14px;gap:14px"><button class="btn sm" data-act="tryEp" data-id="${esc(e.id)}">Try it <span class="arr">→</span></button>${e.docs_url?`<a class="small" href="${esc(e.docs_url)}" target="_blank" rel="noopener">Docs ↗</a>`:""}</div></div></div></details>`).join("")}</div>`).join("")}</div>
-    <div class="panel" style="margin-top:14px"><div class="auth"><div><span class="label">Authentication</span><h3 style="margin-top:8px">${esc(authName(a))}</h3>
-        ${a.get_key_steps?.length?`<ol class="small">${a.get_key_steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol>`:""}
-        <div class="row small" style="margin-top:10px;gap:16px">${/^https:/.test(a.key_page_url||"")?`<a href="${esc(a.key_page_url)}" target="_blank" rel="noopener">Get a key ↗</a>`:""}${a.free_tier&&a.free_tier!=="UNKNOWN"?`<span class="muted">${esc(a.free_tier)}</span>`:""}</div></div>
-      <div><span class="label">Sent with every request</span><div class="codeline" style="margin-top:8px">${authLine}</div>
-        <table class="kv" style="margin-top:12px"><tr><td>Paging</td><td>${esc(R.pagination||"UNKNOWN")}</td></tr><tr><td>Rate limits</td><td>${esc(R.rate_limits||"UNKNOWN")}</td></tr>${R.unknowns.length?`<tr><td>Not in docs</td><td class="muted">${R.unknowns.map(esc).join("; ")}</td></tr>`:""}</table></div></div></div>
-    <div class="foot"><button class="btn line" data-act="go" data-s="1">← App</button><div class="r"><button class="btn blue" data-act="go" data-s="4">Test it live <span class="arr">→</span></button></div></div>`;
-}
-const srcLabel = () => { const m=S.meta||{}; return m.source==="pasted"?"from pasted docs":m.source==="openapi"?"from the OpenAPI spec":m.source==="reference"?"from a checked reference":`read ${m.pages||1} page${(m.pages||1)>1?"s":""} of docs`; };
-function authName(a){ return {bearer:`Bearer token${a.token_name?` (${a.token_name})`:""}`, oauth2:`OAuth 2.0 access token${a.token_name&&!/oauth/i.test(a.token_name)?` or ${a.token_name}`:""}`, api_key_header:`API key in the ${a.header||"header"} header`, api_key_query:`API key in the ?${a.query_param||"key"} parameter`, basic:"Basic auth (username and password or key)", none:"No authentication needed"}[a.type] || "Token"; }
-function authPreview(a){ const ex = (a.extra_headers||[]).map(h=>`<div>${esc(h.name)}: ${esc(h.value)}</div>`).join("");
-  if (a.type==="none") return "No auth header"+ex;
-  if (a.type==="api_key_query") return `?${esc(a.query_param||"api_key")}=&lt;your key&gt;`+ex;
-  if (a.type==="basic") return `Authorization: Basic &lt;base64 user:key&gt;`+ex;
-  if (a.type==="api_key_header") return `${esc(a.header||"X-API-Key")}: ${esc(a.prefix||"")}&lt;your key&gt;`+ex;
-  return `Authorization: Bearer &lt;your token&gt;`+ex; }
-
-async function discover(){
-  busy="disc"; discErr=null; ctl = new AbortController(); S.step=3; save(); render();
-  const job = api("/api/discover", {app:S.app, docsUrl:S.docsMode==="link"?S.docsUrl:"", docsText:S.docsMode==="paste"||(S.docsText||"").trim().length>=200?S.docsText:"", fields:S.fields}, 58000, ctl.signal);
-  try{
-    const out = await animateWhile(FIND_STEPS.length, job);
+    const out = await api("/api/find-docs", {app:S.app}, 40000);
     busy=null;
-    if (!out.result.endpoints.length){ discErr={message:`We read the docs but found no read-only endpoint${S.fields.length?` that returns ${S.fields.join(", ")}`:""}. Check the docs link, or paste the reference for the right section.`, needPaste:true}; return set({result:null}); }
+    const opts = (out.options||[]).filter(o=>isUrl(o.url));
+    if (opts.length) set({domain:S.domain||out.domain||"", options:opts, chosen:opts[0].url, docsSource:out.source||"ai", docsMode:"link", findNote:"", ...clearBelow()});
+    else set({options:[], chosen:"", docsSource:"none", docsMode:"custom", findNote:`We couldn't find public API docs for “${name}”. Add the docs link or paste the reference text.`, ...clearBelow()});
+  }catch(e){ busy=null; set({options:[], chosen:"", docsSource:"none", docsMode:"custom", findNote:(e.message||"The search failed.")+" Add the docs link instead.", ...clearBelow()}); }
+  setTimeout(()=>{ const el=$("#app"); if (el && S.step===1){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 30);
+}
+
+/* ---------- step 2: reference ---------- */
+async function load(){
+  if (!docsReady()) return toast("Pick a docs page first.");
+  busy="load"; loadErr=null; ctl = new AbortController(); S.step=3; save(); render();
+  const job = api("/api/reference", {app:S.app, docsUrl:S.docsMode==="paste"?"":S.chosen, docsText:S.docsMode==="paste"?S.docsText:""}, 58000, ctl.signal);
+  try{
+    const out = await animateWhile(LOAD_STEPS.length, job);
+    busy=null;
+    if (out.empty || !out.result?.modules?.length){ loadErr = {message:"We read the docs but couldn't find any endpoints. Try another docs page, or paste the API reference text.", needPaste:true}; return set({R:null}); }
     const R = out.result;
-    R.endpoints = groups(R.endpoints).flatMap(([,l])=>l);
-    set({result:R, meta:{source:out.source, pages:out.pages, model:out.model}, staleFields:false, ep:R.endpoints[0].id, reqs:{}, auth:initAuth(R.auth), files:null, safety:null});
+    set({R, grants:out.grants||{}, details:{}, selected:[], open:null, mod:R.modules[0].name, q:"", auth:initAuth(R.auth), envUrls:{sandbox:R.sandbox_base_url||R.base_url||"", production:R.base_url||""}, env:R.sandbox_base_url?"sandbox":"production", reqs:{}, files:null, safety:null});
   }catch(e){
     busy=null;
-    if (e.name==="AbortError" && !ctl?.timedOut){ set({step: S.result ? 3 : 1}); return; }
-    discErr = {message:e.message||"Couldn't read the docs.", needPaste:!!e.needPaste || e.status===422}; render();
+    if (e.name==="AbortError" && !ctl?.timedOut){ set({step:1}); return; }
+    loadErr = {message:e.message||"Couldn't read the docs.", needPaste:!!e.needPaste || e.status===422}; render();
   }
 }
 async function animateWhile(n, promise){
   prog = 0; render(); let done=false; promise.finally(()=>done=true).catch(()=>{});
-  while (!done && prog < n-1){ await sleep(2200+Math.random()*1800); if (!done){ prog++; if (busy) render(); } }
+  while (!done && prog < n-1){ await sleep(2400+Math.random()*1800); if (!done){ prog++; if (busy) render(); } }
   return promise;
 }
+const srcTag = () => { const s=S.R?.source; return s==="postman"?`<span class="tag ok">From the Postman collection · complete</span>`:s==="openapi"?`<span class="tag ok">From the OpenAPI spec · complete</span>`:`<span class="tag warn">Read by AI from the docs · may miss some</span>`; };
+function vApis(){
+  if (busy==="load") return `<div class="narrow"><div class="head"><h2>Reading the ${esc(S.app)} docs…</h2><p>Usually 10 to 40 seconds. Postman collections and OpenAPI specs load fastest and are complete.</p></div><div class="panel"><ul class="prog">${LOAD_STEPS.map((t,i)=>`<li class="${i<prog?"done":i===prog?"cur":""}"><span class="ic">${i<prog?"✓":i===prog?'<span class="spin"></span>':"·"}</span>${t}</li>`).join("")}</ul><div class="foot"><button class="btn line sm" data-act="cancel">Cancel</button></div></div></div>`;
+  if (!S.R) return `<div class="narrow"><div class="head"><h2>Load the API reference</h2></div><div class="panel">
+      ${loadErr?`<div class="note bad">${esc(loadErr.message)}</div>`:`<p class="muted">Docs: <code>${esc(S.docsMode==="paste"?"pasted text":short(S.chosen))}</code></p>`}
+      ${loadErr?.needPaste?`<label class="field" style="margin-top:16px"><span class="label">Paste the API reference text</span><textarea class="in" id="docsText2" data-in="docsText2" placeholder="Paste the endpoint reference: paths, methods, parameters, auth, examples.">${esc(S.docsText)}</textarea></label>`:""}
+      <div class="foot"><button class="btn line" data-act="go" data-s="1">← Pick another page</button><div class="r"><button class="btn blue" data-act="load">${loadErr?"Try again":"Load"} <span class="arr">→</span></button></div></div></div></div>`;
+  const R = S.R, q = S.q.trim().toLowerCase();
+  const match = e => !q || (e.method+" "+e.path+" "+e.summary).toLowerCase().includes(q);
+  const mods = R.modules.map(m=>({...m, eps:m.endpoints.filter(match)})).filter(m=>m.eps.length);
+  const selSet = new Set(S.selected);
+  const total = allEps().length;
+  const nav = `<aside class="nav"><div class="in2"><input class="in srch" id="q" data-in="q" placeholder="Search ${total} endpoints" value="${esc(S.q)}" autocomplete="off">
+    ${mods.map(m=>`<button class="navm ${S.mod===m.name?"on":""}" data-act="mod" data-m="${esc(m.name)}">${m.eps.some(e=>selSet.has(e.id))?'<span class="sel-dot"></span>':""}<span>${esc(m.name)}</span><span class="cnt">${m.eps.length}</span></button>`).join("")}</div></aside>`;
+  const center = `<div class="center">${mods.length?mods.map(m=>`<section class="msec" id="mod-${esc(slugify(m.name))}"><h3>${esc(m.name)} <span class="tiny muted">${m.eps.length} endpoint${m.eps.length>1?"s":""}</span><button class="link small" data-act="selMod" data-m="${esc(m.name)}" style="margin-left:auto">${m.eps.every(e=>selSet.has(e.id))?"Clear module":"Select module"}</button></h3>
+      ${m.eps.map(e=>epRow(e, selSet.has(e.id))).join("")}</section>`).join(""):`<p class="muted" style="padding:30px 0">No endpoints match “${esc(S.q)}”.</p>`}</div>`;
+  const sel = S.selected.map(epById).filter(Boolean);
+  const groups = [...new Set(sel.map(e=>e.module))];
+  const side = `<aside class="side2"><div class="in2"><div class="spread"><span class="label">Selected · ${sel.length}</span>${sel.length?`<button class="link small" data-act="clearSel">Clear</button>`:""}</div>
+    ${sel.length?groups.map(g=>`<div class="grp2"><div class="gh">${esc(g)}</div>${sel.filter(e=>e.module===g).map(e=>`<div class="si">${mt(e.method)}<span class="p" title="${esc(e.path)}">${esc(e.path)}</span><button class="x" data-act="toggle" data-id="${esc(e.id)}" aria-label="Remove">×</button></div>`).join("")}</div>`).join(""):`<p class="small muted" style="margin:10px 0 0">Tick the endpoints you need. They collect here, grouped by module.</p>`}
+    <div class="acts"><button class="btn blue" data-act="go" data-s="4" ${sel.length?"":"disabled"}>Test selected <span class="arr">→</span></button><button class="btn line sm" data-act="postman" ${sel.length?"":"disabled"}>Postman collection ↓</button></div>
+    <hr class="sep" style="margin:18px 0 12px"><span class="label">Auth</span><div class="small" style="margin-top:4px">${esc(authName(R.auth||{}))}</div>
+    <div class="small muted" style="margin-top:8px">Base URL <code>${esc(short(R.base_url))}</code>${R.sandbox_base_url?`<br>Sandbox <code>${esc(short(R.sandbox_base_url))}</code>`:""}</div></div></aside>`;
+  return `<div class="head spread" style="align-items:flex-end;margin-bottom:16px"><div><div class="row" style="margin-bottom:12px">${logo(S.app,S.domain,30)}<span class="label">${esc(S.app)} · API reference</span></div>
+      <h2>${total} endpoint${total>1?"s":""} in <em>${R.modules.length} module${R.modules.length>1?"s":""}</em></h2>
+      <div class="srcbar">${srcTag()}<a class="small" href="${esc(S.chosen)}" target="_blank" rel="noopener">${esc(short(S.chosen)).slice(0,60)} ↗</a></div>
+      ${R.note?`<p class="small muted" style="margin-top:8px">${esc(R.note)}</p>`:""}</div></div>
+    <div class="ref">${nav}${center}${side}</div>
+    <div class="foot"><button class="btn line" data-act="go" data-s="1">← App</button><div class="r"><button class="btn blue" data-act="go" data-s="4" ${S.selected.length?"":"disabled"}>Test ${S.selected.length||""} selected <span class="arr">→</span></button></div></div>`;
+}
+const slugify = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g,"-");
+function epRow(e0, on){
+  const e = full(e0), open = S.open===e.id;
+  let bd = "";
+  if (open){
+    if (!e.detailed) bd = detailBusy[e.id]==="err" ? `<div class="note bad small">Couldn't read this endpoint's docs. <button class="link small" data-act="detail" data-id="${esc(e.id)}">Try again</button></div>` : `<div style="padding:6px 0"><div class="shimmer" style="width:70%"></div><div class="shimmer" style="width:45%;margin-top:8px"></div><div class="small muted" style="margin-top:8px">Reading this endpoint's docs…</div></div>`;
+    else bd = `${e.description?`<p class="small" style="margin:0 0 6px;color:var(--ink2)">${esc(e.description)}</p>`:""}
+      <div class="codeline">${mt(e.method)} ${esc(e.path)}</div>
+      <div class="grid2"><div><span class="label">Parameters</span>${e.params?.length?`<table class="kv" style="margin-top:6px">${e.params.map(p=>`<tr><td>${esc(p.name)}${p.required?' <span class="bad-i">*</span>':""}</td><td><span class="muted tiny">${esc(p.in||"query")}</span> ${esc(p.about||"")}${p.example!==""&&p.example!=null?` <span class="muted">e.g. <code>${esc(p.example)}</code></span>`:""}</td></tr>`).join("")}</table>`:`<p class="small muted">None documented</p>`}
+        ${e.headers?.length?`<div style="margin-top:12px"><span class="label">Headers</span><table class="kv" style="margin-top:6px">${e.headers.map(h=>`<tr><td>${esc(h.name)}</td><td class="mono small">${esc(h.value)}</td></tr>`).join("")}</table></div>`:""}
+        ${e.scopes?.length?`<div style="margin-top:12px"><span class="label">Scopes</span><div class="small mono" style="margin-top:4px">${e.scopes.map(esc).join(", ")}</div></div>`:""}</div>
+      <div>${e.body?`<span class="label">Request body</span><pre class="ex">${esc(pretty(e.body.example))}</pre>`:""}
+        ${e.response_example?`<div style="margin-top:${e.body?12:0}px"><span class="label">Response example${e.response_status?` · ${e.response_status}`:""}</span><pre class="ex">${esc(pretty(e.response_example))}</pre></div>`:""}
+        ${!e.body&&!e.response_example?`<p class="small muted">No examples in the docs.</p>`:""}</div></div>
+      <div class="row" style="margin-top:12px;gap:14px"><button class="btn sm ${on?"line":""}" data-act="toggle" data-id="${esc(e.id)}">${on?"Remove from selection":"Select"}</button>${e.docs_url?`<a class="small" href="${esc(e.docs_url)}" target="_blank" rel="noopener">Docs ↗</a>`:""}</div>`;
+  }
+  return `<div class="erow ${open?"open":""}"><div class="hd" data-act="openEp" data-id="${esc(e.id)}"><input type="checkbox" data-sel="${esc(e.id)}" ${on?"checked":""} aria-label="Select ${esc(e.method)} ${esc(e.path)}">${mt(e.method)}<span class="path mono">${esc(e.path)}</span><span class="nm">${esc(e.summary)}</span><span class="chev">›</span></div>${open?`<div class="bd">${bd}</div>`:""}</div>`;
+}
+const pretty = s => { try { return JSON.stringify(JSON.parse(s), null, 2); } catch { return String(s||""); } };
+async function detail(id){
+  const e = epById(id); if (!e || e.detailed || S.details[id] || detailBusy[id]===true) return;
+  detailBusy[id] = true;
+  try{
+    const out = await api("/api/endpoint", {app:S.app, base_url:S.R.base_url, endpoint:{method:e.method, path:e.path, summary:e.summary, docs_url:e.docs_url}, docsUrl:S.docsMode==="paste"?"":S.chosen}, 45000);
+    S.details[id] = out.detail; detailBusy[id] = false; delete S.reqs[id]; save();
+  }catch(err){ detailBusy[id] = "err"; }
+  render();
+}
+function authName(a){ return {bearer:`Bearer token${a.token_name?` (${a.token_name})`:""}`, oauth2:`OAuth 2.0 access token${a.token_name&&!/oauth/i.test(a.token_name)?` or ${a.token_name}`:""}`, api_key_header:`API key in the ${a.header||"X-API-Key"} header`, api_key_query:`API key in the ?${a.query_param||"api_key"} parameter`, basic:"Basic auth (username and password or key)", none:"No authentication needed"}[a.type] || "Token"; }
 
-/* ---------- tester ---------- */
+/* ---------- step 3: tester ---------- */
 function initAuth(a={}){
   const t = a.type==="api_key_header"?"header":a.type==="api_key_query"?"query":a.type==="basic"?"basic":a.type==="none"?"none":"bearer";
-  return {type:t, header:a.header && a.type==="api_key_header" ? a.header : "X-API-Key", prefix:a.type==="api_key_header"?(a.prefix||""):"", query:a.query_param||"api_key", extra:(a.extra_headers||[]).map(h=>({key:h.name, value:h.value, on:true}))};
+  return {type:t, header:a.type==="api_key_header" ? (a.header||"X-API-Key") : "X-API-Key", prefix:a.type==="api_key_header"?(a.prefix||""):"", query:a.query_param||"api_key", extra:(a.extra_headers||[]).map(h=>({key:h.name, value:h.value, on:true}))};
 }
 function req(id){
   if (!S.reqs[id]){
-    const e = S.result.endpoints.find(x=>x.id===id); if (!e) return null;
+    const e = full(epById(id)); if (!e) return null;
     const pathNames = [...e.path.matchAll(/\{([^}]+)\}|:(\w+)/g)].map(m=>m[1]||m[2]);
-    const params = e.params.map(p=>({key:p.name, value:p.example!=null?String(p.example):"", in:pathNames.includes(p.name)?"path":"query", req:!!p.required || pathNames.includes(p.name), on:!!p.required || pathNames.includes(p.name)}));
+    const params = (e.params||[]).filter(p=>p.in!=="header").map(p=>({key:p.name, value:p.example!=null?String(p.example):"", in:pathNames.includes(p.name)?"path":"query", req:!!p.required || pathNames.includes(p.name), on:!!p.required || pathNames.includes(p.name) || (p.example!=null && p.example!=="")}));
     for (const n of pathNames) if (!params.some(p=>p.key===n)) params.push({key:n, value:"", in:"path", req:true, on:true});
-    S.reqs[id] = {params, headers:[]};
+    const headers = [...(e.headers||[]), ...(e.params||[]).filter(p=>p.in==="header").map(p=>({name:p.name, value:p.example||""}))]
+      .filter(h=>!/^(authorization|x-api-key|api-key)$/i.test(h.name) && !(S.auth?.type==="header" && h.name.toLowerCase()===S.auth.header.toLowerCase())).map(h=>({key:h.name, value:h.value, on:true}));
+    S.reqs[id] = {params, headers, body: e.body ? pretty(e.body.example) : (WRITE(e.method) ? "{\n  \n}" : "")};
   }
   return S.reqs[id];
 }
-const curEp = () => S.result?.endpoints.find(e=>e.id===S.ep) || S.result?.endpoints[0];
+const curEp = () => { const sel = S.selected.map(epById).filter(Boolean); return sel.find(e=>e.id===S.ep) || sel[0]; };
+const baseUrl = () => (S.envUrls[S.env] || S.R?.base_url || "").replace(/\/+$/,"");
 function buildUrl(e, r, withKey){
   let path = e.path;
   for (const p of r.params.filter(p=>p.in==="path")) path = path.replace(new RegExp(`\\{${p.key.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}\\}|:${p.key}\\b`), p.value ? encodeURIComponent(p.value) : `:${p.key}`);
   path = path.replace(/\{([^}]+)\}/g, ":$1");
-  const base = (S.result.base_url||"").replace(/\/+$/,"");
-  let url = /^https?:\/\//.test(path) ? path : base + (path.startsWith("/")?"":"/") + path;
+  let url = /^https?:\/\//.test(path) ? path : baseUrl() + (path.startsWith("/")?"":"/") + path;
   const q = r.params.filter(p=>p.in==="query" && p.on && p.key).map(p=>`${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`);
   if (withKey && S.auth.type==="query" && KEY.token) q.push(`${encodeURIComponent(S.auth.query)}=${encodeURIComponent(KEY.token)}`);
   return url + (q.length ? (url.includes("?")?"&":"?") + q.join("&") : "");
@@ -526,89 +605,93 @@ function authHeaders(){
 }
 const hasKey = () => S.auth.type==="none" || (S.auth.type==="basic" ? !!(KEY.user||KEY.pass) : !!KEY.token);
 function vTest(){
-  const R = S.result, e = curEp(); if (!e) return "";
-  S.ep = e.id; const r = req(e.id); const res = RESP[e.id];
+  const R = S.R, e0 = curEp(); if (!e0) return "";
+  S.ep = e0.id; const e = full(e0);
+  if (!e.detailed && detailBusy[e.id]!==true && detailBusy[e.id]!=="err") setTimeout(()=>detail(e.id), 0);
+  const r = req(e.id); const res = RESP[e.id];
   const missing = r.params.filter(p=>p.req && !p.value).length;
   const g1 = hasKey(), g3 = !missing, g4 = res && res.status>=200 && res.status<300;
   const now = !g1 ? 1 : !g3 ? 3 : !g4 ? 4 : 0;
   const a = R.auth||{};
-  const guide = [
-    [1, S.auth.type==="none"?"No key needed":"Get a trial key", g1, "keyHelp"],
-    [2, S.auth.type==="none"?"Nothing to add":"Add it in Auth", g1, "tabAuth"],
-    [3, missing?`Fill ${missing} parameter${missing>1?"s":""}`:"Parameters ready", g3, "tabParams"],
-    [4, g4?"Got a response":"Send the request", g4, "send"],
-  ];
+  const guide = [[1, S.auth.type==="none"?"No key needed":`Get a ${S.env==="sandbox"?"sandbox":"test"} key`, g1, "keyHelp"], [2, S.auth.type==="none"?"Nothing to add":"Add it in Auth", g1, "tabAuth"], [3, missing?`Fill ${missing} parameter${missing>1?"s":""}`:"Parameters ready", g3, "tabParams"], [4, g4?"Got a response":"Send the request", g4, "send"]];
+  const sel = S.selected.map(epById).filter(Boolean); const mods = [...new Set(sel.map(x=>x.module))];
   const nq = r.params.length, nh = r.headers.filter(h=>h.key).length + S.auth.extra.length;
-  return `<div class="head spread" style="align-items:flex-end;margin-bottom:16px"><div><div class="row" style="margin-bottom:12px">${logo(S.app,S.domain,30)}<span class="label">${esc(S.app)} · API tester</span></div><h2>${S.auth.type==="none"?"Test it <em>live</em>":"Test it with <em>your own key</em>"}</h2></div>
+  const write = WRITE(e.method);
+  const tab = !write && S.reqTab==="body" ? "params" : S.reqTab;
+  return `<div class="head spread" style="align-items:flex-end;margin-bottom:16px"><div><div class="row" style="margin-bottom:12px">${logo(S.app,S.domain,30)}<span class="label">${esc(S.app)} · API tester</span></div><h2>${S.auth.type==="none"?"Test it <em>live</em>":"Test with your <em>sandbox key</em>"}</h2></div>
     <div class="row"><button class="btn line sm" data-act="curl">Copy as cURL</button><button class="btn line sm" data-act="postman">Postman collection ↓</button></div></div>
   <div class="tester">
     <aside class="side"><div class="h"><div class="label">Collection</div><div style="font-weight:500;margin-top:2px">${esc(S.app)} API</div></div>
       <div class="list"><button class="it ${S.view==="auth"?"on":""}" data-act="tabAuth"><span class="tiny mono" style="width:30px;color:var(--blue)">KEY</span><span>Auth</span><span class="tick ${g1?"ok-i":"muted"}">${g1?"✓ set":"not set"}</span></button>
-      <div class="grp label">Requests</div>
-      ${R.endpoints.map((x,i)=>{ const rs = RESP[x.id]; const h = x.module && (i===0 || R.endpoints[i-1].module!==x.module) ? `<div class="grp tiny muted" style="padding:10px 14px 4px">${esc(x.module)}</div>` : ""; return h+`<button class="it ${S.view!=="auth"&&x.id===e.id?"on":""}" data-act="pickEp" data-id="${esc(x.id)}" title="${esc(x.summary)}"><span class="meth">GET</span><span class="path">${esc(x.path)}</span>${rs?`<span class="tick ${rs.status>=200&&rs.status<300?"ok-i":"bad-i"}">${rs.status||"×"}</span>`:""}</button>`; }).join("")}</div>
+      ${mods.map(m=>`<div class="grp label">${esc(m)}</div>${sel.filter(x=>x.module===m).map(x=>{ const rs = RESP[x.id]; return `<button class="it ${S.view!=="auth"&&x.id===e.id?"on":""}" data-act="pickEp" data-id="${esc(x.id)}" title="${esc(x.summary)}"><span class="mt m-${esc(x.method)}" style="width:44px;font-size:9.5px">${esc(x.method)}</span><span class="path">${esc(x.path)}</span>${rs?`<span class="tick ${rs.status>=200&&rs.status<300?"ok-i":"bad-i"}">${rs.status||"×"}</span>`:""}</button>`; }).join("")}`).join("")}
+      <button class="it" data-act="go" data-s="3"><span class="small muted">+ Add endpoints</span></button></div>
     </aside>
     <section class="work">
+      <div class="envbar"><span class="label">Environment</span><div class="seg"><button class="${S.env==="sandbox"?"on":""}" data-act="env" data-e="sandbox">Sandbox / test</button><button class="${S.env==="production"?"on":""}" data-act="env" data-e="production">Production</button></div><input class="in mono" id="envUrl" data-in="envUrl" value="${esc(S.envUrls[S.env]||"")}" placeholder="https://sandbox.api.example.com" aria-label="Base URL for ${S.env}" spellcheck="false"></div>
       <div class="guide">${guide.map(([n,t,ok,act])=>`<button class="g ${ok?"ok":n===now||(n===2&&now===1)?"now":""}" data-act="${act}"><span class="n">${ok?"✓":n}</span>${esc(t)}</button>`).join("")}</div>
       ${S.view==="auth" ? authPane(a) : `
-      <div class="reqbar"><span class="m">GET</span><input class="in" id="reqUrl" spellcheck="false" aria-label="Request URL"><button class="btn blue" data-act="send" ${busy==="send"?"disabled":""}>${busy==="send"?'<span class="spin"></span>Sending':"Send"}</button></div>
-      <div class="tabs"><button class="${S.reqTab==="params"?"on":""}" data-act="reqTab" data-t="params">Params<span class="c">${nq||""}</span></button><button data-act="tabAuth">Auth<span class="c">${g1?"✓":""}</span></button><button class="${S.reqTab==="headers"?"on":""}" data-act="reqTab" data-t="headers">Headers<span class="c">${nh||""}</span></button><span class="sp"></span><span class="small muted" style="align-self:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:50%">${esc(e.summary)}</span></div>
-      <div class="pane">${S.reqTab==="headers" ? headersPane(r) : paramsPane(r)}</div>
+      <div class="reqbar"><span class="m mt m-${esc(e.method)}" style="width:auto;padding:0 12px">${esc(e.method)}</span><input class="in" id="reqUrl" spellcheck="false" aria-label="Request URL"><button class="btn blue" data-act="send" ${busy==="send"?"disabled":""}>${busy==="send"?'<span class="spin"></span>Sending':"Send"}</button></div>
+      ${write && !sandboxOk ? `<div class="confirm"><span>⚠︎</span><span style="flex:1;min-width:220px"><b>${esc(e.method)}</b> changes data in ${esc(S.app)}. Only send it to a <b>sandbox or test account</b>, never production data.</span><label class="row small" style="gap:8px;cursor:pointer"><input type="checkbox" id="sbx" data-sbx> This is a sandbox / test account</label></div>`:""}
+      <div class="tabs"><button class="${tab==="params"?"on":""}" data-act="reqTab" data-t="params">Params<span class="c">${nq||""}</span></button><button data-act="tabAuth">Auth<span class="c">${g1?"✓":""}</span></button><button class="${tab==="headers"?"on":""}" data-act="reqTab" data-t="headers">Headers<span class="c">${nh||""}</span></button>${write?`<button class="${tab==="body"?"on":""}" data-act="reqTab" data-t="body">Body</button>`:""}<span class="sp"></span><span class="small muted" style="align-self:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:45%">${esc(e.summary)}</span></div>
+      <div class="pane">${tab==="headers" ? headersPane(r) : tab==="body" ? bodyPane(e, r) : paramsPane(r, e)}</div>
       <div class="resp">${respPane(e, res)}</div>`}
     </section>
   </div>
   <div class="foot"><button class="btn line" data-act="go" data-s="3">← APIs</button><div class="r"><button class="btn" data-act="go" data-s="5">Get the code <span class="arr">→</span></button></div></div>`;
 }
-function paramsPane(r){
-  if (!r.params.length) return `<p class="small muted" style="margin:4px 0 10px">This endpoint takes no parameters.</p><button class="link small" data-act="addParam">+ Add a query parameter</button>`;
-  return `<table class="grid"><thead><tr><th></th><th>Key</th><th>Value</th><th></th><th></th></tr></thead><tbody>${r.params.map((p,i)=>`<tr>
+function paramsPane(r, e){
+  const loading = !e.detailed && detailBusy[e.id]===true ? `<div class="small muted" style="margin-bottom:8px"><span class="spin" style="display:inline-block;width:10px;height:10px;border:2px solid var(--blue);border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-1px"></span> Reading this endpoint's parameters from the docs…</div>` : "";
+  if (!r.params.length) return `${loading}<p class="small muted" style="margin:4px 0 10px">${loading?"":"No parameters documented for this endpoint."}</p><button class="link small" data-act="addParam">+ Add a query parameter</button>`;
+  return `${loading}<table class="grid"><thead><tr><th></th><th>Key</th><th>Value</th><th></th><th></th></tr></thead><tbody>${r.params.map((p,i)=>`<tr>
     <td class="cb">${p.in==="path"?"":`<input type="checkbox" data-pchk="${i}" ${p.on?"checked":""} aria-label="Send ${esc(p.key)}">`}</td>
-    <td><input class="c" data-pk="${i}" value="${esc(p.key)}" ${p.in==="path"?"readonly":""} aria-label="Key">${p.req?'':""}</td>
+    <td><input class="c" data-pk="${i}" value="${esc(p.key)}" ${p.in==="path"?"readonly":""} aria-label="Key"></td>
     <td><input class="c" data-pv="${i}" value="${esc(p.value)}" placeholder="${p.req?"required":"value"}" aria-label="Value for ${esc(p.key)}"></td>
     <td style="width:70px"><span class="in-tag">${p.in}</span>${p.req?'<span class="req">*</span>':""}</td>
     <td style="width:34px">${p.req?"":`<button class="x" data-act="rmParam" data-i="${i}" aria-label="Remove">×</button>`}</td></tr>`).join("")}</tbody></table>
     <button class="link small" data-act="addParam" style="margin-top:10px">+ Add a query parameter</button>`;
 }
 function headersPane(r){
-  const a = S.auth;
-  const auto = Object.keys(authHeaders()).filter(k=>!a.extra.some(x=>x.key===k));
+  const a = S.auth; const auto = Object.keys(authHeaders()).filter(k=>!a.extra.some(x=>x.key===k));
   return `${a.extra.length||auto.length?`<div class="small muted" style="margin-bottom:8px">From the docs and the Auth tab:</div><table class="grid" style="margin-bottom:12px"><tbody>${a.extra.map((h,i)=>`<tr><td class="cb"><input type="checkbox" data-xchk="${i}" ${h.on?"checked":""}></td><td><input class="c" value="${esc(h.key)}" readonly></td><td><input class="c" data-xv="${i}" value="${esc(h.value)}"></td><td style="width:34px"></td></tr>`).join("")}${auto.map(k=>`<tr><td class="cb">✓</td><td><input class="c" value="${esc(k)}" readonly></td><td><input class="c" value="•••••• (from Auth)" readonly></td><td></td></tr>`).join("")}</tbody></table>`:""}
   <table class="grid"><thead><tr><th></th><th>Key</th><th>Value</th><th></th></tr></thead><tbody>${r.headers.map((h,i)=>`<tr><td class="cb"><input type="checkbox" data-hchk="${i}" ${h.on?"checked":""}></td><td><input class="c" data-hk="${i}" value="${esc(h.key)}" placeholder="Header"></td><td><input class="c" data-hv="${i}" value="${esc(h.value)}" placeholder="Value"></td><td style="width:34px"><button class="x" data-act="rmHeader" data-i="${i}">×</button></td></tr>`).join("")}</tbody></table>
   <button class="link small" data-act="addHeader" style="margin-top:10px">+ Add a header</button>`;
 }
+function bodyPane(e, r){
+  let bad = ""; if (r.body.trim() && /^\s*[{[]/.test(r.body)) { try { JSON.parse(r.body); } catch(x){ bad = "Not valid JSON yet: " + x.message; } }
+  return `<div class="spread" style="margin-bottom:8px"><span class="small muted">Raw · JSON${e.body?" · example from the docs":""}</span><button class="link small" data-act="fmtBody">Format JSON</button></div><textarea class="body" id="reqBody" data-body spellcheck="false">${esc(r.body)}</textarea>${bad?`<div class="err">${esc(bad)}</div>`:""}`;
+}
 function authPane(a){
   const t = S.auth.type;
-  return `<div class="pane" style="padding:22px"><h3>Auth for the whole collection</h3><p class="small muted" style="margin:6px 0 18px">Every request uses this, like Postman's collection auth. ${esc(authName(a))} per the docs.</p>
+  return `<div class="pane" style="padding:22px"><h3>Auth for the whole collection</h3><p class="small muted" style="margin:6px 0 18px">Every request uses this, like Postman's collection auth. The docs say: ${esc(authName(a))}.</p>
     <div class="authgrid">
       <span class="label">Type</span><select class="in" id="authType" data-auth="type"><option value="bearer" ${t==="bearer"?"selected":""}>Bearer token</option><option value="header" ${t==="header"?"selected":""}>API key in a header</option><option value="query" ${t==="query"?"selected":""}>API key in the URL</option><option value="basic" ${t==="basic"?"selected":""}>Basic auth</option><option value="none" ${t==="none"?"selected":""}>No auth</option></select>
       ${t==="header"?`<span class="label">Header name</span><input class="in mono" data-auth="header" value="${esc(S.auth.header)}"><span class="label">Prefix</span><input class="in mono" data-auth="prefix" value="${esc(S.auth.prefix)}" placeholder="optional, e.g. Token ">`:""}
       ${t==="query"?`<span class="label">Parameter</span><input class="in mono" data-auth="query" value="${esc(S.auth.query)}">`:""}
       ${t==="basic"?`<span class="label">Username</span><input class="in mono" id="kUser" data-key="user" value="${esc(KEY.user)}" autocomplete="off" spellcheck="false"><span class="label">Password or key</span><div class="pw"><input class="in mono" id="kPass" data-key="pass" type="${KEY.show?"text":"password"}" value="${esc(KEY.pass)}" autocomplete="off"><button class="btn line sm" data-act="showKey">${KEY.show?"Hide":"Show"}</button></div>`:""}
-      ${t==="bearer"||t==="header"||t==="query"?`<span class="label">${t==="bearer"?"Token":"Key"}</span><div class="pw"><input class="in mono" id="kTok" data-key="token" type="${KEY.show?"text":"password"}" value="${esc(KEY.token)}" placeholder="Paste the key from your trial account" autocomplete="off" spellcheck="false"><button class="btn line sm" data-act="showKey">${KEY.show?"Hide":"Show"}</button></div>`:""}
+      ${t==="bearer"||t==="header"||t==="query"?`<span class="label">${t==="bearer"?"Access token":"API key"}</span><div class="pw"><input class="in mono" id="kTok" data-key="token" type="${KEY.show?"text":"password"}" value="${esc(KEY.token)}" placeholder="From your ${esc(S.app)} sandbox or test account" autocomplete="off" spellcheck="false"><button class="btn line sm" data-act="showKey">${KEY.show?"Hide":"Show"}</button></div>`:""}
     </div>
-    <div class="note blue" style="margin-top:20px;max-width:720px"><span>🔒</span><span>Use a key from a <b>free or trial account</b>, not production. It stays in this tab's memory only: it isn't saved in your browser, and it's passed to the API through Fetch's relay one request at a time without being stored or logged. Only GET requests are allowed. Refreshing the page clears it.</span></div>
-    ${a.get_key_steps?.length?`<div style="margin-top:22px;max-width:720px" id="keyHelp"><span class="label">How to get a key for ${esc(S.app)}</span><ol class="small" style="margin:8px 0 0;padding-left:20px">${a.get_key_steps.map(s=>`<li style="margin:4px 0">${esc(s)}</li>`).join("")}</ol>${/^https:/.test(a.key_page_url||"")?`<a class="small" href="${esc(a.key_page_url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px">Open the key page ↗</a>`:""}</div>`:""}
+    <div class="note blue" style="margin-top:20px;max-width:720px"><span>🔒</span><span>Use a key from a <b>sandbox, test or trial account</b>. It stays in this tab's memory only: not saved in your browser, passed to the API through Fetch's relay one request at a time, never stored or logged. Refreshing the page clears it.</span></div>
+    ${a.get_key_steps?.length?`<div style="margin-top:22px;max-width:720px" id="keyHelp"><span class="label">How to get a ${esc(S.app)} sandbox / test key</span><ol class="small" style="margin:8px 0 0;padding-left:20px">${a.get_key_steps.map(s=>`<li style="margin:4px 0">${esc(s)}</li>`).join("")}</ol>${/^https:/.test(a.key_page_url||"")?`<a class="small" href="${esc(a.key_page_url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px">Open the key page ↗</a>`:""}${a.free_tier&&a.free_tier!=="UNKNOWN"?`<div class="small muted" style="margin-top:6px">${esc(a.free_tier)}</div>`:""}</div>`:""}
     <div class="foot" style="max-width:720px"><span></span><div class="r"><button class="btn blue" data-act="backToReq" ${hasKey()?"":"disabled"} id="authDone">Done, back to the request <span class="arr">→</span></button></div></div></div>`;
 }
 function respPane(e, res){
   if (busy==="send") return `<div class="empty fade"><div><div class="shimmer" style="width:220px;margin:0 auto 10px"></div><div class="shimmer" style="width:160px;margin:0 auto"></div></div></div>`;
-  if (!res) return `<div class="empty"><div><div class="big">Hit Send to call the API</div>The response shows up here, with a check of which of your fields came back.</div></div>`;
+  if (!res) return `<div class="empty"><div><div class="big">Hit Send to call the API</div>The response shows up here: status, time, size, body and headers.</div></div>`;
   if (res.error) return `<div class="pane"><div class="note bad"><span>${esc(res.error)}</span></div></div>`;
   const cls = res.status>=200&&res.status<300?"":res.status>=400?"e":"w";
-  const hint = hintFor(res.status);
-  const fc = fieldCheck(e, res.json);
-  const tab = S.respTab;
-  return `<div class="rh"><div class="tabs"><button class="${tab==="body"?"on":""}" data-act="respTab" data-t="body">Body</button><button class="${tab==="fields"?"on":""}" data-act="respTab" data-t="fields">Your fields<span class="c">${fc?`${fc.filter(f=>f.found).length}/${fc.length}`:""}</span></button><button class="${tab==="headers"?"on":""}" data-act="respTab" data-t="headers">Headers<span class="c">${Object.keys(res.headers||{}).length}</span></button></div>
+  const hint = hintFor(res.status); const tab = S.respTab==="headers"?"headers":"body";
+  return `<div class="rh"><div class="tabs"><button class="${tab==="body"?"on":""}" data-act="respTab" data-t="body">Body</button><button class="${tab==="headers"?"on":""}" data-act="respTab" data-t="headers">Headers<span class="c">${Object.keys(res.headers||{}).length}</span></button></div>
     <div class="stat"><span class="code2 ${cls}">${res.status} ${esc(res.statusText||"")}</span><span class="muted">${res.ms} ms</span><span class="muted">${fmtSize(res.size)}${res.truncated?" (cut)":""}</span></div></div>
     ${hint?`<div class="pane" style="padding-bottom:0"><div class="note ${cls==="e"?"bad":"warn"}">${esc(hint)}</div></div>`:""}
     ${tab==="headers" ? `<div class="pane"><table class="kv">${Object.entries(res.headers||{}).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="mono small" style="word-break:break-all">${esc(v)}</td></tr>`).join("")}</table></div>`
-    : tab==="fields" ? `<div class="pane">${fc?`<table class="kv">${fc.map(f=>`<tr><td>${esc(f.field)}</td><td>${f.found?`<span class="ok-i">✓</span> <span class="mono small">${esc(f.path)}</span> <span class="muted small">= ${esc(f.sample)}</span>`:`<span class="bad-i">✗</span> <span class="small muted">not in this response${f.other?` · expected from ${esc(f.other)}`:""}</span>`}</td></tr>`).join("")}</table>`:`<p class="small muted">The response isn't JSON, so fields can't be checked.</p>`}</div>`
     : `<pre class="json">${res.json!==undefined ? hlJson(JSON.stringify(res.json, null, 2)) : esc(res.body)}</pre>`}`;
 }
 const fmtSize = n => n>1048576?(n/1048576).toFixed(1)+" MB":n>1024?(n/1024).toFixed(1)+" KB":n+" B";
 function hintFor(s){
-  if (s===401) return "401: the API didn't accept the key. Check the Auth type and header, and that the key was copied in full.";
+  if (s===401) return "401: the API didn't accept the key. Check the Auth type and header, and that the key is from the same environment (sandbox vs production).";
   if (s===403) return "403: the key works but isn't allowed here. Check the key's scopes or permissions, or whether your plan includes this endpoint.";
-  if (s===404) return "404: nothing at this path. Check the path parameters, or that the base URL matches your account's region.";
+  if (s===404) return "404: nothing at this path. Check the path parameters and the environment's base URL.";
+  if (s===400 || s===422) return `${s}: the API rejected the request. Check required parameters and the body against the docs.`;
   if (s===429) return "429: rate limited. Wait a moment before sending again (see Retry-After in Headers).";
   if (s>=500) return `${s}: the API had a server error. Try again in a moment.`;
   if (s>=300 && s<400) return `${s}: the API redirected. Check the Location header.`;
@@ -618,41 +701,22 @@ function hlJson(s){
   return esc(s).replace(/(&quot;(?:\\.|[^&]|&(?!quot;))*?&quot;)(\s*:)?|\b(true|false)\b|\bnull\b|-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b/g, (m, str, colon, bool) =>
     str ? (colon ? `<span class="j-k">${str}</span>${colon}` : `<span class="j-s">${str}</span>`) : bool ? `<span class="j-b">${m}</span>` : m==="null" ? `<span class="j-z">${m}</span>` : `<span class="j-n">${m}</span>`);
 }
-function fieldCheck(e, json){
-  if (json===undefined || json===null || typeof json!=="object") return null;
-  const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]/g,"");
-  const found = new Map();
-  (function walk(v, path, depth){
-    if (depth>8 || found.size>400) return;
-    if (Array.isArray(v)){ if (v.length) walk(v[0], path+"[0]", depth+1); return; }
-    if (v && typeof v==="object") for (const [k,x] of Object.entries(v)){ const p = path?`${path}.${k}`:k; const n = norm(k); if (!found.has(n)) found.set(n, {path:p, v:x}); walk(x, p, depth+1); }
-  })(json, "", 0);
-  const fm = S.result.field_map.length ? S.result.field_map : e.fields.map(f=>({field:f.field, json_path:f.json_path, endpoint:e.id}));
-  return fm.map(f=>{
-    const tail = String(f.json_path||"").split(/[.\[\]]+/).filter(Boolean).pop();
-    const hit = found.get(norm(f.field)) || (tail && found.get(norm(tail)));
-    const other = f.endpoint && f.endpoint!==e.id ? S.result.endpoints.find(x=>x.id===f.endpoint)?.path : "";
-    if (!hit) return {field:f.field, found:false, other};
-    let sample = typeof hit.v==="object" && hit.v!==null ? (Array.isArray(hit.v)?`[${hit.v.length} items]`:"{…}") : JSON.stringify(hit.v);
-    if (sample && sample.length>60) sample = sample.slice(0,57)+"…";
-    return {field:f.field, found:true, path:hit.path, sample};
-  });
-}
 async function send(){
-  const e = curEp(); const r = req(e.id);
+  const e = full(curEp()); const r = req(e.id);
   const urlEl = $("#reqUrl"); if (urlEl) parseUrlInto(urlEl.value, e, r);
   const miss = r.params.filter(p=>p.req && !p.value);
   if (miss.length){ S.reqTab="params"; render(); return toast(`Fill ${miss.map(p=>p.key).join(", ")} first.`); }
-  if (!hasKey()){ S.view="auth"; render(); return toast("Add your trial key in Auth first."); }
+  if (!hasKey()){ S.view="auth"; render(); return toast("Add your sandbox key in Auth first."); }
+  if (WRITE(e.method) && !sandboxOk){ render(); $("#sbx")?.focus(); return toast(`Confirm this is a sandbox or test account before sending ${e.method}.`); }
   const url = buildUrl(e, r, true);
-  if (!/^https:\/\//.test(url)) return toast("The URL must start with https://");
+  if (!/^https:\/\//.test(url)) return toast("The URL must start with https://. Set the environment's base URL.");
+  if (WRITE(e.method) && r.body.trim() && /^\s*[{[]/.test(r.body)) { try { JSON.parse(r.body); } catch { S.reqTab="body"; render(); return toast("The body isn't valid JSON."); } }
   const headers = {...authHeaders()}; for (const h of r.headers) if (h.on && h.key) headers[h.key] = h.value;
   busy="send"; render();
   try{
-    const out = await api("/api/proxy", {method:"GET", url, headers}, 25000);
+    const out = await api("/api/proxy", {method:e.method, url, headers, body: WRITE(e.method) && r.body.trim() ? r.body : null, grants:S.grants, sandbox:sandboxOk}, 25000);
     if (!out.error){ try { out.json = JSON.parse(out.body); } catch { out.json = undefined; } }
     RESP[e.id] = out;
-    if (!out.error && out.status>=200 && out.status<300 && S.respTab!=="headers") S.respTab = "body";
   }catch(err){ RESP[e.id] = {error: err.message||"The request failed."}; }
   busy=null; render();
 }
@@ -662,64 +726,66 @@ function parseUrlInto(val, e, r){
     const q = [...u.searchParams.entries()];
     if (S.auth.type==="query") { const i=q.findIndex(([k])=>k===S.auth.query); if (i>=0) q.splice(i,1); }
     r.params = [...r.params.filter(p=>p.in==="path"), ...q.map(([k,v])=>{ const old = r.params.find(p=>p.in==="query"&&p.key===k); return {key:k, value:v, in:"query", req:old?.req||false, on:true}; }), ...r.params.filter(p=>p.in==="query" && !p.on && !q.some(([k])=>k===p.key))];
-    // path params edited inline
-    const base = (S.result.base_url||"").replace(/\/+$/,"");
-    const tmpl = e.path.replace(/\{([^}]+)\}/g, ":$1").split("/"), got = (u.origin+u.pathname).replace(base,"").split("/");
+    const tmpl = e.path.replace(/\{([^}]+)\}/g, ":$1").split("/"), got = (u.origin+u.pathname).replace(baseUrl(),"").split("/");
     if (tmpl.length===got.length) tmpl.forEach((seg,i)=>{ if (seg.startsWith(":")){ const p = r.params.find(x=>x.in==="path"&&x.key===seg.slice(1)); if (p && got[i]!==seg) p.value = decodeURIComponent(got[i]); } });
     save();
   }catch{}
 }
 function curl(){
-  const e = curEp(), r = req(e.id); const url = buildUrl(e, r, false);
-  const a = S.auth, lines = [`curl --request GET \\`, `  --url '${url}${a.type==="query"?(url.includes("?")?"&":"?")+a.query+"=$APP_API_KEY":""}' \\`];
+  const e = full(curEp()), r = req(e.id); const url = buildUrl(e, r, false);
+  const a = S.auth, lines = [`curl --request ${e.method} \\`, `  --url '${url}${a.type==="query"?(url.includes("?")?"&":"?")+a.query+"=$APP_API_KEY":""}' \\`];
   if (a.type==="bearer") lines.push(`  --header 'Authorization: Bearer '"$APP_API_KEY" \\`);
   if (a.type==="header") lines.push(`  --header '${a.header}: ${a.prefix||""}'"$APP_API_KEY" \\`);
   if (a.type==="basic") lines.push(`  --user "$APP_USER:$APP_API_KEY" \\`);
   for (const x of a.extra) if (x.on && x.key) lines.push(`  --header '${x.key}: ${x.value}' \\`);
   for (const h of r.headers) if (h.on && h.key) lines.push(`  --header '${h.key}: ${h.value}' \\`);
+  if (WRITE(e.method) && r.body.trim()) { lines.push(`  --header 'Content-Type: application/json' \\`); lines.push(`  --data '${r.body.replace(/'/g, "'\\''")}' \\`); }
   lines.push(`  --header 'Accept: application/json'`);
   navigator.clipboard?.writeText(lines.join("\n")).then(()=>toast("cURL copied. The key is left out as $APP_API_KEY."), ()=>toast("Couldn't copy to the clipboard."));
 }
 
-/* ---------- Postman ---------- */
+/* ---------- Postman export ---------- */
 function postman(){
-  const R = S.result; if (!R) return;
+  const R = S.R; if (!R) return;
   const a = S.auth || initAuth(R.auth);
+  const eps = (S.selected.length ? S.selected.map(epById) : allEps()).filter(Boolean).map(full);
   const auth = a.type==="bearer" ? {type:"bearer", bearer:[{key:"token", value:"{{apiKey}}", type:"string"}]}
     : a.type==="header" ? {type:"apikey", apikey:[{key:"key", value:a.header, type:"string"},{key:"value", value:(a.prefix||"")+"{{apiKey}}", type:"string"},{key:"in", value:"header", type:"string"}]}
     : a.type==="query" ? {type:"apikey", apikey:[{key:"key", value:a.query, type:"string"},{key:"value", value:"{{apiKey}}", type:"string"},{key:"in", value:"query", type:"string"}]}
-    : a.type==="basic" ? {type:"basic", basic:[{key:"username", value:"{{username}}", type:"string"},{key:"password", value:"{{apiKey}}", type:"string"}]}
-    : {type:"noauth"};
-  const item = R.endpoints.map(e=>{ const r = req(e.id);
+    : a.type==="basic" ? {type:"basic", basic:[{key:"username", value:"{{username}}", type:"string"},{key:"password", value:"{{apiKey}}", type:"string"}]} : {type:"noauth"};
+  const item = (e) => { const r = req(e.id);
     const path = e.path.replace(/\{([^}]+)\}/g, ":$1").replace(/^\//,"").split("/");
-    const query = r.params.filter(p=>p.in==="query").map(p=>({key:p.key, value:p.value, ...(p.on?{}:{disabled:true}), description:(e.params.find(x=>x.name===p.key)||{}).about||""}));
+    const query = r.params.filter(p=>p.in==="query").map(p=>({key:p.key, value:p.value, ...(p.on?{}:{disabled:true})}));
     const variable = r.params.filter(p=>p.in==="path").map(p=>({key:p.key, value:p.value}));
     const qs = query.filter(q=>!q.disabled).map(q=>`${q.key}=${q.value}`).join("&");
-    return {name:`${e.summary||e.path}`.slice(0,80), request:{method:"GET", header:[...a.extra.filter(x=>x.on).map(x=>({key:x.key, value:x.value})), ...r.headers.filter(h=>h.on&&h.key).map(h=>({key:h.key, value:h.value}))],
-      url:{raw:`{{baseUrl}}/${path.join("/")}${qs?"?"+qs:""}`, host:["{{baseUrl}}"], path, ...(query.length?{query}:{}), ...(variable.length?{variable}:{})}, description:`${e.summary}\n\nFields: ${e.fields.map(f=>f.field+" ← "+(f.json_path||"")).join(", ")}${e.docs_url?`\nDocs: ${e.docs_url}`:""}`}};
-  });
-  const col = {info:{name:`${S.app} API (Fetch)`, description:`Read-only requests for: ${fieldsFor().join(", ")}. Made with Fetch. Set apiKey in the collection variables (use a trial key).`, schema:"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
-    auth, variable:[{key:"baseUrl", value:(R.base_url||"").replace(/\/+$/,"")},{key:"apiKey", value:"", type:"secret"}, ...(a.type==="basic"?[{key:"username", value:""}]:[])], item};
+    return {name:(e.summary||e.path).slice(0,80), request:{method:e.method, header:[...a.extra.filter(x=>x.on).map(x=>({key:x.key, value:x.value})), ...r.headers.filter(h=>h.on&&h.key).map(h=>({key:h.key, value:h.value}))],
+      ...(WRITE(e.method) && r.body.trim() ? {body:{mode:"raw", raw:r.body, options:{raw:{language:"json"}}}} : {}),
+      url:{raw:`{{baseUrl}}/${path.join("/")}${qs?"?"+qs:""}`, host:["{{baseUrl}}"], path, ...(query.length?{query}:{}), ...(variable.length?{variable}:{})}, description:e.description||e.summary||""}};
+  };
+  const mods = [...new Set(eps.map(e=>e.module))];
+  const col = {info:{name:`${S.app} API (Fetch)`, description:`Made with Fetch. Set apiKey in the collection variables (use a sandbox or test key). baseUrl is set to the ${S.env} environment.`, schema:"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+    auth, variable:[{key:"baseUrl", value:baseUrl()},{key:"apiKey", value:"", type:"secret"}, ...(a.type==="basic"?[{key:"username", value:""}]:[])],
+    item: mods.map(m=>({name:m, item:eps.filter(e=>e.module===m).map(item)}))};
   saveBlob(new Blob([JSON.stringify(col, null, 2)], {type:"application/json"}), `${slug()}.postman_collection.json`);
-  toast("Postman collection downloaded. In Postman: Import, then set apiKey in the collection's Variables.");
+  toast(`Postman collection downloaded (${eps.length} requests). In Postman: Import, then set apiKey in the collection's Variables.`);
 }
 const slug = () => S.app.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"") || "api";
 function saveBlob(blob, name){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
 
-/* ---------- step 5: code ---------- */
+/* ---------- step 4: code ---------- */
 function vCode(){
   const files = S.files && S.filesLang===S.lang ? S.files : null;
-  const gen = busy==="gen";
+  const gen = busy==="gen"; const n = S.selected.length;
   let body = "";
   if (gen) body = `<div class="panel" style="margin-top:16px"><ul class="prog">${GEN_STEPS.map((t,i)=>`<li class="${i<prog?"done":i===prog?"cur":""}"><span class="ic">${i<prog?"✓":i===prog?'<span class="spin"></span>':"·"}</span>${t}</li>`).join("")}</ul><div class="foot"><button class="btn line sm" data-act="cancel">Cancel</button></div></div>`;
   else if (files){
     const names = Object.keys(files); const act = names.includes(S.activeFile) ? S.activeFile : names[0];
     const bad = (S.safety||[]).filter(r=>!r.pass);
-    body = `<div class="files"><div class="fl">${names.map(n=>`<button class="${n===act?"on":""}" data-act="file" data-f="${esc(n)}">${esc(n)}</button>`).join("")}</div><pre class="src">${esc(files[act]).split("\n").map(l=>`<span class="l">${l||" "}</span>`).join("")}</pre></div>
+    body = `<div class="files"><div class="fl">${names.map(f=>`<button class="${f===act?"on":""}" data-act="file" data-f="${esc(f)}">${esc(f)}</button>`).join("")}</div><pre class="src">${esc(files[act]).split("\n").map(l=>`<span class="l">${l||" "}</span>`).join("")}</pre></div>
       <div class="panel" style="margin-top:14px"><div class="spread"><span class="label">Safety checks · ${S.safety.length-bad.length} of ${S.safety.length} passed</span>${bad.length?`<span class="tag bad">Review before use</span>`:`<span class="tag ok">All passed</span>`}</div>
         <div class="checks">${S.safety.map(r=>`<div><span class="${r.pass?"ok-i":"bad-i"}">${r.pass?"✓":"✗"}</span><span>${esc(r.label)}${r.detail?` <span class="muted small">(${esc(r.detail)})</span>`:""}</span></div>`).join("")}</div>
         <hr class="sep"><span class="label">Run it</span><div class="codeline" style="margin-top:8px">${esc(runHint())}</div></div>`;
-  } else body = `<div class="panel" style="margin-top:16px">${genErr?`<div class="note bad" style="margin-bottom:14px">${esc(genErr)}</div>`:""}<p class="muted" style="margin:0">Generates a small, read-only ${esc(LANGS[S.lang])} client for the ${S.result.endpoints.length} endpoint${S.result.endpoints.length>1?"s":""} above: auth from an environment variable, paging, retries on 429, masked logs, and a mapper that returns exactly your fields.</p>
+  } else body = `<div class="panel" style="margin-top:16px">${genErr?`<div class="note bad" style="margin-bottom:14px">${esc(genErr)}</div>`:""}<p class="muted" style="margin:0">Generates a small ${esc(LANGS[S.lang])} client for your ${n} selected endpoint${n>1?"s":""}: sandbox and production base URLs, auth from environment variables, paging, retries on 429, and masked logs.</p>
       <div class="foot"><span></span><div class="r"><button class="btn blue" data-act="genCode">Generate ${esc(LANGS[S.lang])} code <span class="arr">→</span></button></div></div></div>`;
   return `<div class="head spread" style="align-items:flex-end"><div><div class="row" style="margin-bottom:12px">${logo(S.app,S.domain,30)}<span class="label">${esc(S.app)} · code</span></div><h2>Take it <em>into your project</em></h2></div>
     <div class="row">${files?`<button class="btn sm" data-act="zip">Download .zip ↓</button>`:""}<button class="btn line sm" data-act="postman">Postman collection ↓</button></div></div>
@@ -727,17 +793,18 @@ function vCode(){
     ${body}
     <div class="foot"><button class="btn line" data-act="go" data-s="4">← Test</button><div class="r">${files&&!gen?`<button class="btn line sm" data-act="genCode">Regenerate</button>`:""}<button class="btn line sm" data-act="reset">New API</button></div></div>`;
 }
-function runHint(){ const env = `export APP_API_KEY=<your trial key>`;
+function runHint(){ const env = `export APP_ENV=sandbox APP_API_KEY=<your sandbox key>`;
   return {python:`pip install requests && ${env} && python main.py`, typescript:`${env} && npx tsx main.ts`, java:`${env} && javac *.java && java Main   (needs Jackson on the classpath)`, go:`${env} && go run .`}[S.lang]; }
 function safetyChecks(files){
-  const base = host(S.result.base_url||"");
-  const root = base.split(".").slice(-2).join(".") || slug()+".com";
+  const hostRoot = h => { const p = String(h||"").split("."); return p.slice(-2).join("."); };
+  const roots = new Set([S.R.base_url, S.R.sandbox_base_url, S.envUrls.sandbox, S.envUrls.production].filter(Boolean).map(u=>{ try { return hostRoot(new URL(u).hostname); } catch { return ""; } }).filter(Boolean));
   const src = Object.entries(files).filter(([n])=>!/test/i.test(n) && !/\.(md|ya?ml|json)$/i.test(n));
   const find = (re, allow) => src.flatMap(([n,s]) => String(s).split("\n").map((l,i)=>re.test(l) && !(allow&&allow(n,l)) ? `${n}:${i+1}` : null).filter(Boolean));
-  const rows = [];
-  const writes = find(/(\.(post|put|patch|delete)\s*\(|method\s*[:=]\s*["'](POST|PUT|PATCH|DELETE)["']|Method(Post|Put|Patch|Delete)\b|\.(POST|PUT|PATCH|DELETE)\s*\()/, (n,l)=>/auth/i.test(n) && /token|oauth|refresh/i.test(l+n));
-  rows.push({label:"Read-only: no create, update or delete", pass:!writes.length, detail:writes.slice(0,3).join(", ")});
-  const hosts = src.flatMap(([n,s]) => [...String(s).matchAll(/https?:\/\/([A-Za-z0-9.\-]+)/g)].map(m=>m[1]).filter(h=>!(h===root||h.endsWith("."+root)||h==="localhost"||h==="127.0.0.1"||/example\.(com|org)$/.test(h))).map(h=>`${n}: ${h}`));
+  const rows = []; const sel = S.selected.map(epById).filter(Boolean); const allowed = new Set(sel.map(e=>e.method));
+  const used = new Set(src.flatMap(([,s]) => [...String(s).matchAll(/\b(POST|PUT|PATCH|DELETE)\b/g)].map(m=>m[1])));
+  const extra = [...used].filter(m=>!allowed.has(m));
+  rows.push({label:"Only the HTTP methods you selected", pass:!extra.length, detail:extra.join(", ")});
+  const hosts = src.flatMap(([n,s]) => [...String(s).matchAll(/https?:\/\/([A-Za-z0-9.\-]+)/g)].map(m=>m[1]).filter(h=>!(roots.has(hostRoot(h))||h==="localhost"||h==="127.0.0.1"||/example\.(com|org)$/.test(h))).map(h=>`${n}: ${h}`));
   rows.push({label:`Only calls ${S.app}'s own domains`, pass:!hosts.length, detail:hosts.slice(0,3).join(", ")});
   const sec = find(/(Bearer\s+[A-Za-z0-9\-_.]{20,}|eyJ[A-Za-z0-9_\-]{20,}\.|(api[_-]?key|secret|password|token)\s*[:=]\s*["'][A-Za-z0-9_\-]{16,}["'])/i);
   rows.push({label:"No keys or secrets in the code", pass:!sec.length, detail:sec.slice(0,3).join(", ")});
@@ -746,26 +813,24 @@ function safetyChecks(files){
   const all = src.map(([,s])=>s).join("\n");
   rows.push({label:"Logs mask tokens and emails", pass:/REDACTED|redact|mask/i.test(all), detail:/REDACTED|redact|mask/i.test(all)?"":"no masking found"});
   rows.push({label:"Handles rate limits (429)", pass:/429|RateLimit|rate.?limit/i.test(all), detail:/429|RateLimit|rate.?limit/i.test(all)?"":"no 429 handling"});
-  const fieldsOk = fieldsFor().filter(f=>!all.includes(f));
-  rows.push({label:"Maps every field you asked for", pass:!fieldsOk.length, detail:fieldsOk.slice(0,4).join(", ")});
+  rows.push({label:"Sandbox and production base URLs from config", pass:/APP_ENV|sandbox/i.test(all), detail:/APP_ENV|sandbox/i.test(all)?"":"no environment switch"});
   return rows;
 }
 async function genCode(){
   busy="gen"; genErr=""; ctl = new AbortController(); prog=0; render();
-  const lang = S.lang;
-  const body = p => ({app:S.app, language:lang, result:S.result, fields:fieldsFor(), part:p});
+  const lang = S.lang; const eps = S.selected.map(epById).filter(Boolean).map(full);
+  const body = p => ({app:S.app, language:lang, part:p, base_url:S.envUrls.production||S.R.base_url, sandbox_base_url:S.envUrls.sandbox||S.R.sandbox_base_url||"", auth:{...S.R.auth, type:S.R.auth?.type}, endpoints:eps});
   const half = async p => { try { return await api("/api/generate", body(p), 58000, ctl.signal); } catch(e){ if (e.name==="AbortError" && !ctl?.timedOut) throw e; if (e.status===429) throw e; await sleep(800); return api("/api/generate", body(p), 58000, ctl.signal); } };
   try{
     const [a,b] = await animateWhile(GEN_STEPS.length, Promise.all([half(1), half(2)]));
-    const files = {...a.files, ...b.files};
-    files["README.md"] = readme(lang, Object.keys(files));
+    const files = {...a.files, ...b.files}; files["README.md"] = readme(lang, Object.keys(files), eps);
     busy=null;
     const first = Object.keys(files).find(n=>/^endpoints|^Endpoints/.test(n)) || Object.keys(files)[0];
     set({files, filesLang:lang, activeFile:first, safety:safetyChecks(files)});
   }catch(e){ busy=null; if (e.name==="AbortError" && !ctl?.timedOut){ render(); return; } genErr = (e.message||"Code generation failed.")+" Try again."; render(); }
 }
-function readme(lang, names){
-  return `# ${S.app} API client (${LANGS[lang]})\n\nRead-only client generated by Fetch for these fields: ${fieldsFor().join(", ")}.\n\n## Endpoints\n${S.result.endpoints.map(e=>`- GET ${e.path} — ${e.summary}`).join("\n")}\n\n## Auth\n${authName(S.result.auth||{})}. Put your key in the APP_API_KEY environment variable. Never commit it.\n\n## Run\n\n    ${runHint()}\n\n## Files\n${names.map(n=>"- "+n).join("\n")}\n\nReview the code before using it in production. Base URL: ${S.result.base_url}\n`;
+function readme(lang, names, eps){
+  return `# ${S.app} API client (${LANGS[lang]})\n\nGenerated by Fetch for ${eps.length} endpoint(s).\n\n## Endpoints\n${eps.map(e=>`- ${e.method} ${e.path} — ${e.summary} (${e.module})`).join("\n")}\n\n## Environments\n- sandbox: ${S.envUrls.sandbox||"(set it)"}\n- production: ${S.envUrls.production||S.R.base_url}\n\nSet APP_ENV=sandbox|production.\n\n## Auth\n${authName(S.R.auth||{})}. Put your key in APP_API_KEY. Never commit it.\n\n## Run\n\n    ${runHint()}\n\n## Files\n${names.map(n=>"- "+n).join("\n")}\n\nReview the code before using it in production.\n`;
 }
 async function zip(){
   if (!window.JSZip) return toast("Download isn't available right now. Try reloading the page.");
@@ -789,26 +854,32 @@ async function api(path, body, ms=58000, signal){
 }
 
 /* ---------- events ---------- */
+function toggleSel(id){ const s = new Set(S.selected); s.has(id) ? s.delete(id) : s.add(id); const order = allEps().map(e=>e.id); set({selected: order.filter(x=>s.has(x)), files:null, safety:null}); }
 document.addEventListener("click", ev => {
+  if (ev.target.closest("[data-noact]")) return;
+  if (ev.target.matches("input[data-sel]")) return;   // handled by change
   const t = ev.target.closest("[data-act]"); if (!t || t.disabled) return;
   const a = t.dataset.act;
   if (a==="home"){ ev.preventDefault(); set({step:1}); }
-  else if (a==="reset"){ if (S.app && !confirm("Start over? This clears the current API.")) return; for (const k in RESP) delete RESP[k]; KEY.token=KEY.user=KEY.pass=""; findErr=""; discErr=null; genErr=""; S = blank(); save(); render(); setTimeout(()=>$("#app")?.focus(), 60); }
-  else if (a==="go"){ const s=+t.dataset.s; if (s===3 && !S.result && busy!=="disc") return discover(); set({step:s}); }
+  else if (a==="reset"){ if (S.app && !confirm("Start over? This clears the current API.")) return; for (const k in RESP) delete RESP[k]; KEY.token=KEY.user=KEY.pass=""; sandboxOk=false; loadErr=null; genErr=""; S = blank(); save(); render(); setTimeout(()=>$("#app")?.focus(), 60); }
+  else if (a==="go"){ const s=+t.dataset.s; if (s===3 && !S.R && busy!=="load") return load(); set({step:s, view:"req"}); }
   else if (a==="pickApp"){ S.app = t.dataset.name; findDocs(); }
   else if (a==="findDocs"){ findDocs(); }
-  else if (a==="useAlt"){ const u=t.dataset.u; set({docsUrl:u, docsAlts:[S.docsUrl, ...(S.docsAlts||[]).filter(x=>x!==u)].slice(0,3), docsVerified:false, ...clearBelow()}); }
-  else if (a==="editDocs"){ set({docsEdit:true}); setTimeout(()=>$("#docsUrl")?.select(), 60); }
-  else if (a==="pasteMode"){ set({docsMode:"paste", docsEdit:true}); setTimeout(()=>$("#docsText")?.focus(),60); }
-  else if (a==="linkMode"){ set({docsMode:"link"}); }
-  else if (a==="focusChip"){ if (ev.target===t) $("#chipIn")?.focus(); }
-  else if (a==="addField"){ addFields(t.dataset.f); $("#chipIn")?.focus(); }
-  else if (a==="rmField"){ const f=[...S.fields]; f.splice(+t.dataset.i,1); set({fields:f, staleFields:!!S.result}); $("#chipIn")?.focus(); }
-  else if (a==="discover"){ discover(); }
+  else if (a==="choose"){ set({chosen:t.dataset.u, docsMode:"link", ...clearBelow()}); }
+  else if (a==="customMode"){ set({docsMode:"custom"}); setTimeout(()=>$("#customUrl")?.focus(),60); }
+  else if (a==="addCustom"){ const u = (S.customUrl||"").trim(); if (!isUrl(u)) return toast("Enter a full link starting with https://"); set({options:[{url:u, title:"", kind:"custom"}, ...S.options.filter(o=>o.url!==u)], chosen:u, docsMode:"link", docsSource:S.docsSource||"manual", findNote:"", customUrl:"", ...clearBelow()}); }
+  else if (a==="pasteMode"){ set({docsMode:"paste"}); setTimeout(()=>$("#docsText")?.focus(),60); }
+  else if (a==="load"){ load(); }
   else if (a==="cancel"){ ctl?.abort(); }
+  else if (a==="mod"){ S.mod = t.dataset.m; save(); render(); document.getElementById("mod-"+slugify(t.dataset.m))?.scrollIntoView({behavior:"smooth", block:"start"}); }
+  else if (a==="openEp"){ const id=t.dataset.id; S.open = S.open===id ? null : id; save(); render(); if (S.open) detail(id); }
+  else if (a==="detail"){ detailBusy[t.dataset.id]=false; render(); detail(t.dataset.id); }
+  else if (a==="toggle"){ toggleSel(t.dataset.id); }
+  else if (a==="selMod"){ const m = S.R.modules.find(x=>x.name===t.dataset.m); const ids = m.endpoints.map(e=>e.id); const s = new Set(S.selected); const all = ids.every(i=>s.has(i)); ids.forEach(i=> all ? s.delete(i) : s.add(i)); const order = allEps().map(e=>e.id); set({selected:order.filter(x=>s.has(x)), files:null, safety:null}); }
+  else if (a==="clearSel"){ set({selected:[], files:null, safety:null}); }
   else if (a==="postman"){ postman(); }
-  else if (a==="tryEp"){ set({step:4, ep:t.dataset.id, view:"req"}); }
   else if (a==="pickEp"){ set({ep:t.dataset.id, view:"req"}); }
+  else if (a==="env"){ set({env:t.dataset.e}); }
   else if (a==="tabAuth" || a==="keyHelp"){ set({view:"auth"}); setTimeout(()=>{ (a==="keyHelp"?$("#keyHelp"):null)?.scrollIntoView({behavior:"smooth", block:"center"}); $("#kTok, #kUser")?.focus(); }, 80); }
   else if (a==="backToReq"){ set({view:"req"}); }
   else if (a==="tabParams"){ set({view:"req", reqTab:"params"}); }
@@ -816,6 +887,7 @@ document.addEventListener("click", ev => {
   else if (a==="respTab"){ set({respTab:t.dataset.t}); }
   else if (a==="send"){ if (S.view==="auth") set({view:"req"}); send(); }
   else if (a==="showKey"){ KEY.show=!KEY.show; render(); }
+  else if (a==="fmtBody"){ const r=req(S.ep); try { r.body = JSON.stringify(JSON.parse(r.body), null, 2); save(); render(); } catch { toast("The body isn't valid JSON yet."); } }
   else if (a==="addParam"){ const r=req(S.ep); r.params.push({key:"", value:"", in:"query", req:false, on:true}); save(); render(); const ins=document.querySelectorAll("[data-pk]"); ins[ins.length-1]?.focus(); }
   else if (a==="rmParam"){ req(S.ep).params.splice(+t.dataset.i,1); save(); render(); }
   else if (a==="addHeader"){ req(S.ep).headers.push({key:"", value:"", on:true}); save(); render(); const ins=document.querySelectorAll("[data-hk]"); ins[ins.length-1]?.focus(); }
@@ -828,12 +900,14 @@ document.addEventListener("click", ev => {
 });
 document.addEventListener("input", ev => {
   const t = ev.target;
-  if (t.dataset.in==="app"){ suggHide = false; S.app = t.value; if (S.docsSource){ Object.assign(S, {docsUrl:"", docsSource:"", docsVerified:false, docsEdit:false, docsMode:"link", ...clearBelow()}); findErr=""; save(); render(); return; } save(); suggIdx=-1; suggestions(); const go=$(".combo .go"); if (!go && S.app.trim().length>1) render(); else if (go && S.app.trim().length<2) render(); return; }
-  if (t.dataset.in==="docsUrl"){ S.docsUrl = t.value.trim(); S.docsSource = S.docsSource==="none"?"none":"manual"; S.docsVerified=false; Object.assign(S, clearBelow()); save(); const b=$('#goApis'); if (b) b.disabled = reach()<3; return; }
-  if (t.dataset.in==="docsText"){ S.docsText = t.value; if (S.step===1) S.docsMode="paste"; Object.assign(S, clearBelow()); save(); const b=$('#goApis'); if (b) b.disabled = reach()<3; return; }
-  if (t.id==="chipIn" && /[,;]/.test(t.value)){ const v=t.value; t.value=""; addFields(v); $("#chipIn")?.focus(); return; }
+  if (t.dataset.in==="app"){ suggHide=false; S.app = t.value; if (S.docsSource || S.options.length){ Object.assign(S, {options:[], chosen:"", docsSource:"", findNote:"", docsMode:"link", domain:"", ...clearBelow()}); save(); render(); return; } save(); suggIdx=-1; suggestions(); const go=$(".combo .go"); if (!!go !== (S.app.trim().length>1)) render(); return; }
+  if (t.dataset.in==="customUrl"){ S.customUrl = t.value; save(); return; }
+  if (t.dataset.in==="docsText" || t.dataset.in==="docsText2"){ S.docsText = t.value; if (t.dataset.in==="docsText2") S.docsMode="paste"; Object.assign(S, clearBelow()); save(); const b=$('#goApis'); if (b) b.disabled = !docsReady(); return; }
+  if (t.dataset.in==="q"){ S.q = t.value; save(); render(); return; }
+  if (t.dataset.in==="envUrl"){ S.envUrls[S.env] = t.value.trim(); save(); syncUrl(); return; }
   if (t.dataset.key){ const was = hasKey(); KEY[t.dataset.key] = t.value; if (was !== hasKey()) render(); return; }
   if (t.dataset.auth && t.tagName!=="SELECT"){ S.auth[t.dataset.auth] = t.value; save(); return; }
+  if ("body" in t.dataset){ req(S.ep).body = t.value; save(); return; }
   const r = S.step===4 ? req(S.ep) : null; if (!r) return;
   if ("pv" in t.dataset){ const p=r.params[+t.dataset.pv]; p.value=t.value; if (p.in==="query" && t.value) { p.on=true; const c=$(`[data-pchk="${t.dataset.pv}"]`); if (c) c.checked=true; } save(); syncUrl(); return; }
   if ("pk" in t.dataset){ r.params[+t.dataset.pk].key=t.value; save(); syncUrl(); return; }
@@ -843,8 +917,11 @@ document.addEventListener("input", ev => {
 });
 document.addEventListener("change", ev => {
   const t = ev.target;
+  if (t.matches("input[data-sel]")){ toggleSel(t.dataset.sel); return; }
+  if ("sbx" in t.dataset){ sandboxOk = t.checked; if (sandboxOk) render(); return; }
   if (t.dataset.auth==="type"){ S.auth.type=t.value; save(); render(); return; }
-  if (t.id==="reqUrl"){ const e=curEp(); parseUrlInto(t.value, e, req(e.id)); const pane=$(".work .pane"); if (pane && S.reqTab==="params") pane.innerHTML = paramsPane(req(e.id)); return; }
+  if (t.id==="reqUrl"){ const e=full(curEp()); parseUrlInto(t.value, e, req(e.id)); const pane=$(".work .pane"); if (pane && S.reqTab==="params") pane.innerHTML = paramsPane(req(e.id), e); return; }
+  if ("body" in t.dataset){ render(); return; }
   const r = S.step===4 ? req(S.ep) : null; if (!r) return;
   if ("pchk" in t.dataset){ r.params[+t.dataset.pchk].on=t.checked; save(); syncUrl(); }
   if ("hchk" in t.dataset){ r.headers[+t.dataset.hchk].on=t.checked; save(); }
@@ -856,24 +933,20 @@ document.addEventListener("keydown", ev => {
     const items = [...document.querySelectorAll("#sugg button")];
     if (ev.key==="ArrowDown" && items.length){ ev.preventDefault(); suggIdx=(suggIdx+1)%items.length; suggestions(); }
     else if (ev.key==="ArrowUp" && items.length){ ev.preventDefault(); suggIdx=(suggIdx-1+items.length)%items.length; suggestions(); }
-    else if (ev.key==="Enter"){ ev.preventDefault(); if (suggIdx>=0 && items[suggIdx]) items[suggIdx].click(); else if (reach()>=3) discover(); else findDocs(); }
+    else if (ev.key==="Enter"){ ev.preventDefault(); if (suggIdx>=0 && items[suggIdx]) items[suggIdx].click(); else if (docsReady()) load(); else findDocs(); }
     else if (ev.key==="Escape"){ $("#suggBox").innerHTML=""; }
   }
-  if (t.id==="chipIn"){
-    if (ev.key==="Enter"){ ev.preventDefault(); if (t.value.trim()){ const v=t.value; t.value=""; addFields(v); $("#chipIn")?.focus(); } else if (S.fields.length) discover(); }
-    else if (ev.key==="Backspace" && !t.value && S.fields.length){ set({fields:S.fields.slice(0,-1), staleFields:!!S.result}); $("#chipIn")?.focus(); }
-  }
-  if (t.id==="docsUrl" && ev.key==="Enter" && reach()>=3){ ev.preventDefault(); S.docsEdit=false; discover(); }
-  if ((t.id==="reqUrl" || t.closest?.(".grid") || t.id==="kTok") && ev.key==="Enter"){ ev.preventDefault(); if (t.id==="kTok"){ if (hasKey()) set({view:"req"}); } else { if (t.id==="reqUrl") { const e=curEp(); parseUrlInto(t.value, e, req(e.id)); } send(); } }
+  if (t.id==="customUrl" && ev.key==="Enter"){ ev.preventDefault(); $('[data-act=addCustom]')?.click(); }
+  if ((t.id==="reqUrl" || t.closest?.(".grid") || t.id==="kTok") && ev.key==="Enter"){ ev.preventDefault(); if (t.id==="kTok"){ if (hasKey()) set({view:"req"}); } else { if (t.id==="reqUrl") { const e=full(curEp()); parseUrlInto(t.value, e, req(e.id)); } send(); } }
   if ((ev.metaKey||ev.ctrlKey) && ev.key==="Enter" && S.step===4){ ev.preventDefault(); send(); }
 });
 document.addEventListener("focusin", ev => { if (ev.target.id==="app") suggestions(); });
 document.addEventListener("focusout", ev => { if (ev.target.id==="app") setTimeout(()=>{ if (document.activeElement?.id==="app" || document.activeElement?.closest?.("#suggBox")) return; const b=$("#suggBox"); if (b) b.innerHTML=""; }, 150); });
 window.addEventListener("beforeunload", () => { KEY.token=KEY.user=KEY.pass=""; });
-
-fetch("/api/status").then(r=>r.json()).then(s=>{ AI = !!s.ai; if (!AI) $("#banner").innerHTML = `<div class="banner">AI isn't configured on this server yet, so docs search, API finding and code generation are off.</div>`; }).catch(()=>{});
-if (S.auth == null && S.result) S.auth = initAuth(S.result.auth);
+fetch("/api/status").then(r=>r.json()).then(s=>{ if (!s.ai) $("#banner").innerHTML = `<div class="banner">AI isn't configured on this server yet, so docs search, reading HTML docs and code generation are off.</div>`; }).catch(()=>{});
+if (S.R && !S.auth) S.auth = initAuth(S.R.auth);
 render();
+
 </script>
 </body>
 </html>

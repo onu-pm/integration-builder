@@ -53,10 +53,10 @@ function checkUrl(raw, httpsOnly) {
   return u;
 }
 
-function once(u, headers, timeoutMs, maxBytes) {
+function once(u, headers, timeoutMs, maxBytes, method = "GET", body = null) {
   return new Promise((resolve, reject) => {
     const lib = u.protocol === "https:" ? https : http;
-    const req = lib.request(u, { method: "GET", headers, lookup: safeLookup, timeout: timeoutMs }, (res) => {
+    const req = lib.request(u, { method, headers, lookup: safeLookup, timeout: timeoutMs }, (res) => {
       const enc = String(res.headers["content-encoding"] || "").toLowerCase();
       let stream = res;
       if (enc === "gzip" || enc === "x-gzip") stream = res.pipe(zlib.createGunzip());
@@ -79,20 +79,21 @@ function once(u, headers, timeoutMs, maxBytes) {
     req.on("error", (e) => reject(e instanceof SafeFetchError ? e : new SafeFetchError(
       e.code === "EPRIVATE" ? e.message : e.code === "ENOTFOUND" ? `Couldn't find the host ${u.hostname}.` : e.code === "ECONNREFUSED" ? "The server refused the connection." : /certificate|SSL|TLS/i.test(e.message) ? "The server's HTTPS certificate isn't valid." : "Couldn't connect (" + (e.code || e.message) + ").",
       e.code || "NET")));
+    if (body != null) req.write(body);
     req.end();
   });
 }
 
 // GET with manual redirects (each hop is re-checked).
-export async function safeFetch(raw, { headers: inHeaders = {}, timeoutMs = 15000, maxBytes = 2_000_000, maxRedirects = 3, httpsOnly = false } = {}) {
+export async function safeFetch(raw, { method = "GET", body = null, headers: inHeaders = {}, timeoutMs = 15000, maxBytes = 2_000_000, maxRedirects = 3, httpsOnly = false } = {}) {
   const headers = { ...inHeaders };
   let u = checkUrl(raw, httpsOnly);
   const deadline = Date.now() + timeoutMs;
   for (let hop = 0; ; hop++) {
     const left = deadline - Date.now();
     if (left < 500) throw new SafeFetchError(`No response within ${Math.round(timeoutMs / 1000)} seconds.`, "TIMEOUT");
-    const r = await once(u, { "Accept-Encoding": "gzip, deflate, br", ...headers, Host: u.host }, left, maxBytes);
-    if (r.status >= 300 && r.status < 400 && r.headers.location && hop < maxRedirects) {
+    const r = await once(u, { "Accept-Encoding": "gzip, deflate, br", ...headers, Host: u.host, ...(body != null ? { "Content-Length": Buffer.byteLength(body) } : {}) }, left, maxBytes, method, body);
+    if (method === "GET" && r.status >= 300 && r.status < 400 && r.headers.location && hop < maxRedirects) {
       const next = checkUrl(new URL(r.headers.location, u).href, httpsOnly);
       // Never forward credentials to a different host.
       if (next.host !== u.host) for (const k of Object.keys(headers)) if (/^(authorization|x-api-key|api-key|cookie)$/i.test(k) || /token|key|secret/i.test(k)) delete headers[k];

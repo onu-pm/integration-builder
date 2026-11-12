@@ -64,8 +64,8 @@ export default async function handler(req, res) {
     const known = KNOWN.find((k) => k.name.toLowerCase() === key || (k.aka || []).includes(key));
     if (known) {
       const pm = postmanFrom(await Promise.all([known.docs, `https://${known.domain}`].map(inspect)));
-      if (pm) return send(res, 200, { app: known.name, docsUrl: pm, domain: known.domain, source: "postman", linkedBy: "vendor", verified: true, alternatives: [known.docs] });
-      return send(res, 200, { app: known.name, docsUrl: known.docs, domain: known.domain, source: "library", verified: true });
+      if (pm) return send(res, 200, { app: known.name, docsUrl: pm, domain: known.domain, source: "postman", linkedBy: "vendor", verified: true, alternatives: [known.docs], options: [{ url: pm, title: `${known.name} API (Postman)`, kind: "postman", linkedBy: "vendor" }, { url: known.docs, title: `${known.name} API reference`, kind: "reference" }] });
+      return send(res, 200, { app: known.name, docsUrl: known.docs, domain: known.domain, source: "library", verified: true, options: [{ url: known.docs, title: `${known.name} API reference`, kind: "reference" }] });
     }
     if (cache.has(key)) return send(res, 200, cache.get(key));
 
@@ -111,6 +111,11 @@ Reply with ONLY a JSON object, no markdown:
     const seen = new Set(checks.map((c) => c.url).concat(first));
     const next = [...new Set(checks.flatMap((c) => c.docsLinks))].filter((u) => ok(u) && !seen.has(u) && (!domain || rootOf(new URL(u).hostname) === rootOf(domain))).slice(0, 3);
     if (next.length) checks = checks.concat(await Promise.all(next.map(inspect)));
+    const optionsFor = (b) => !b.docsUrl ? [] : [b.docsUrl, ...(b.alternatives || [])].map((u) => {
+      const c = checks.find((x) => x.url === u || x.url.replace(/\/$/, "") === u);
+      const t = (c?.title || "").replace(/&#x?[0-9a-f]+;/gi, "").replace(/&amp;/g, "&").slice(0, 90);
+      return { url: u, title: t, kind: isPm(u) ? "postman" : c && c.score >= 18 ? "reference" : "docs", linkedBy: isPm(u) ? b.linkedBy || "" : "" };
+    });
     // Postman docs come first: linked from the vendor's own pages (trusted), or found by search with the app's name in it.
     const vendorPm = postmanFrom(checks.filter((c) => c.ok && !isPm(c.url) && (!domain || rootOf(new URL(c.url).hostname) === rootOf(domain))));
     const slugRe = new RegExp(slug.split("").join("[^a-z0-9]?"), "i");
@@ -119,6 +124,7 @@ Reply with ONLY a JSON object, no markdown:
     if (pmUrl) {
       const official = checks.filter((c) => c.ok && !c.blockedBots && !isPm(c.url) && c.score >= 14 && !ASSET.test(c.url)).sort((a, b) => b.score - a.score).map((c) => c.url);
       const body = { app: String(out.app || name).slice(0, 80), docsUrl: pmUrl, domain: domain || slug + ".com", source: "postman", linkedBy: vendorPm ? "vendor" : "search", verified: !!vendorPm, alternatives: [...new Set(official)].slice(0, 3) };
+      body.options = optionsFor(body);
       cache.set(key, body);
       return send(res, 200, body);
     }
@@ -128,6 +134,7 @@ Reply with ONLY a JSON object, no markdown:
     const body = good
       ? { app: String(out.app || name).slice(0, 80), docsUrl: good.url, domain: domain || rootOf(new URL(good.url).hostname), source: "ai", verified: !good.blockedBots && good.score >= 18, title: good.title, alternatives: [...new Set(checks.filter((c) => c.ok && !c.blockedBots && c.score >= 14 && !ASSET.test(c.url)).sort((a, b) => b.score - a.score).map((c) => c.url.replace(/\/$/, "")))].filter((u) => u !== good.url.replace(/\/$/, "")).slice(0, 3) }
       : { app: name, docsUrl: "", source: "ai", verified: false, notFound: true, tried: first };
+    body.options = optionsFor(body);
     cache.set(key, body);
     return send(res, 200, body);
   } catch (e) {

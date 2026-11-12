@@ -4,16 +4,15 @@ Live: https://fetch-integration-builder.vercel.app
 
 A developer tool: from an app name to a working, tested API call.
 
-1. **App**: type the app's name. Popular apps use a checked docs link; anything else is found with AI web search (Gemini + Google Search), and the link is opened to confirm it loads. You can change it or paste the docs text.
-2. **APIs**: as soon as the docs are found, Fetch shows the read endpoints grouped by module, like the docs. Fields are optional: add them to get the exact endpoints that return them.
-   Fetch reads the docs (and related pages on the same site, or an OpenAPI spec) and returns the read-only endpoints that give those fields: path, parameters, where each field sits in the response, scopes, how auth works, how to get a key on a free/trial account, paging and rate limits.
-3. **Test**: a Postman-style tester. Add your trial key once in **Auth** (collection-level), fill the parameters, **Send**. See status, time, size, pretty JSON, headers, and a check of which of your fields came back. Copy as cURL or download a **Postman Collection (v2.1)** to import into Postman.
-4. **Code**: generate a small read-only client in Python, Node.js, Java or Go, checked by 7 safety rules, and download it as a .zip.
+1. **App**: type the app's name. A directory of ~270 apps (with logos) suggests as you type; anything else is searched. Fetch lists the docs pages it finds (Postman docs first, then the official reference) and you pick one.
+2. **APIs**: every endpoint, all methods, grouped by module like the docs, with a module sidebar and search. Postman collections and OpenAPI specs are read exactly (complete); plain HTML docs are read by AI (may miss some). Expand an endpoint for parameters, body and response examples; tick the ones you need and they collect in the Selected panel.
+3. **Test**: a Postman-style tester for the selected endpoints. Pick the environment (sandbox or production base URL), add your sandbox key once in **Auth**, fill params, headers and body, **Send**. Copy as cURL or download a Postman Collection (v2.1).
+4. **Code**: generate a client for the selected endpoints in Python, Node.js, Java or Go, checked by 7 safety rules, and download it as a .zip.
 
 ## Security model
 
 - **Keys are never stored.** The key lives only in the open tab's memory (not localStorage, not cookies). It's sent to `/api/proxy` with each request and forwarded to the API. The server doesn't log or keep it. Exports (Postman, cURL, code) use a placeholder (`{{apiKey}}`, `$APP_API_KEY`).
-- **Read-only.** The proxy only sends GET.
+- **Writes are fenced.** GET goes to any public https host. POST/PUT/PATCH/DELETE only go to hosts Fetch read from the app's docs (the server signs them), need the developer to confirm a sandbox/test account, and have tighter limits.
 - **SSRF-safe.** https only, standard ports, no credentials in URLs, and every hostname is resolved and checked at connect time: private, loopback, link-local, CGNAT and cloud-metadata ranges are refused, including after redirects. Credentials are dropped on cross-host redirects.
 - **Limits.** Per-IP rate limits (AI runs, searches and test requests), 15 s timeout and 1 MB response cap.
 - **Prompt injection.** Docs are scanned before the AI sees them and treated as data only.
