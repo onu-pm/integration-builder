@@ -6,6 +6,20 @@ import { KNOWN } from "./_lib/apps.js";
 
 const cache = new Map();
 
+async function ddg(q) {
+  try {
+    const r = await get("https://html.duckduckgo.com/html/?q=" + encodeURIComponent(q), 6000);
+    const out = [];
+    const re = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g; let m;
+    while ((m = re.exec(r.raw)) && out.length < 8) {
+      let url = m[1].replace(/&amp;/g, "&");
+      const u = url.match(/[?&]uddg=([^&]+)/); if (u) url = decodeURIComponent(u[1]);
+      if (/^https:\/\//.test(url) && !/duckduckgo\.com/.test(url)) out.push({ url, title: m[2].replace(/<[^>]+>/g, "").trim().slice(0, 120) });
+    }
+    return out;
+  } catch { return []; }
+}
+
 async function loads(url) {
   try {
     const r = await get(url, 7000);
@@ -32,11 +46,20 @@ export default async function handler(req, res) {
 
     if (rateLimited(req, 40, 60 * 60 * 1000, "find")) return send(res, 429, { error: "Too many searches from this network. Try again in an hour, or paste the docs link." });
 
-    const out = await llm(`Find the official developer documentation for the REST API of the software product "${name}".
-Use Google Search. Return the page that is the API reference (lists endpoints), on the vendor's own domain. Prefer the overview or "introduction" page of the reference. Never return blog posts, third-party sites, Postman, RapidAPI, GitHub wikis or Stack Overflow.
+    const ask = (extra) => `Find the official developer documentation for the REST API of the software product "${name}".
+${extra}
+Return the page that is the API reference (lists endpoints), on the vendor's own domain. Prefer the overview or "introduction" page of the reference. Never return blog posts, third-party sites, Postman, RapidAPI, GitHub wikis or Stack Overflow.
 If "${name}" is not a real software product with a public API, set found to false.
 Reply with ONLY a JSON object, no markdown:
-{"found": true, "app": "official product name", "domain": "vendor's main website domain, e.g. example.com", "candidates": ["best API reference URL", "second-best URL", "third"], "api_base_url": "https://... or UNKNOWN"}`, { search: true, maxOutputTokens: 1024, temperature: 0, budgetMs: 25000 });
+{"found": true, "app": "official product name", "domain": "vendor's main website domain, e.g. example.com", "candidates": ["best API reference URL", "second-best URL", "third"], "api_base_url": "https://... or UNKNOWN"}`;
+    let out;
+    try {
+      out = await llm(ask("Use Google Search."), { search: true, maxOutputTokens: 1024, temperature: 0, budgetMs: 12000 });
+    } catch (e) {
+      // Search grounding has its own quota. Fall back to web results from DuckDuckGo plus the model's own knowledge.
+      const results = await ddg(`${name} REST API reference documentation`);
+      out = await llm(ask(results.length ? `These are web search results; pick from them or use what you know:\n${results.map((r) => `- ${r.title} — ${r.url}`).join("\n")}` : "Use what you know about this product's developer site."), { maxOutputTokens: 1024, temperature: 0, budgetMs: 15000 });
+    }
 
     if (!out || out.found === false || !Array.isArray(out.candidates) || !out.candidates.length) {
       const body = { app: name, docsUrl: "", source: "ai", verified: false, notFound: true };
