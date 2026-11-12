@@ -163,6 +163,8 @@ textarea.in{height:auto;min-height:150px;padding:12px 14px;font-family:var(--mon
 /* endpoints */
 .ep{border:1px solid var(--line);background:var(--card);transition:border-color .2s}
 .ep + .ep{margin-top:-1px}
+.mod + .mod{margin-top:22px}
+.modh{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
 .ep summary{list-style:none;display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
 .ep summary::-webkit-details-marker{display:none}
 .ep summary:hover{background:var(--bg)}
@@ -296,10 +298,10 @@ footer.f{max-width:1180px;margin:0 auto;padding:0 20px 40px;color:var(--muted);f
 "use strict";
 const KNOWN = [{"name":"GitHub","domain":"github.com","docs":"https://docs.github.com/en/rest"},{"name":"GitLab","domain":"gitlab.com","docs":"https://docs.gitlab.com/api/rest/"},{"name":"Slack","domain":"slack.com","docs":"https://api.slack.com/methods"},{"name":"Zoom","domain":"zoom.us","docs":"https://developers.zoom.us/docs/api/"},{"name":"Calendly","domain":"calendly.com","docs":"https://developer.calendly.com/api-docs"},{"name":"Asana","domain":"asana.com","docs":"https://developers.asana.com/reference/rest-api-reference"},{"name":"Notion","domain":"notion.so","docs":"https://developers.notion.com/reference/intro"},{"name":"Figma","domain":"figma.com","docs":"https://www.figma.com/developers/api"},{"name":"Miro","domain":"miro.com","docs":"https://developers.miro.com/reference/api-reference"},{"name":"Dropbox","domain":"dropbox.com","docs":"https://www.dropbox.com/developers/documentation/http/documentation"},{"name":"Box","domain":"box.com","docs":"https://developer.box.com/reference/"},{"name":"Zendesk","domain":"zendesk.com","docs":"https://developer.zendesk.com/api-reference/"},{"name":"HubSpot","domain":"hubspot.com","docs":"https://developers.hubspot.com/docs/api/overview"},{"name":"Intercom","domain":"intercom.com","docs":"https://developers.intercom.com/docs/references/rest-api/api.intercom.io"},{"name":"monday.com","domain":"monday.com","docs":"https://developer.monday.com/api-reference/"},{"name":"ClickUp","domain":"clickup.com","docs":"https://developer.clickup.com/reference"},{"name":"Airtable","domain":"airtable.com","docs":"https://airtable.com/developers/web/api/introduction"},{"name":"Trello","domain":"trello.com","docs":"https://developer.atlassian.com/cloud/trello/rest/"},{"name":"Jira","domain":"atlassian.com","docs":"https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/"},{"name":"Confluence","domain":"atlassian.com","docs":"https://developer.atlassian.com/cloud/confluence/rest/v2/intro/"},{"name":"Stripe","domain":"stripe.com","docs":"https://docs.stripe.com/api"},{"name":"Shopify","domain":"shopify.com","docs":"https://shopify.dev/docs/api/admin-rest"},{"name":"Linear","domain":"linear.app","docs":"https://linear.app/developers"},{"name":"PagerDuty","domain":"pagerduty.com","docs":"https://developer.pagerduty.com/api-reference/"},{"name":"Okta","domain":"okta.com","docs":"https://developer.okta.com/docs/api/"},{"name":"Mailchimp","domain":"mailchimp.com","docs":"https://mailchimp.com/developer/marketing/api/"},{"name":"Typeform","domain":"typeform.com","docs":"https://www.typeform.com/developers/"},{"name":"Twilio","domain":"twilio.com","docs":"https://www.twilio.com/docs/usage/api"},{"name":"Freshdesk","domain":"freshdesk.com","docs":"https://developers.freshdesk.com/api/"},{"name":"DocuSign","domain":"docusign.com","docs":"https://developers.docusign.com/docs/esign-rest-api/reference/"},{"name":"Webex","domain":"webex.com","docs":"https://developer.webex.com/docs/api/getting-started"},{"name":"SurveyMonkey","domain":"surveymonkey.com","docs":"https://api.surveymonkey.com/v3/docs"},{"name":"Pipedrive","domain":"pipedrive.com","docs":"https://developers.pipedrive.com/docs/api/v1"},{"name":"Todoist","domain":"todoist.com","docs":"https://developer.todoist.com/rest/v2/"}];
 const STORE = "fetch-v5";
-const STEPS = ["App", "Fields", "APIs", "Test", "Code"];
+const STEPS = [[1,"App"], [3,"APIs"], [4,"Test"], [5,"Code"]];   // internal step 2 (fields) is now optional, on the APIs page
 const LANGS = {python:"Python", typescript:"Node.js", java:"Java", go:"Go"};
 const COMMON = ["id","email","name","role","status","created_at","last_login","team"];
-const FIND_STEPS = ["Opening the docs", "Following related pages", "Matching your fields to endpoints", "Working out authentication"];
+const FIND_STEPS = ["Opening the docs", "Following related pages", "Picking the endpoints", "Working out authentication"];
 const GEN_STEPS = ["Reading the endpoint spec", "Writing the client and auth", "Writing endpoints and paging", "Running safety checks"];
 
 /* ---------- state ---------- */
@@ -328,13 +330,15 @@ function logo(name, domain, size){
   const st = size ? ` style="width:${size}px;height:${size}px;font-size:${Math.round(size*.42)}px"` : "";
   return `<span class="logo"${st}>${esc(String(name||"?")[0].toUpperCase())}${d?`<img src="https://www.google.com/s2/favicons?domain=${esc(d)}&sz=64" alt="" loading="lazy" onerror="this.remove()">`:""}</span>`;
 }
-const reach = () => { let m = 1; if (S.app && (isUrl(S.docsUrl) || (S.docsMode==="paste" && S.docsText.trim().length>=200))) m = 2; if (m===2 && S.fields.length) m = 3; if (m===3 && S.result && S.result.endpoints?.length) m = 5; return m; };
+const reach = () => { let m = 1; if (S.app && (isUrl(S.docsUrl) || (S.docsMode==="paste" && S.docsText.trim().length>=200))) m = 3; if (m===3 && S.result && S.result.endpoints?.length) m = 5; return m; };
 
 /* ---------- render ---------- */
 function render(){
-  const r = reach(); if (S.step > r) S.step = r;
-  $("#steps").innerHTML = STEPS.map((t,i)=>{ const n=i+1; const cls = n===S.step?"cur":n<S.step?"done":"";
-    return `${i?`<span class="bar ${n<=S.step?"on":""}"><i></i></span>`:""}<button class="st ${cls}" data-act="go" data-s="${n}" ${n>r?"disabled":""} aria-current="${n===S.step?"step":"false"}"><span class="n">${n<S.step?"✓":n}</span><span class="t">${t}</span></button>`; }).join("");
+  if (S.step===2) S.step = 3;
+  const r = reach(); if (S.step > r) S.step = r === 3 && S.step > 3 ? 3 : r === 1 ? 1 : S.step;
+  if (S.step===3 && !S.result && busy!=="disc" && !discErr) S.step = 1;
+  $("#steps").innerHTML = STEPS.map(([n,t],i)=>{ const cls = n===S.step?"cur":n<S.step?"done":"";
+    return `${i?`<span class="bar ${n<=S.step?"on":""}"><i></i></span>`:""}<button class="st ${cls}" data-act="go" data-s="${n}" ${n>r?"disabled":""} aria-current="${n===S.step?"step":"false"}"><span class="n">${n<S.step?"✓":i+1}</span><span class="t">${t}</span></button>`; }).join("");
   const anim = S.step !== lastStep; lastStep = S.step;
   const view = [vApp, vFields, vApis, vTest, vCode][S.step-1]();
   const m = $("#main");
@@ -360,8 +364,8 @@ function vApp(){
       : `<label class="field"><span class="label">API reference text</span><textarea class="in" id="docsText" data-in="docsText" placeholder="Paste the endpoint reference: paths, parameters, auth, example responses.">${esc(S.docsText)}</textarea></label>
         <div class="row small" style="margin-top:10px"><button class="link" data-act="linkMode">Use a link instead</button><span class="muted" style="margin-left:auto">${S.docsText.trim().length} characters${S.docsText.trim().length<200?" · at least 200 needed":""}</span></div>`}
     </div>`;
-  const canGo = reach() >= 2;
-  return `<section class="hero"><h1>Find any API.<br><em>Test it live.</em></h1><p>Name the app and the fields you need. Fetch finds the docs, shows the exact endpoints, and lets you call them with your own trial key.</p></section>
+  const canGo = reach() >= 3;
+  return `<section class="hero"><h1>Find any API.<br><em>Test it live.</em></h1><p>Name the app. Fetch finds the docs, shows the endpoints, and lets you call them with your own trial key.</p></section>
   <div class="panel narrow" style="margin:0">
     <label class="field"><span class="label">Which app?</span>
       <div class="combo"><input class="in lg" id="app" placeholder="e.g. Calendly, GitHub, Notion" value="${esc(S.app)}" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="sugg" data-in="app">
@@ -369,7 +373,7 @@ function vApp(){
       <div id="suggBox"></div></div>
     </label>
     ${docs}
-    <div class="foot"><span class="small muted">${has?"Not the right page? Change it before you continue.":""}</span><div class="r"><button class="btn" data-act="go" data-s="2" ${canGo?"":"disabled"}>Continue <span class="arr">→</span></button></div></div>
+    <div class="foot"><span class="small muted">${has?"Not the right page? Change it before you continue.":""}</span><div class="r"><button class="btn blue" data-act="discover" id="goApis" ${canGo?"":"disabled"}>Find the APIs <span class="arr">→</span></button></div></div>
   </div>`;
 }
 function suggestions(){
@@ -408,6 +412,8 @@ function vFields(){
     <div class="foot"><button class="btn line" data-act="go" data-s="1">← Back</button><div class="r"><button class="btn blue" data-act="discover" ${S.fields.length?"":"disabled"}>Find the APIs <span class="arr">→</span></button></div></div>
   </div></div>`;
 }
+function groups(eps){ const m=new Map(); for (const e of eps){ const k=e.module||""; if(!m.has(k)) m.set(k,[]); m.get(k).push(e); } return [...m.entries()]; }
+function fieldsFor(){ if (S.fields.length) return S.fields; const out=[]; for (const e of (S.result?.endpoints||[])) for (const f of e.fields) if (!out.includes(f.field) && out.length<20) out.push(f.field); return out; }
 function addFields(text){
   const add = String(text).split(/[,\n;]+/).map(s=>s.trim().replace(/\s+/g,"_")).filter(s=>s && s.length<=60);
   if (!add.length) return;
@@ -419,31 +425,33 @@ function addFields(text){
 function vApis(){
   if (busy==="disc") return `<div class="narrow"><div class="head"><h2>Reading the ${esc(S.app)} docs…</h2><p>This usually takes 10 to 25 seconds.</p></div><div class="panel"><ul class="prog">${FIND_STEPS.map((t,i)=>`<li class="${i<prog?"done":i===prog?"cur":""}"><span class="ic">${i<prog?"✓":i===prog?'<span class="spin"></span>':"·"}</span>${t}</li>`).join("")}</ul><div class="foot"><button class="btn line sm" data-act="cancel">Cancel</button></div></div></div>`;
   if (!S.result) return `<div class="narrow"><div class="head"><h2>Find the APIs</h2></div><div class="panel">
-      ${discErr?`<div class="note bad">${esc(discErr.message)}</div>`:`<p class="muted">Fields: ${S.fields.map(f=>`<code>${esc(f)}</code>`).join(", ")}</p>`}
+      ${discErr?`<div class="note bad">${esc(discErr.message)}</div>`:`<p class="muted">${S.fields.length?`Fields: ${S.fields.map(f=>`<code>${esc(f)}</code>`).join(", ")}`:`Docs: <code>${esc(S.docsMode==="paste"?"pasted text":S.docsUrl)}</code>`}</p>`}
       ${discErr?.needPaste ? `<label class="field" style="margin-top:16px"><span class="label">Paste the API reference text</span><textarea class="in" id="docsText" data-in="docsText" placeholder="Paste the endpoint reference: paths, parameters, auth, example responses.">${esc(S.docsText)}</textarea></label>`:""}
-      <div class="foot"><button class="btn line" data-act="go" data-s="2">← Back</button><div class="r"><button class="btn blue" data-act="discover">${discErr?"Try again":"Find the APIs"} <span class="arr">→</span></button></div></div></div></div>`;
+      <div class="foot"><button class="btn line" data-act="go" data-s="1">← Back</button><div class="r"><button class="btn blue" data-act="discover">${discErr?"Try again":"Find the APIs"} <span class="arr">→</span></button></div></div></div></div>`;
   const R = S.result, eps = R.endpoints, fm = R.field_map;
   const got = fm.filter(f=>f.status==="found").length;
   const a = R.auth||{};
   const authLine = authPreview(a);
   return `<div class="head spread" style="align-items:flex-end"><div><div class="row" style="margin-bottom:14px">${logo(S.app,S.domain,30)}<span class="label">${esc(S.app)} · ${esc(srcLabel())}</span></div>
-      <h2>${eps.length} endpoint${eps.length===1?"":"s"} cover <em>${got} of ${fm.length}</em> fields</h2>
+      <h2>${fm.length?`${eps.length} endpoint${eps.length===1?"":"s"} cover <em>${got} of ${fm.length}</em> fields`:`${eps.length} read endpoint${eps.length===1?"":"s"} <em>ready to test</em>`}</h2>
       <p>Base URL <code>${esc(R.base_url)}</code>. Open an endpoint to see its parameters and where each field sits in the response.</p></div>
       <div class="row"><button class="btn line sm" data-act="postman">Postman collection ↓</button></div></div>
-    ${S.staleFields?`<div class="note warn" style="margin-bottom:14px"><span>You changed the fields since this search.</span><button class="link" data-act="discover" style="margin-left:auto">Search again</button></div>`:""}
-    <div class="panel"><span class="label">Your fields</span><div class="cov" style="margin-top:10px">${fm.map(f=>{ const st = f.status==="found"?"found":f.status==="plan"?"plan":"missing"; const ep = eps.find(e=>e.id===f.endpoint);
-      return `<div class="cv c-${st==="found"?"ok":st==="plan"?"plan":"miss"}" title="${esc(f.note||"")}"><div class="spread" style="gap:6px"><b>${esc(f.field)}</b><span class="tiny ${st==="missing"?"bad-i":st==="plan"?"":"muted"}">${st==="found"?"found":st==="plan"?"some plans":"not in API"}</span></div><div class="w">${ep?`${esc(ep.path)}${f.json_path?` → ${esc(f.json_path)}`:""}`:esc(f.note||"—")}</div></div>`; }).join("")}</div></div>
-    <div class="panel" style="padding:0;border:0;background:none;margin-top:14px">${eps.map((e,i)=>`<details class="ep" ${i===0?"open":""}><summary><span class="meth">GET</span><span class="path">${esc(e.path)}</span><span class="sum">${esc(e.summary)}</span><span class="chev">›</span></summary>
+    <div class="panel"><div class="spread"><span class="label">${fm.length?"Your fields":"Need specific fields? (optional)"}</span>${S.staleFields?`<button class="btn blue sm" data-act="discover">Search again <span class="arr">→</span></button>`:""}</div>
+      <div class="chipbox" data-act="focusChip" style="margin-top:10px;min-height:50px;padding:7px 8px">${S.fields.map((f,i)=>`<span class="chip">${esc(f)}<button data-act="rmField" data-i="${i}" aria-label="Remove ${esc(f)}">×</button></span>`).join("")}<input id="chipIn" placeholder="${S.fields.length?"Add another field":"e.g. email, role, last_login, then Enter"}" autocomplete="off" aria-label="Add a field"></div>
+      ${S.staleFields?`<div class="small muted" style="margin-top:8px">Fields changed. Search again to match endpoints to them.</div>`:fm.length?"":`<div class="small muted" style="margin-top:8px">Grouped by module, like the docs. If you already know the fields you need, add them to get the exact endpoints that return them.</div>`}
+      ${fm.length?`<div style="margin-top:14px"><div class="cov" style="margin-top:10px">${fm.map(f=>{ const st = f.status==="found"?"found":f.status==="plan"?"plan":"missing"; const ep = eps.find(e=>e.id===f.endpoint);
+      return `<div class="cv c-${st==="found"?"ok":st==="plan"?"plan":"miss"}" title="${esc(f.note||"")}"><div class="spread" style="gap:6px"><b>${esc(f.field)}</b><span class="tiny ${st==="missing"?"bad-i":st==="plan"?"":"muted"}">${st==="found"?"found":st==="plan"?"some plans":"not in API"}</span></div><div class="w">${ep?`${esc(ep.path)}${f.json_path?` → ${esc(f.json_path)}`:""}`:esc(f.note||"—")}</div></div>`; }).join("")}</div></div>`:""}</div>
+    <div class="panel" style="padding:0;border:0;background:none;margin-top:14px">${groups(eps).map(([mod,list])=>`<div class="mod">${mod?`<div class="modh"><span class="label">${esc(mod)}</span><span class="tiny muted">${list.length} endpoint${list.length>1?"s":""}</span></div>`:""}${list.map((e)=>`<details class="ep" ${e===eps[0]?"open":""}><summary><span class="meth">GET</span><span class="path">${esc(e.path)}</span><span class="sum">${esc(e.summary)}</span><span class="chev">›</span></summary>
       <div class="body"><div><span class="label">Parameters</span>${e.params.length?`<table class="kv" style="margin-top:6px">${e.params.map(p=>`<tr><td>${esc(p.name)}${p.required?' <span class="bad-i">*</span>':""}</td><td><span class="muted tiny">${esc(p.in||"query")}</span> ${esc(p.about||"")}${p.example!=null&&p.example!==""?` <span class="muted">e.g. <code>${esc(p.example)}</code></span>`:""}</td></tr>`).join("")}</table>`:`<p class="small muted">None</p>`}
         ${e.scopes.length&&!e.scopes.every(s=>s==="UNKNOWN")?`<div style="margin-top:12px"><span class="label">Scopes</span><div class="small mono" style="margin-top:4px">${e.scopes.map(esc).join(", ")}</div></div>`:""}</div>
         <div><span class="label">Fields it returns</span>${e.fields.length?`<table class="kv" style="margin-top:6px">${e.fields.map(f=>`<tr><td>${esc(f.field)}</td><td class="mono small">${esc(f.json_path||"")}</td></tr>`).join("")}</table>`:`<p class="small muted">Needed to get IDs for the next call.</p>`}
-        <div class="row" style="margin-top:14px;gap:14px"><button class="btn sm" data-act="tryEp" data-id="${esc(e.id)}">Try it <span class="arr">→</span></button>${e.docs_url?`<a class="small" href="${esc(e.docs_url)}" target="_blank" rel="noopener">Docs ↗</a>`:""}</div></div></div></details>`).join("")}</div>
+        <div class="row" style="margin-top:14px;gap:14px"><button class="btn sm" data-act="tryEp" data-id="${esc(e.id)}">Try it <span class="arr">→</span></button>${e.docs_url?`<a class="small" href="${esc(e.docs_url)}" target="_blank" rel="noopener">Docs ↗</a>`:""}</div></div></div></details>`).join("")}</div>`).join("")}</div>
     <div class="panel" style="margin-top:14px"><div class="auth"><div><span class="label">Authentication</span><h3 style="margin-top:8px">${esc(authName(a))}</h3>
         ${a.get_key_steps?.length?`<ol class="small">${a.get_key_steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol>`:""}
         <div class="row small" style="margin-top:10px;gap:16px">${/^https:/.test(a.key_page_url||"")?`<a href="${esc(a.key_page_url)}" target="_blank" rel="noopener">Get a key ↗</a>`:""}${a.free_tier&&a.free_tier!=="UNKNOWN"?`<span class="muted">${esc(a.free_tier)}</span>`:""}</div></div>
       <div><span class="label">Sent with every request</span><div class="codeline" style="margin-top:8px">${authLine}</div>
         <table class="kv" style="margin-top:12px"><tr><td>Paging</td><td>${esc(R.pagination||"UNKNOWN")}</td></tr><tr><td>Rate limits</td><td>${esc(R.rate_limits||"UNKNOWN")}</td></tr>${R.unknowns.length?`<tr><td>Not in docs</td><td class="muted">${R.unknowns.map(esc).join("; ")}</td></tr>`:""}</table></div></div></div>
-    <div class="foot"><button class="btn line" data-act="go" data-s="2">← Fields</button><div class="r"><button class="btn blue" data-act="go" data-s="4">Test it live <span class="arr">→</span></button></div></div>`;
+    <div class="foot"><button class="btn line" data-act="go" data-s="1">← App</button><div class="r"><button class="btn blue" data-act="go" data-s="4">Test it live <span class="arr">→</span></button></div></div>`;
 }
 const srcLabel = () => { const m=S.meta||{}; return m.source==="pasted"?"from pasted docs":m.source==="openapi"?"from the OpenAPI spec":m.source==="reference"?"from a checked reference":`read ${m.pages||1} page${(m.pages||1)>1?"s":""} of docs`; };
 function authName(a){ return {bearer:`Bearer token${a.token_name?` (${a.token_name})`:""}`, oauth2:`OAuth 2.0 access token${a.token_name&&!/oauth/i.test(a.token_name)?` or ${a.token_name}`:""}`, api_key_header:`API key in the ${a.header||"header"} header`, api_key_query:`API key in the ?${a.query_param||"key"} parameter`, basic:"Basic auth (username and password or key)", none:"No authentication needed"}[a.type] || "Token"; }
@@ -455,18 +463,18 @@ function authPreview(a){ const ex = (a.extra_headers||[]).map(h=>`<div>${esc(h.n
   return `Authorization: Bearer &lt;your token&gt;`+ex; }
 
 async function discover(){
-  if (!S.fields.length) return toast("Add at least one field first.");
   busy="disc"; discErr=null; ctl = new AbortController(); S.step=3; save(); render();
   const job = api("/api/discover", {app:S.app, docsUrl:S.docsMode==="link"?S.docsUrl:"", docsText:S.docsMode==="paste"||(S.docsText||"").trim().length>=200?S.docsText:"", fields:S.fields}, 58000, ctl.signal);
   try{
     const out = await animateWhile(FIND_STEPS.length, job);
     busy=null;
-    if (!out.result.endpoints.length){ discErr={message:`We read the docs but found no read-only endpoint that returns ${S.fields.join(", ")}. Check the docs link, or paste the reference for the right section.`, needPaste:true}; return set({result:null}); }
+    if (!out.result.endpoints.length){ discErr={message:`We read the docs but found no read-only endpoint${S.fields.length?` that returns ${S.fields.join(", ")}`:""}. Check the docs link, or paste the reference for the right section.`, needPaste:true}; return set({result:null}); }
     const R = out.result;
+    R.endpoints = groups(R.endpoints).flatMap(([,l])=>l);
     set({result:R, meta:{source:out.source, pages:out.pages, model:out.model}, staleFields:false, ep:R.endpoints[0].id, reqs:{}, auth:initAuth(R.auth), files:null, safety:null});
   }catch(e){
     busy=null;
-    if (e.name==="AbortError" && !ctl?.timedOut){ set({step:2}); return; }
+    if (e.name==="AbortError" && !ctl?.timedOut){ set({step: S.result ? 3 : 1}); return; }
     discErr = {message:e.message||"Couldn't read the docs.", needPaste:!!e.needPaste || e.status===422}; render();
   }
 }
@@ -532,7 +540,7 @@ function vTest(){
     <aside class="side"><div class="h"><div class="label">Collection</div><div style="font-weight:500;margin-top:2px">${esc(S.app)} API</div></div>
       <div class="list"><button class="it ${S.view==="auth"?"on":""}" data-act="tabAuth"><span class="tiny mono" style="width:30px;color:var(--blue)">KEY</span><span>Auth</span><span class="tick ${g1?"ok-i":"muted"}">${g1?"✓ set":"not set"}</span></button>
       <div class="grp label">Requests</div>
-      ${R.endpoints.map(x=>{ const rs = RESP[x.id]; return `<button class="it ${S.view!=="auth"&&x.id===e.id?"on":""}" data-act="pickEp" data-id="${esc(x.id)}" title="${esc(x.summary)}"><span class="meth">GET</span><span class="path">${esc(x.path)}</span>${rs?`<span class="tick ${rs.status>=200&&rs.status<300?"ok-i":"bad-i"}">${rs.status||"×"}</span>`:""}</button>`; }).join("")}</div>
+      ${R.endpoints.map((x,i)=>{ const rs = RESP[x.id]; const h = x.module && (i===0 || R.endpoints[i-1].module!==x.module) ? `<div class="grp tiny muted" style="padding:10px 14px 4px">${esc(x.module)}</div>` : ""; return h+`<button class="it ${S.view!=="auth"&&x.id===e.id?"on":""}" data-act="pickEp" data-id="${esc(x.id)}" title="${esc(x.summary)}"><span class="meth">GET</span><span class="path">${esc(x.path)}</span>${rs?`<span class="tick ${rs.status>=200&&rs.status<300?"ok-i":"bad-i"}">${rs.status||"×"}</span>`:""}</button>`; }).join("")}</div>
     </aside>
     <section class="work">
       <div class="guide">${guide.map(([n,t,ok,act])=>`<button class="g ${ok?"ok":n===now||(n===2&&now===1)?"now":""}" data-act="${act}"><span class="n">${ok?"✓":n}</span>${esc(t)}</button>`).join("")}</div>
@@ -614,7 +622,8 @@ function fieldCheck(e, json){
     if (Array.isArray(v)){ if (v.length) walk(v[0], path+"[0]", depth+1); return; }
     if (v && typeof v==="object") for (const [k,x] of Object.entries(v)){ const p = path?`${path}.${k}`:k; const n = norm(k); if (!found.has(n)) found.set(n, {path:p, v:x}); walk(x, p, depth+1); }
   })(json, "", 0);
-  return S.result.field_map.map(f=>{
+  const fm = S.result.field_map.length ? S.result.field_map : e.fields.map(f=>({field:f.field, json_path:f.json_path, endpoint:e.id}));
+  return fm.map(f=>{
     const tail = String(f.json_path||"").split(/[.\[\]]+/).filter(Boolean).pop();
     const hit = found.get(norm(f.field)) || (tail && found.get(norm(tail)));
     const other = f.endpoint && f.endpoint!==e.id ? S.result.endpoints.find(x=>x.id===f.endpoint)?.path : "";
@@ -684,7 +693,7 @@ function postman(){
     return {name:`${e.summary||e.path}`.slice(0,80), request:{method:"GET", header:[...a.extra.filter(x=>x.on).map(x=>({key:x.key, value:x.value})), ...r.headers.filter(h=>h.on&&h.key).map(h=>({key:h.key, value:h.value}))],
       url:{raw:`{{baseUrl}}/${path.join("/")}${qs?"?"+qs:""}`, host:["{{baseUrl}}"], path, ...(query.length?{query}:{}), ...(variable.length?{variable}:{})}, description:`${e.summary}\n\nFields: ${e.fields.map(f=>f.field+" ← "+(f.json_path||"")).join(", ")}${e.docs_url?`\nDocs: ${e.docs_url}`:""}`}};
   });
-  const col = {info:{name:`${S.app} API (Fetch)`, description:`Read-only requests for: ${S.fields.join(", ")}. Made with Fetch. Set apiKey in the collection variables (use a trial key).`, schema:"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+  const col = {info:{name:`${S.app} API (Fetch)`, description:`Read-only requests for: ${fieldsFor().join(", ")}. Made with Fetch. Set apiKey in the collection variables (use a trial key).`, schema:"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
     auth, variable:[{key:"baseUrl", value:(R.base_url||"").replace(/\/+$/,"")},{key:"apiKey", value:"", type:"secret"}, ...(a.type==="basic"?[{key:"username", value:""}]:[])], item};
   saveBlob(new Blob([JSON.stringify(col, null, 2)], {type:"application/json"}), `${slug()}.postman_collection.json`);
   toast("Postman collection downloaded. In Postman: Import, then set apiKey in the collection's Variables.");
@@ -732,14 +741,14 @@ function safetyChecks(files){
   const all = src.map(([,s])=>s).join("\n");
   rows.push({label:"Logs mask tokens and emails", pass:/REDACTED|redact|mask/i.test(all), detail:/REDACTED|redact|mask/i.test(all)?"":"no masking found"});
   rows.push({label:"Handles rate limits (429)", pass:/429|RateLimit|rate.?limit/i.test(all), detail:/429|RateLimit|rate.?limit/i.test(all)?"":"no 429 handling"});
-  const fieldsOk = S.fields.filter(f=>!all.includes(f));
+  const fieldsOk = fieldsFor().filter(f=>!all.includes(f));
   rows.push({label:"Maps every field you asked for", pass:!fieldsOk.length, detail:fieldsOk.slice(0,4).join(", ")});
   return rows;
 }
 async function genCode(){
   busy="gen"; genErr=""; ctl = new AbortController(); prog=0; render();
   const lang = S.lang;
-  const body = p => ({app:S.app, language:lang, result:S.result, fields:S.fields, part:p});
+  const body = p => ({app:S.app, language:lang, result:S.result, fields:fieldsFor(), part:p});
   const half = async p => { try { return await api("/api/generate", body(p), 58000, ctl.signal); } catch(e){ if (e.name==="AbortError" && !ctl?.timedOut) throw e; if (e.status===429) throw e; await sleep(800); return api("/api/generate", body(p), 58000, ctl.signal); } };
   try{
     const [a,b] = await animateWhile(GEN_STEPS.length, Promise.all([half(1), half(2)]));
@@ -751,7 +760,7 @@ async function genCode(){
   }catch(e){ busy=null; if (e.name==="AbortError" && !ctl?.timedOut){ render(); return; } genErr = (e.message||"Code generation failed.")+" Try again."; render(); }
 }
 function readme(lang, names){
-  return `# ${S.app} API client (${LANGS[lang]})\n\nRead-only client generated by Fetch for these fields: ${S.fields.join(", ")}.\n\n## Endpoints\n${S.result.endpoints.map(e=>`- GET ${e.path} — ${e.summary}`).join("\n")}\n\n## Auth\n${authName(S.result.auth||{})}. Put your key in the APP_API_KEY environment variable. Never commit it.\n\n## Run\n\n    ${runHint()}\n\n## Files\n${names.map(n=>"- "+n).join("\n")}\n\nReview the code before using it in production. Base URL: ${S.result.base_url}\n`;
+  return `# ${S.app} API client (${LANGS[lang]})\n\nRead-only client generated by Fetch for these fields: ${fieldsFor().join(", ")}.\n\n## Endpoints\n${S.result.endpoints.map(e=>`- GET ${e.path} — ${e.summary}`).join("\n")}\n\n## Auth\n${authName(S.result.auth||{})}. Put your key in the APP_API_KEY environment variable. Never commit it.\n\n## Run\n\n    ${runHint()}\n\n## Files\n${names.map(n=>"- "+n).join("\n")}\n\nReview the code before using it in production. Base URL: ${S.result.base_url}\n`;
 }
 async function zip(){
   if (!window.JSZip) return toast("Download isn't available right now. Try reloading the page.");
@@ -780,7 +789,7 @@ document.addEventListener("click", ev => {
   const a = t.dataset.act;
   if (a==="home"){ ev.preventDefault(); set({step:1}); }
   else if (a==="reset"){ if (S.app && !confirm("Start over? This clears the current API.")) return; for (const k in RESP) delete RESP[k]; KEY.token=KEY.user=KEY.pass=""; findErr=""; discErr=null; genErr=""; S = blank(); save(); render(); setTimeout(()=>$("#app")?.focus(), 60); }
-  else if (a==="go"){ const s=+t.dataset.s; if (s===3 && !S.result && busy!=="disc") return discover(); set({step:s}); if (s===2) setTimeout(()=>$("#chipIn")?.focus(),80); }
+  else if (a==="go"){ const s=+t.dataset.s; if (s===3 && !S.result && busy!=="disc") return discover(); set({step:s}); }
   else if (a==="pickApp"){ S.app = t.dataset.name; findDocs(); }
   else if (a==="findDocs"){ findDocs(); }
   else if (a==="editDocs"){ set({docsEdit:true}); setTimeout(()=>$("#docsUrl")?.select(), 60); }
@@ -814,8 +823,8 @@ document.addEventListener("click", ev => {
 document.addEventListener("input", ev => {
   const t = ev.target;
   if (t.dataset.in==="app"){ suggHide = false; S.app = t.value; if (S.docsSource){ Object.assign(S, {docsUrl:"", docsSource:"", docsVerified:false, docsEdit:false, docsMode:"link", ...clearBelow()}); findErr=""; save(); render(); return; } save(); suggIdx=-1; suggestions(); const go=$(".combo .go"); if (!go && S.app.trim().length>1) render(); else if (go && S.app.trim().length<2) render(); return; }
-  if (t.dataset.in==="docsUrl"){ S.docsUrl = t.value.trim(); S.docsSource = S.docsSource==="none"?"none":"manual"; S.docsVerified=false; Object.assign(S, clearBelow()); save(); const b=$('[data-act=go][data-s="2"]'); if (b) b.disabled = reach()<2; return; }
-  if (t.dataset.in==="docsText"){ S.docsText = t.value; if (S.step===1) S.docsMode="paste"; Object.assign(S, clearBelow()); save(); const b=$('[data-act=go][data-s="2"]'); if (b) b.disabled = reach()<2; return; }
+  if (t.dataset.in==="docsUrl"){ S.docsUrl = t.value.trim(); S.docsSource = S.docsSource==="none"?"none":"manual"; S.docsVerified=false; Object.assign(S, clearBelow()); save(); const b=$('#goApis'); if (b) b.disabled = reach()<3; return; }
+  if (t.dataset.in==="docsText"){ S.docsText = t.value; if (S.step===1) S.docsMode="paste"; Object.assign(S, clearBelow()); save(); const b=$('#goApis'); if (b) b.disabled = reach()<3; return; }
   if (t.id==="chipIn" && /[,;]/.test(t.value)){ const v=t.value; t.value=""; addFields(v); $("#chipIn")?.focus(); return; }
   if (t.dataset.key){ const was = hasKey(); KEY[t.dataset.key] = t.value; if (was !== hasKey()) render(); return; }
   if (t.dataset.auth && t.tagName!=="SELECT"){ S.auth[t.dataset.auth] = t.value; save(); return; }
@@ -841,14 +850,14 @@ document.addEventListener("keydown", ev => {
     const items = [...document.querySelectorAll("#sugg button")];
     if (ev.key==="ArrowDown" && items.length){ ev.preventDefault(); suggIdx=(suggIdx+1)%items.length; suggestions(); }
     else if (ev.key==="ArrowUp" && items.length){ ev.preventDefault(); suggIdx=(suggIdx-1+items.length)%items.length; suggestions(); }
-    else if (ev.key==="Enter"){ ev.preventDefault(); if (suggIdx>=0 && items[suggIdx]) items[suggIdx].click(); else if (reach()>=2) set({step:2}); else findDocs(); }
+    else if (ev.key==="Enter"){ ev.preventDefault(); if (suggIdx>=0 && items[suggIdx]) items[suggIdx].click(); else if (reach()>=3) discover(); else findDocs(); }
     else if (ev.key==="Escape"){ $("#suggBox").innerHTML=""; }
   }
   if (t.id==="chipIn"){
     if (ev.key==="Enter"){ ev.preventDefault(); if (t.value.trim()){ const v=t.value; t.value=""; addFields(v); $("#chipIn")?.focus(); } else if (S.fields.length) discover(); }
     else if (ev.key==="Backspace" && !t.value && S.fields.length){ set({fields:S.fields.slice(0,-1), staleFields:!!S.result}); $("#chipIn")?.focus(); }
   }
-  if (t.id==="docsUrl" && ev.key==="Enter" && reach()>=2){ ev.preventDefault(); set({docsEdit:false, step:2}); }
+  if (t.id==="docsUrl" && ev.key==="Enter" && reach()>=3){ ev.preventDefault(); S.docsEdit=false; discover(); }
   if ((t.id==="reqUrl" || t.closest?.(".grid") || t.id==="kTok") && ev.key==="Enter"){ ev.preventDefault(); if (t.id==="kTok"){ if (hasKey()) set({view:"req"}); } else { if (t.id==="reqUrl") { const e=curEp(); parseUrlInto(t.value, e, req(e.id)); } send(); } }
   if ((ev.metaKey||ev.ctrlKey) && ev.key==="Enter" && S.step===4){ ev.preventDefault(); send(); }
 });
