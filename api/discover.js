@@ -11,6 +11,21 @@ const SHAPE = `{
  "unknowns": ["things the docs don't state"]
 }`;
 
+function normalise(x) {
+  if (Array.isArray(x)) x = x.find((v) => v && typeof v === "object" && !Array.isArray(v)) || null;
+  if (!x || typeof x !== "object") return null;
+  if (!Array.isArray(x.endpoints)) {
+    const inner = Object.values(x).find((v) => v && typeof v === "object" && !Array.isArray(v) && Array.isArray(v.endpoints));
+    if (inner) x = inner;
+  }
+  if (!Array.isArray(x.endpoints)) {
+    const alt = x.apis || x.endpoint_list || x.requests || (x.endpoint && [].concat(x.endpoint));
+    if (Array.isArray(alt)) x.endpoints = alt;
+    else if (x.endpoints && typeof x.endpoints === "object") x.endpoints = Object.entries(x.endpoints).map(([id, e]) => ({ id, ...e }));
+  }
+  return Array.isArray(x.endpoints) ? x : null;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return send(res, 405, { error: "Use POST" });
   if (rateLimited(req, 30)) return send(res, 429, { error: "You've used this hour's AI runs from this network. Try again in an hour." });
@@ -40,7 +55,7 @@ export default async function handler(req, res) {
     const hits = injectionHits(docs);
     if (hits.length) return send(res, 422, { error: "Stopped: the documentation contains text aimed at the AI (possible prompt injection). Paste a clean copy of the reference instead.", injection: hits });
 
-    const u = await llm(`${RULES}
+    const prompt = `${RULES}
 
 <documentation app="${appName}">
 ${docs.slice(0, 150_000)}
@@ -52,9 +67,17 @@ Paths must be exactly as documented, relative to base_url, with path parameters 
 For auth, describe how a developer gets a key on a free or trial account, in 2 to 4 short steps.
 Reply with ONLY a JSON object of exactly this shape (short strings, no markdown):
 ${SHAPE}
-field_map must have one entry per requested field, in the same order. status: "found" = an endpoint returns it, "plan" = only on some plans, "missing" = the API doesn't offer it (never invent an endpoint).`, { maxOutputTokens: 8192 });
+field_map must have one entry per requested field, in the same order. status: "found" = an endpoint returns it, "plan" = only on some plans, "missing" = the API doesn't offer it (never invent an endpoint).`;
 
-    if (!u || typeof u !== "object" || !Array.isArray(u.endpoints)) return send(res, 502, { error: "The AI's answer was incomplete. Try again." });
+    // The model sometimes wraps the object (in a list, or under one key) or renames "endpoints". Normalise, and ask once more if it's still unusable.
+    let u = null; const t0 = Date.now();
+    for (let attempt = 0; attempt < 2 && !u; attempt++) {
+      if (attempt && Date.now() - t0 > 25000) break; // no time left for a second try inside Vercel's 60s
+      try { u = normalise(await llm(attempt ? prompt + "\nIMPORTANT: reply with one JSON object whose top-level keys are exactly those in the shape above." : prompt, { maxOutputTokens: 8192, budgetMs: attempt ? 20000 : 35000 })); }
+      catch (e) { if (attempt || e.status === 429 || e.status === 503) throw e; }
+      if (!u) console.error("discover: unusable AI answer shape, retrying");
+    }
+    if (!u) return send(res, 502, { error: "The AI couldn't map these fields to endpoints just now. Try again, or paste the docs section for these fields." });
     const str = (v, n = 300) => (v == null ? null : String(v).slice(0, n));
     u.base_url = str(u.base_url, 200) || "UNKNOWN";
     u.auth = u.auth && typeof u.auth === "object" ? u.auth : { type: "bearer" };
