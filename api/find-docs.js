@@ -99,7 +99,7 @@ Reply with ONLY a JSON object, no markdown:
     for (const c of checks) if (aiCands.includes(c.url)) c.score += 2;
     const good = checks.filter((c) => c.ok && (domain || aiCands.includes(c.url) || c.score >= 18)).sort((a, b) => b.score - a.score)[0];
     const body = good
-      ? { app: String(out.app || name).slice(0, 80), docsUrl: good.url, domain, source: "ai", verified: !good.blockedBots && good.score >= 18, title: good.title, alternatives: [...new Set(checks.filter((c) => c.ok && !c.blockedBots && c.score >= 14).sort((a, b) => b.score - a.score).map((c) => c.url.replace(/\/$/, "")))].filter((u) => u !== good.url.replace(/\/$/, "")).slice(0, 3) }
+      ? { app: String(out.app || name).slice(0, 80), docsUrl: good.url, domain: domain || rootOf(new URL(good.url).hostname), source: "ai", verified: !good.blockedBots && good.score >= 18, title: good.title, alternatives: [...new Set(checks.filter((c) => c.ok && !c.blockedBots && c.score >= 14).sort((a, b) => b.score - a.score).map((c) => c.url.replace(/\/$/, "")))].filter((u) => u !== good.url.replace(/\/$/, "")).slice(0, 3) }
       : { app: name, docsUrl: "", source: "ai", verified: false, notFound: true, tried: first };
     cache.set(key, body);
     return send(res, 200, body);
