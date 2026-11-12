@@ -519,13 +519,13 @@ function vTest(){
   const now = !g1 ? 1 : !g3 ? 3 : !g4 ? 4 : 0;
   const a = R.auth||{};
   const guide = [
-    [1, `Get a ${S.auth.type==="none"?"(no key needed)":"trial key"}`, g1, "keyHelp"],
-    [2, "Add it in Auth", g1, "tabAuth"],
+    [1, S.auth.type==="none"?"No key needed":"Get a trial key", g1, "keyHelp"],
+    [2, S.auth.type==="none"?"Nothing to add":"Add it in Auth", g1, "tabAuth"],
     [3, missing?`Fill ${missing} parameter${missing>1?"s":""}`:"Parameters ready", g3, "tabParams"],
     [4, g4?"Got a response":"Send the request", g4, "send"],
   ];
   const nq = r.params.length, nh = r.headers.filter(h=>h.key).length + S.auth.extra.length;
-  return `<div class="head spread" style="align-items:flex-end;margin-bottom:16px"><div><div class="row" style="margin-bottom:12px">${logo(S.app,S.domain,30)}<span class="label">${esc(S.app)} · API tester</span></div><h2>Test it with <em>your own key</em></h2></div>
+  return `<div class="head spread" style="align-items:flex-end;margin-bottom:16px"><div><div class="row" style="margin-bottom:12px">${logo(S.app,S.domain,30)}<span class="label">${esc(S.app)} · API tester</span></div><h2>${S.auth.type==="none"?"Test it <em>live</em>":"Test it with <em>your own key</em>"}</h2></div>
     <div class="row"><button class="btn line sm" data-act="curl">Copy as cURL</button><button class="btn line sm" data-act="postman">Postman collection ↓</button></div></div>
   <div class="tester">
     <aside class="side"><div class="h"><div class="label">Collection</div><div style="font-weight:500;margin-top:2px">${esc(S.app)} API</div></div>
@@ -537,7 +537,7 @@ function vTest(){
       <div class="guide">${guide.map(([n,t,ok,act])=>`<button class="g ${ok?"ok":n===now||(n===2&&now===1)?"now":""}" data-act="${act}"><span class="n">${ok?"✓":n}</span>${esc(t)}</button>`).join("")}</div>
       ${S.view==="auth" ? authPane(a) : `
       <div class="reqbar"><span class="m">GET</span><input class="in" id="reqUrl" spellcheck="false" aria-label="Request URL"><button class="btn blue" data-act="send" ${busy==="send"?"disabled":""}>${busy==="send"?'<span class="spin"></span>Sending':"Send"}</button></div>
-      <div class="tabs"><button class="${S.reqTab==="params"?"on":""}" data-act="reqTab" data-t="params">Params<span class="c">${nq||""}</span></button><button data-act="tabAuth">Auth<span class="c">${g1?"✓":""}</span></button><button class="${S.reqTab==="headers"?"on":""}" data-act="reqTab" data-t="headers">Headers<span class="c">${nh||""}</span></button><span class="sp"></span><span class="small muted" style="align-self:center">${esc(e.summary)}</span></div>
+      <div class="tabs"><button class="${S.reqTab==="params"?"on":""}" data-act="reqTab" data-t="params">Params<span class="c">${nq||""}</span></button><button data-act="tabAuth">Auth<span class="c">${g1?"✓":""}</span></button><button class="${S.reqTab==="headers"?"on":""}" data-act="reqTab" data-t="headers">Headers<span class="c">${nh||""}</span></button><span class="sp"></span><span class="small muted" style="align-self:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:50%">${esc(e.summary)}</span></div>
       <div class="pane">${S.reqTab==="headers" ? headersPane(r) : paramsPane(r)}</div>
       <div class="resp">${respPane(e, res)}</div>`}
     </section>
