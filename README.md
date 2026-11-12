@@ -2,13 +2,13 @@
 
 Live: https://fetch-integration-builder.vercel.app
 
-A developer tool. You already know what you need to build; Fetch gets you from "app name" to a working, tested API call.
+A developer tool: from an app name to a working, tested API call.
 
 1. **App**: type the app's name. Popular apps use a checked docs link; anything else is found with AI web search (Gemini + Google Search), and the link is opened to confirm it loads. You can change it or paste the docs text.
 2. **APIs**: as soon as the docs are found, Fetch shows the read endpoints grouped by module, like the docs. Fields are optional: add them to get the exact endpoints that return them.
    Fetch reads the docs (and related pages on the same site, or an OpenAPI spec) and returns the read-only endpoints that give those fields: path, parameters, where each field sits in the response, scopes, how auth works, how to get a key on a free/trial account, paging and rate limits.
-4. **Test**: a Postman-style tester. Add your trial key once in **Auth** (collection-level), fill the parameters, **Send**. See status, time, size, pretty JSON, headers, and a check of which of your fields came back. Copy as cURL or download a **Postman Collection (v2.1)** to import into Postman.
-5. **Code**: generate a small read-only client in Python, Node.js, Java or Go, checked by 7 safety rules, and download it as a .zip.
+3. **Test**: a Postman-style tester. Add your trial key once in **Auth** (collection-level), fill the parameters, **Send**. See status, time, size, pretty JSON, headers, and a check of which of your fields came back. Copy as cURL or download a **Postman Collection (v2.1)** to import into Postman.
+4. **Code**: generate a small read-only client in Python, Node.js, Java or Go, checked by 7 safety rules, and download it as a .zip.
 
 ## Security model
 
