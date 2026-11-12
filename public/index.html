@@ -937,7 +937,7 @@ document.addEventListener("keydown", ev => {
     const items = [...document.querySelectorAll("#sugg button")];
     if (ev.key==="ArrowDown" && items.length){ ev.preventDefault(); suggIdx=(suggIdx+1)%items.length; suggestions(); }
     else if (ev.key==="ArrowUp" && items.length){ ev.preventDefault(); suggIdx=(suggIdx-1+items.length)%items.length; suggestions(); }
-    else if (ev.key==="Enter"){ ev.preventDefault(); if (suggIdx>=0 && items[suggIdx]) items[suggIdx].click(); else if (docsReady()) load(); else findDocs(); }
+    else if (ev.key==="Enter"){ ev.preventDefault(); if (suggIdx>=0 && items[suggIdx]) items[suggIdx].click(); else if (docsReady()) load(); else if (items[0]?.dataset.name) items[0].click(); else findDocs(); }
     else if (ev.key==="Escape"){ $("#suggBox").innerHTML=""; }
   }
   if (t.id==="customUrl" && ev.key==="Enter"){ ev.preventDefault(); $('[data-act=addCustom]')?.click(); }
