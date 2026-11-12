@@ -353,7 +353,7 @@ function render(){
 /* step 1: app + docs */
 function vApp(){
   const has = S.app && isUrl(S.docsUrl) && !S.docsEdit;
-  const tagFor = S.docsSource==="library" ? `<span class="tag ok">Checked link</span>` : S.docsSource==="ai" ? (S.docsVerified?`<span class="tag blue">Found by AI · opens</span>`:`<span class="tag warn">Found by AI · check it</span>`) : `<span class="tag">Your link</span>`;
+  const tagFor = S.docsSource==="postman" ? (S.docsLinkedBy==="vendor" ? `<span class="tag ok">Postman docs · linked by ${esc(S.app)}</span>` : `<span class="tag warn">Postman docs · check the publisher</span>`) : S.docsSource==="library" ? `<span class="tag ok">Checked link</span>` : S.docsSource==="ai" ? (S.docsVerified?`<span class="tag blue">Found by AI · opens</span>`:`<span class="tag warn">Found by AI · check it</span>`) : `<span class="tag">Your link</span>`;
   let docs = "";
   if (busy==="find") docs = `<div class="searching fade">${logo(S.app,S.domain,30)}<div style="flex:1"><div>Searching the web for the official ${esc(S.app)} API reference…</div><div class="shimmer" style="width:60%;margin-top:8px"></div></div></div>`;
   else if (has) docs = `<div class="found fade">${logo(S.app,S.domain,34)}<div class="t"><div class="small muted">API reference</div><a class="u" href="${esc(S.docsUrl)}" target="_blank" rel="noopener">${esc(S.docsUrl.replace(/^https?:\/\//,""))}</a></div>${tagFor}<button class="link" data-act="editDocs">Change</button></div>${(S.docsAlts||[]).length?`<div class="small muted fade" style="margin-top:8px">Not it? Also found: ${S.docsAlts.map(u=>`<button class="link small" data-act="useAlt" data-u="${esc(u)}" style="margin-left:8px;font-family:var(--mono);font-size:12px">${esc(u.replace(/^https?:\/\//,""))}</button>`).join("")}</div>`:""}`;
@@ -392,12 +392,17 @@ async function findDocs(){
   findErr = ""; suggHide = true; $("#suggBox") && ($("#suggBox").innerHTML="");
   const k = KNOWN.find(a=>a.name.toLowerCase()===name.toLowerCase());
   const refocus = () => setTimeout(()=>{ const el=$("#app"); if (el && S.step===1){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 30);
-  if (k){ set({app:k.name, domain:k.domain, docsUrl:k.docs, docsSource:"library", docsVerified:true, docsAlts:[], docsEdit:false, docsMode:"link", ...clearBelow()}); return refocus(); }
+  if (k){
+    set({app:k.name, domain:k.domain, docsUrl:k.docs, docsSource:"library", docsVerified:true, docsAlts:[], docsEdit:false, docsMode:"link", ...clearBelow()}); refocus();
+    // In the background, check whether the vendor links to Postman docs; if so, prefer them.
+    api("/api/find-docs", {app:k.name}, 20000).then(out=>{ if (out.source==="postman" && S.app===k.name && S.docsSource==="library" && !S.result && busy!=="disc"){ set({docsUrl:out.docsUrl, docsSource:"postman", docsLinkedBy:out.linkedBy, docsAlts:out.alternatives||[k.docs]}); refocus(); } }).catch(()=>{});
+    return;
+  }
   busy="find"; render();
   try{
     const out = await api("/api/find-docs", {app:name}, 30000);
     busy=null; refocus();
-    if (out.docsUrl) set({app:out.app||name, domain:out.domain||"", docsUrl:out.docsUrl, docsSource:"ai", docsVerified:!!out.verified, docsAlts:(out.alternatives||[]).filter(u=>u!==out.docsUrl).slice(0,3), docsEdit:false, docsMode:"link", ...clearBelow()});
+    if (out.docsUrl) set({app:out.app||name, domain:out.domain||"", docsUrl:out.docsUrl, docsSource:out.source==="postman"?"postman":"ai", docsLinkedBy:out.linkedBy||"", docsVerified:!!out.verified, docsAlts:(out.alternatives||[]).filter(u=>u!==out.docsUrl).slice(0,3), docsEdit:false, docsMode:"link", ...clearBelow()});
     else { findErr = `We couldn't find a public API reference for “${name}”. Paste the docs link or text below.`; set({docsSource:"none", docsEdit:true, docsUrl:"", ...clearBelow()}); }
   }catch(e){ busy=null; findErr = (e.message||"The search failed.")+" Paste the docs link instead."; set({docsSource:"none", docsEdit:true, ...clearBelow()}); }
 }
