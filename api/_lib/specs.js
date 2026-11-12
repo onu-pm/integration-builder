@@ -58,11 +58,14 @@ export async function loadPostman(viewUrl) {
   })(col.item, "");
   const raws = flat.map(({ it }) => sub(typeof it.request.url === "string" ? it.request.url : it.request.url?.raw || ""));
   // Base URL: the longest common origin + path prefix of absolute URLs.
-  const abs = raws.filter((u) => /^https?:\/\//.test(u)).map((u) => u.split("?")[0]);
+  const abs0 = raws.filter((u) => /^https?:\/\//.test(u)).map((u) => u.split("?")[0]);
+  const counts = {}; for (const u of abs0) { try { const o = new URL(u).origin; counts[o] = (counts[o] || 0) + 1; } catch {} }
+  const topOrigin = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+  const abs = abs0.filter((u) => topOrigin && u.startsWith(topOrigin));
   let base = "";
   if (abs.length) {
-    const o = new URL(abs[0]).origin;
-    if (abs.every((u) => u.startsWith(o))) {
+    const o = topOrigin;
+    {
       const parts = abs.map((u) => new URL(u).pathname.split("/"));
       let i = 0; while (parts.every((p) => p[i] !== undefined && p[i] === parts[0][i] && !/^[:{]/.test(p[i])) && i < 4) i++;
       base = o + parts[0].slice(0, Math.max(1, Math.min(i, parts[0].length - 1))).join("/");
@@ -70,7 +73,14 @@ export async function loadPostman(viewUrl) {
   }
   base = base.replace(/\/+$/, "");
   const modOf = moduleFromPath(raws.map((u) => (base && u.startsWith(base) ? u.slice(base.length) : u.replace(/^https?:\/\/[^/]+/, ""))));
-  let auth = authFromPostman(col.auth, vars);
+  // Auth: the collection's, else the most common auth across requests (ignoring "no auth" health checks).
+  let auth = col.auth && col.auth.type !== "noauth" ? authFromPostman(col.auth, vars) : null;
+  if (!auth) {
+    const tally = {};
+    for (const { it } of flat) { const a = it.request?.auth; if (a && a.type && a.type !== "noauth") { const k = JSON.stringify(authFromPostman(a, vars)); tally[k] = (tally[k] || 0) + 1; } }
+    const best = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
+    auth = best ? JSON.parse(best[0]) : col.auth?.type === "noauth" || flat.every(({ it }) => it.request?.auth?.type === "noauth") ? { type: "none" } : null;
+  }
   const endpoints = flat.map(({ folder, it }, i) => {
     const req = it.request, method = String(req.method || "GET").toUpperCase();
     const raw = raws[i];
@@ -83,7 +93,6 @@ export async function loadPostman(viewUrl) {
     const body = req.body?.mode === "raw" && req.body.raw ? { type: req.body.options?.raw?.language === "json" || /^\s*[{[]/.test(req.body.raw) ? "json" : "text", example: String(req.body.raw).slice(0, 8000) }
       : req.body?.mode === "urlencoded" ? { type: "form", example: (req.body.urlencoded || []).map((p) => `${p.key}=${p.value || ""}`).join("&") } : null;
     const ex = (it.response || []).find((x) => x.code >= 200 && x.code < 300) || (it.response || [])[0];
-    if (!auth && req.auth) auth = authFromPostman(req.auth, vars);
     return {
       id: slugId(it.name, i), module: folder || modOf(i), method: METHODS.includes(method) ? method : "GET", path, summary: String(it.name || path).slice(0, 140),
       description: strip(req.description), params, headers, body,
@@ -91,7 +100,8 @@ export async function loadPostman(viewUrl) {
       docs_url: viewUrl.split("#")[0], detailed: true,
     };
   });
-  return { base_url: base || "UNKNOWN", auth: auth || { type: "bearer", header: "Authorization", prefix: "Bearer " }, modules: groupModules(endpoints), source: "postman", title: col.info?.name || "", total: endpoints.length };
+  const folders = flat.some(({ folder }) => folder);
+  return { base_url: base || "UNKNOWN", auth: auth || { type: "bearer", header: "Authorization", prefix: "Bearer " }, modules: groupModules(endpoints), source: "postman", title: col.info?.name || "", total: endpoints.length, grouped: folders ? "folders" : "path", description: strip(col.info?.description, 3000) };
 }
 
 // OpenAPI 3 / Swagger 2 in JSON.

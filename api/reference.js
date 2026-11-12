@@ -9,14 +9,16 @@ const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"];
 
 const AUTH_SHAPE = `{"type": "bearer | api_key_header | api_key_query | basic | oauth2 | none", "header": "header name or null", "prefix": "e.g. 'Bearer ' or ''", "query_param": "name or null", "token_name": "what the docs call the key", "get_key_steps": ["short steps to get a key from a free, trial, sandbox or test account"], "key_page_url": "https://... or null", "free_tier": "one line on sandbox/trial access, or UNKNOWN", "extra_headers": [{"name": "...", "value": "...", "why": "..."}]}`;
 
-async function authHelp(app, text) {
+async function authHelp(app, text, eps) {
+  const list = (eps || []).slice(0, 200).map((e) => `${e.id} | ${e.method} ${e.path} | ${e.summary}`).join("\n");
   try {
     const out = await llm(`${RULES}
 <documentation app="${app}">
 ${text.slice(0, 60_000)}
 </documentation>
 How does a developer authenticate with the ${app} API, and how do they get a key or token from a sandbox, test, trial or free account? Is there a separate sandbox/test base URL?
-Reply with ONLY JSON: {"auth": ${AUTH_SHAPE}, "sandbox_base_url": "https://... or null"}`, { maxOutputTokens: 2048, budgetMs: 15000 });
+${list ? `These endpoints have no module grouping. Group them into 3 to 10 modules named like API docs sections (e.g. Tests, Candidates, Invites, Organization):\n${list}\n` : ""}
+Reply with ONLY JSON: {"auth": ${AUTH_SHAPE}, "sandbox_base_url": "https://... or null"${list ? `, "modules": {"<endpoint id>": "Module name"}` : ""}}`, { maxOutputTokens: list ? 6144 : 2048, budgetMs: 20000 });
     return out && typeof out === "object" ? out : {};
   } catch { return {}; }
 }
@@ -75,8 +77,15 @@ export default async function handler(req, res) {
     }
     if (R) {
       docsForAuth = JSON.stringify({ title: R.title, base_url: R.base_url, auth: R.auth, sample: R.modules.slice(0, 3).map((m) => m.endpoints.slice(0, 2).map((e) => [e.method, e.path, e.description])) });
-      const help = await authHelp(appName, docsForAuth + "\n" + (docs || ""));
-      R.auth = { ...(help.auth || {}), ...R.auth, get_key_steps: help.auth?.get_key_steps || [], key_page_url: help.auth?.key_page_url || null, free_tier: help.auth?.free_tier || "UNKNOWN", extra_headers: help.auth?.extra_headers || [] };
+      const help = await authHelp(appName, (R.description ? R.description + "\n" : "") + docsForAuth + "\n" + (docs || ""), R.grouped === "path" ? R.modules.flatMap((m) => m.endpoints) : null);
+      if (R.grouped === "path" && help.modules && typeof help.modules === "object") {
+        const map = new Map();
+        for (const e of R.modules.flatMap((m) => m.endpoints)) { const name = String(help.modules[e.id] || e.module).slice(0, 60); e.module = name; if (!map.has(name)) map.set(name, []); map.get(name).push(e); }
+        R.modules = [...map.entries()].map(([name, endpoints]) => ({ name, endpoints }));
+      }
+      const keep = (v) => v && v !== "UNKNOWN";
+      R.auth = { ...(help.auth || {}), ...R.auth, token_name: help.auth?.token_name || null, get_key_steps: (help.auth?.get_key_steps || []).filter(keep), key_page_url: /^https:/.test(help.auth?.key_page_url || "") ? help.auth.key_page_url : null, free_tier: help.auth?.free_tier || "UNKNOWN", extra_headers: (help.auth?.extra_headers || []).filter((h) => h && h.name && !/^(authorization|x-api-key|content-type|accept)$/i.test(h.name)) };
+      delete R.description;
       R.sandbox_base_url = /^https:\/\//.test(help.sandbox_base_url || "") ? help.sandbox_base_url : null;
       R.complete = true;
     } else {
